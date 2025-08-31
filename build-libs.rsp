@@ -1,0 +1,1 @@
+Gdi32.lib User32.lib Winmm.lib Ole32.lib /INCREMENTAL:NO /DEBUG:FULL

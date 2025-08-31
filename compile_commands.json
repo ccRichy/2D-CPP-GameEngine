@@ -1,0 +1,7 @@
+[
+    {
+        "directory": "w:/hmh",
+        "command": "cl @w:/hmh/build-flags.rsp w:/hmh/code/win32_hmh.cpp",
+        "file": "w:/hmh/code/win32_hmh.cpp"
+    }
+]
