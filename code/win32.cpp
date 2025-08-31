@@ -15,20 +15,35 @@ X_INPUT_SET_STATE(XInputSetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
 globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
-struct Win32_Game_Code
+
+
+internal FILETIME
+win32_file_get_write_time(const char* filename)
 {
-    HMODULE game_dll;
-    Game_Update_And_Draw* update_and_draw;
-    Game_Input_Change_Device* input_change_device;
+    FILETIME time = {};
 
-    bool32 is_valid;
-};
+    WIN32_FIND_DATA find_data;
+    HANDLE find_handle = FindFirstFileA(filename, &find_data);
+    if (find_handle != INVALID_HANDLE_VALUE)
+    {
+        time = find_data.ftLastWriteTime;
+        FindClose(find_handle);
+    }
 
+    return time;
+}
 
 internal Win32_Game_Code
 win32_load_game_code()
 {
-    CopyFile("../build/game.dll", "../build/game_temp.dll", FALSE);
+    TCHAR szFileName[MAX_PATH];
+    DWORD dir_char_length = GetModuleFileName(0, szFileName, MAX_PATH);
+
+    const char* dll_dir = "../build/game.dll";
+    const char* dll_dir_temp = "../build/game_temp.dll";
+    
+    CopyFile(dll_dir, dll_dir_temp, FALSE);
+
     Win32_Game_Code result = {};
     result.update_and_draw = Game_Update_And_Draw_Stub;
     result.input_change_device = Game_Input_Change_Device_Stub;

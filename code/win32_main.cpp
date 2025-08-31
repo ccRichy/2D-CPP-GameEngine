@@ -23,7 +23,7 @@ BYTE buffers[MAX_BUFFER_COUNT][STREAMING_BUFFER_SIZE];
 
 
 //TODO: global for now
-globalvar bool32 Global_Running;
+globalvar bool32 Global_Running = true;
 globalvar Win32_Render_Buffer Global_Render_Buffer;
 globalvar int64 global_perf_cpu_ticks_per_second;
 
@@ -69,13 +69,70 @@ LRESULT CALLBACK win32_main_window_callback(HWND window, UINT message, WPARAM wp
 }
 
 
+internal void
+win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
+{
+    MSG message;
+    while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
+    {
+        switch(message.message)
+        {
+            case WM_QUIT:{
+                Global_Running = false;
+            }break;
+                            
+            case WM_SYSKEYDOWN:
+            case WM_SYSKEYUP:
+            case WM_KEYDOWN:
+            case WM_KEYUP:{
+                //TODO: more robust swapping between input devices
+                if (game_input_device != Game_Input_Device::keyboard_mouse)
+                    game_code->input_change_device(Game_Input_Device::keyboard_mouse, game_input_map);
+            
+                uint32 vk_code = (uint32)message.wParam;
+
+                Game_Input_Map* _in = game_input_map;
+                bool32 is_down = ((message.lParam & (1 << 31)) == 0);
+                bool32 was_down = ((message.lParam & (1 << 30)) != 0);
+            
+                if (was_down != is_down)
+                {
+                    if (vk_code == 'W') _in->up.hold = is_down;
+                    else if (vk_code == 'S') _in->down.hold = is_down;
+                    else if (vk_code == 'A') _in->left.hold = is_down;
+                    else if (vk_code == 'D') _in->right.hold = is_down;
+                    //else if (vk_code == VK_SPACE) 
+                    //else if (vk_code == VK_CONTROL)
+                    //else if (vk_code == VK_SHIFT)
+                    //else if (vk_code == VK_MENU) //alt
+                    //else if (vk_code == VK_RETURN)
+                                    
+
+                    //alt f4
+                    bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
+                    if (alt_hold && vk_code == VK_F4)
+                        Global_Running = false;
+                    if (vk_code == VK_ESCAPE)
+                        Global_Running = false;
+                }
+            }break;
+
+            default:{
+                TranslateMessage(&message);
+                DispatchMessageA(&message);                                
+            }break;
+        }
+                    
+    }
+
+}
+
+
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
     //init data
-    Win32_Game_Code game_code = win32_load_game_code();
     win32_load_xinput();
-
 
     int monitor_refresh = 60;
     #define game_refresh 30
@@ -145,62 +202,21 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             
             if (game_memory.permanent_storage && game_memory.transient_storage)
             {
-                Global_Running = true;
+
+                const char* dll_filename = "../build/game.dll";
+                Win32_Game_Code game_code = win32_load_game_code();
+                game_code.game_dll_last_write_time = win32_file_get_write_time(dll_filename);
+                
                 while(Global_Running)
                 {
-                    MSG message;
-                    while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
+                    //reload game code
+                    FILETIME filetime = win32_file_get_write_time(dll_filename);
+                    if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
                     {
-                        switch(message.message)
-                        {
-                            case WM_QUIT:{
-                                Global_Running = false;
-                            }break;
-                            
-                            case WM_SYSKEYDOWN:
-                            case WM_SYSKEYUP:
-                            case WM_KEYDOWN:
-                            case WM_KEYUP:{
-                                //TODO: more robust swapping between input devices
-                                if (game_input_device != Game_Input_Device::keyboard_mouse)
-                                    game_code.input_change_device(Game_Input_Device::keyboard_mouse, &game_input_map);
-            
-                                uint32 vk_code = (uint32)message.wParam;
-
-                                Game_Input_Map* _in = &game_input_map;
-                                bool32 is_down = ((message.lParam & (1 << 31)) == 0);
-                                bool32 was_down = ((message.lParam & (1 << 30)) != 0);
-            
-                                if (was_down != is_down)
-                                {
-                                    if (vk_code == 'W') _in->up.hold = is_down;
-                                    else if (vk_code == 'S') _in->down.hold = is_down;
-                                    else if (vk_code == 'A') _in->left.hold = is_down;
-                                    else if (vk_code == 'D') _in->right.hold = is_down;
-                                    //else if (vk_code == VK_SPACE) 
-                                    //else if (vk_code == VK_CONTROL)
-                                    //else if (vk_code == VK_SHIFT)
-                                    //else if (vk_code == VK_MENU) //alt
-                                    //else if (vk_code == VK_RETURN)
-                                    
-
-                                    //alt f4
-                                    bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
-                                    if (alt_hold && vk_code == VK_F4)
-                                        Global_Running = false;
-                                    if (vk_code == VK_ESCAPE)
-                                        Global_Running = false;
-                                }
-                            }break;
-
-                            default:{
-                                TranslateMessage(&message);
-                                DispatchMessageA(&message);                                
-                            }break;
-                        }
-                    
+                        win32_reload_game_code(game_code);
                     }
-
+                    
+                    //CONTROLLER
                     for (DWORD ctrl_index = 0; ctrl_index < XUSER_MAX_COUNT; ctrl_index++ )
                     {
                         XINPUT_STATE ctrl_state;
@@ -280,7 +296,10 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                             // Controller is not connected
                         }
                     }
-                
+
+                    //KEYBOARD
+                    win32_process_pending_messages(&game_code, &game_input_map);
+                    
                     Game_Offscreen_Buffer render_buffer;
                     render_buffer.memory = Global_Render_Buffer.memory;
                     render_buffer.width  = Global_Render_Buffer.width;
@@ -303,26 +322,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
                     win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
 
-
-                    //SOUND STREAMING TEST
-                    //XAUDIO2_BUFFER buffer = {};
-                    //DWORD bytesRead = fread(buffers[currentBufferIndex], 1, SND_BUFFER_SIZE, snd_file_handle);
-                    //if (bytesRead > 0) {
-                    //    buffer.AudioBytes = bytesRead;
-                    //    buffer.pAudioData = buffers[currentBufferIndex];
-                    //    buffer.pContext = &buffers[currentBufferIndex];
-
-                    //    src_voice->SubmitSourceBuffer(&buffer);
-                    //    bufferInUse[currentBufferIndex] = true;
-
-                    //    currentBufferIndex = (currentBufferIndex + 1) % NUM_BUFFERS;
-                    //} else {
-                    //    // End of file
-                    //    src_voice->Discontinuity();
-                    //}                    
-                    //SOUND STREAMING TEST
-
-                    
 #if 0
                     char buffer[256];
                     float32 kilocycles_per_frame = (float32)perf_cycles_this_frame / 1000.0f;

@@ -2,3 +2,4 @@
 /.cache
 /build
 *.wav
+data/test.txt

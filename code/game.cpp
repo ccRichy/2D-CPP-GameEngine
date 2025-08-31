@@ -17,7 +17,7 @@ render_weird_gradient(Game_Offscreen_Buffer* buffer, int blue_offset, int green_
         uint8* pixel = (uint8*)row; //reference to individal pixel 0xBBGRRXX //endian
         for (int X = 0; X < buffer->width; ++X)
         {
-            *pixel = (uint8)(X + blue_offset);
+            *pixel = (uint8)(X%2 + blue_offset);
             pixel++;
 
             *pixel = (uint8)(Y + green_offset);
