@@ -106,6 +106,8 @@ struct Game_Input_Button
 
 struct Game_Input_Map
 {
+    Game_Input_Device game_input_device;
+    
     Vec2 l_axes;
     Vec2 r_axes;
     
@@ -124,17 +126,14 @@ struct Game_Input_Map
 };
 
 
+
 #define GAME_UPDATE_AND_DRAW(name) void name(Game_Memory* game_memory, Game_Input_Map input_map, Game_Offscreen_Buffer* render_buffer)
 typedef GAME_UPDATE_AND_DRAW(Game_Update_And_Draw);
 GAME_UPDATE_AND_DRAW(Game_Update_And_Draw_Stub) {}
 
-#define GAME_INPUT_CHANGE_DEVICE(name) void name(Game_Input_Device input_device, Game_Input_Map* input_map)
+#define GAME_INPUT_CHANGE_DEVICE(name) void name(Game_Input_Device input_device_target, Game_Input_Map* input_map)
 typedef GAME_INPUT_CHANGE_DEVICE(Game_Input_Change_Device);
 GAME_INPUT_CHANGE_DEVICE(Game_Input_Change_Device_Stub) {}
-
-
-
-globalvar Game_Input_Device game_input_device = Game_Input_Device::keyboard_mouse;
 
 
 //internal void sound_output(Game_Sound_Buffer* sound_buffer, int hz);

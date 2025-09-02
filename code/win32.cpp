@@ -1,6 +1,7 @@
 #include "win32.h"
 #include "array_functions.h"
 #include "game.h"
+#include "my_string.h"
 
 //XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
@@ -14,6 +15,10 @@ typedef X_INPUT_SET_STATE(x_input_set_state);
 X_INPUT_SET_STATE(XInputSetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
 globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
+
+
+
+
 
 
 
@@ -33,22 +38,76 @@ win32_file_get_write_time(const char* filename)
     return time;
 }
 
-internal Win32_Game_Code
-win32_load_game_code()
+internal bool32
+win32_exe_path(char* buffer, bool32 include_filename)
 {
-    TCHAR szFileName[MAX_PATH];
-    DWORD dir_char_length = GetModuleFileName(0, szFileName, MAX_PATH);
-
-    const char* dll_dir = "../build/game.dll";
-    const char* dll_dir_temp = "../build/game_temp.dll";
+    bool32 Result = true;
     
-    CopyFile(dll_dir, dll_dir_temp, FALSE);
+    //walks backwards from the path_len to the first '\\' and starts writing into buffer
+    TCHAR exe_path[MAX_PATH]; //get full path
+    DWORD path_len = GetModuleFileName(0, exe_path, MAX_PATH);
+    if (ERROR_INSUFFICIENT_BUFFER == path_len || 0 == path_len)
+        Result = false;
+        
+    char* one_after_last_slash = exe_path;
+    bool32 can_start_writing = false;
+    for (int char_i = path_len; char_i >= 0; --char_i)
+    {
+        if (can_start_writing || include_filename)
+        {
+            buffer[char_i] = exe_path[char_i];
+            if (char_i == 0) break;
+        }
+        else if (exe_path[char_i] == '\\')
+        {
+            buffer[char_i] = '\\';
+            buffer[char_i+1] = 0;
+            can_start_writing = true;
+        }
+    }
 
+    return Result;
+}
+
+internal bool32
+win32_delete_file_with_wildcard(LPCSTR file_path)
+{
+    bool32 Result = true;
+    
+    WIN32_FIND_DATA fd;
+    HANDLE hFind = FindFirstFileA(file_path, &fd);
+    if (hFind != INVALID_HANDLE_VALUE)
+    {
+        char buffer[256];
+        if (win32_exe_path(buffer, false))
+        {
+            do
+            {
+                char buffer2[256];
+                string_cat(buffer2, buffer, fd.cFileName);
+                DeleteFileA(buffer2);
+            } while (FindNextFileA(hFind, &fd));
+            FindClose(hFind);
+        }
+        else Result = false;
+    }
+    else Result = false;
+
+    return Result;
+}
+
+
+
+internal Win32_Game_Code
+win32_load_game_code(char* dll_path, char* dll_temp_path)
+{
     Win32_Game_Code result = {};
     result.update_and_draw = Game_Update_And_Draw_Stub;
     result.input_change_device = Game_Input_Change_Device_Stub;
-    
-    result.game_dll = LoadLibraryA("game_temp.dll");
+
+    result.game_dll_last_write_time = win32_file_get_write_time(dll_path);
+    CopyFile(dll_path, dll_temp_path, FALSE);
+    result.game_dll = LoadLibraryA(dll_temp_path);
     if (result.game_dll)
     {
         result.update_and_draw = (Game_Update_And_Draw*)GetProcAddress(result.game_dll, "game_update_and_draw");
@@ -75,10 +134,10 @@ win32_unload_game_code(Win32_Game_Code* game_code)
 }
 
 internal void
-win32_reload_game_code(Win32_Game_Code& game_code)
+win32_reload_game_code(Win32_Game_Code& game_code, char* dll_path, char* dll_temp_path)
 {
     win32_unload_game_code(&game_code);
-    game_code = win32_load_game_code();
+    game_code = win32_load_game_code(dll_path, dll_temp_path);
 }
 
 
@@ -170,7 +229,7 @@ DEBUG_platform_file_write_entire(const char* name, uint32 memory_size, void* mem
 
 
 
-internal void
+internal Win32_Init_Error
 win32_load_xinput()
 {    
     HMODULE xinput_library = LoadLibrary("xinput1_4.dll");
@@ -190,12 +249,161 @@ win32_load_xinput()
         XInputGetState = (x_input_get_state*)GetProcAddress(xinput_library, "XInputGetState");
         XInputSetState = (x_input_set_state*)GetProcAddress(xinput_library, "XInputSetState");
         //TODO: Diagnostic
+        return Win32_Init_Error::SUCCESS_NO_ERROR;
     }
+    else
+        return Win32_Init_Error::XINPUT_FAILED_TO_INIT;
 }
 
 float32 win32_xinput_stick_max(SHORT stick_value)
 {
     return (stick_value > 0 ? 32767.0f : 32768.0f);
+}
+
+
+internal void
+win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
+{
+    //CONTROLLER
+    for (DWORD ctrl_index = 0; ctrl_index < XUSER_MAX_COUNT; ctrl_index++ )
+    {
+        XINPUT_STATE ctrl_state;
+        ZeroMemory( &ctrl_state, sizeof(XINPUT_STATE) );
+                    
+        if( XInputGetState( ctrl_index, &ctrl_state ) == ERROR_SUCCESS )
+        {
+            XINPUT_GAMEPAD* pad = &ctrl_state.Gamepad;
+
+            bool32 ButtonStart = (pad->wButtons & XINPUT_GAMEPAD_START) > 0;
+            bool32 ButtonBack =  (pad->wButtons & XINPUT_GAMEPAD_BACK) > 0;
+
+            bool32 dpad_u = (pad->wButtons & XINPUT_GAMEPAD_DPAD_UP) > 0;
+            bool32 dpad_d = (pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN) > 0;
+            bool32 dpad_l = (pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT) > 0;
+            bool32 dpad_r = (pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) > 0;
+
+            bool32 a_button = (pad->wButtons & XINPUT_GAMEPAD_A) > 0;
+            bool32 b_button = (pad->wButtons & XINPUT_GAMEPAD_B) > 0;
+            bool32 x_button = (pad->wButtons & XINPUT_GAMEPAD_X) > 0;
+            bool32 y_button = (pad->wButtons & XINPUT_GAMEPAD_Y) > 0;
+
+            bool32 lstick_click = (pad->wButtons & XINPUT_GAMEPAD_LEFT_THUMB) > 0;
+            bool32 rstick_click = (pad->wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) > 0;
+                            
+            bool32 l_button = (pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) > 0;
+            bool32 r_button = (pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) > 0;
+            int8 l_trig =  pad->bLeftTrigger;
+            int8 r_trig =  pad->bRightTrigger;
+
+            SHORT deadzone_l = XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE;
+            SHORT deadzone_r = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
+                            
+            //input device state
+            if ((game_input_map->game_input_device != Game_Input_Device::controller) &&
+                (pad->wButtons ||
+                 abs_i(pad->sThumbLX) > deadzone_l*3 || abs_i(pad->sThumbLY) > deadzone_l*3 ||
+                 abs_i(pad->sThumbRX) > deadzone_l*3 || abs_i(pad->sThumbLY) > deadzone_l*3 ||
+                 l_trig > 100 || r_trig > 100))
+            {
+                game_code->input_change_device(Game_Input_Device::controller, game_input_map);
+            }
+
+            //send out inputs
+            //TODO: abstration layer for rebinding
+            if (game_input_map->game_input_device == Game_Input_Device::controller)
+            {
+                Game_Input_Map* _in = game_input_map;
+
+                float32 lstickx = 0;
+                if (abs(pad->sThumbLX) > deadzone_l)
+                    lstickx = (float32)pad->sThumbLX;
+                if (lstickx > 0)
+                    lstickx = map_value(lstickx, { (float32)deadzone_l, 32767 }, {0, 1});
+                else if (lstickx < 0)
+                    lstickx = map_value(lstickx, { -32768, (float32)-deadzone_l }, {-1, 0});
+
+                float32 lsticky = 0;
+                if (abs(pad->sThumbLY) > deadzone_l)
+                    lsticky = (float32)pad->sThumbLY;
+                if (lsticky > 0)
+                    lsticky = map_value(lsticky, { (float32)deadzone_l, 32767 }, {0, 1});
+                else if (lsticky < 0)
+                    lsticky = map_value(lsticky, { -32768, (float32)-deadzone_l }, {-1, 0});
+                //axes
+                _in->l_axes = {lstickx, lsticky};
+                            
+                //buttons
+                _in->up.hold = dpad_u;
+                _in->down.hold = dpad_d;
+                _in->left.hold = dpad_l;
+                _in->right.hold = dpad_r;
+            }
+        }
+        else
+        {
+            // Controller is not connected
+            //TODO: handle controller disconnection
+        }
+    }
+    
+}
+
+
+internal void
+win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_input_map, bool32* global_is_running)
+{
+    MSG message;
+    while(PeekMessage(&message, 0, 0, 0, PM_REMOVE))
+    {
+        switch(message.message)
+        {
+            case WM_QUIT:{
+                *global_is_running = false;
+            }break;
+                            
+            case WM_SYSKEYDOWN:
+            case WM_SYSKEYUP:
+            case WM_KEYDOWN:
+            case WM_KEYUP:{
+                if (game_input_map->game_input_device != Game_Input_Device::keyboard_mouse)
+                    game_code->input_change_device(Game_Input_Device::keyboard_mouse, game_input_map);
+            
+                uint32 vk_code = (uint32)message.wParam;
+
+                Game_Input_Map* _in = game_input_map;
+                bool32 is_down = ((message.lParam & (1 << 31)) == 0);
+                bool32 was_down = ((message.lParam & (1 << 30)) != 0);
+            
+                if (was_down != is_down)
+                {
+                    if (vk_code == 'W') _in->up.hold = is_down;
+                    else if (vk_code == 'S') _in->down.hold = is_down;
+                    else if (vk_code == 'A') _in->left.hold = is_down;
+                    else if (vk_code == 'D') _in->right.hold = is_down;
+                    //else if (vk_code == VK_SPACE) 
+                    //else if (vk_code == VK_CONTROL)
+                    //else if (vk_code == VK_SHIFT)
+                    //else if (vk_code == VK_MENU) //alt
+                    //else if (vk_code == VK_RETURN)
+                                    
+
+                    //alt f4
+                    bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
+                    if (alt_hold && vk_code == VK_F4)
+                        *global_is_running = false;
+                    if (vk_code == VK_ESCAPE)
+                        *global_is_running = false;
+                }
+            }break;
+
+            default:{
+                TranslateMessage(&message);
+                DispatchMessageA(&message);                                
+            }break;
+        }
+                    
+    }
+
 }
 
 

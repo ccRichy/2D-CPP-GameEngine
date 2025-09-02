@@ -5,6 +5,14 @@
 #include "my_types_keywords.h"
 #include "game.h"
 
+
+enum struct Win32_Init_Error
+{
+    SUCCESS_NO_ERROR,
+    XINPUT_FAILED_TO_INIT
+};
+
+
 struct Win32_Client_Dimensions
 {
     int width;

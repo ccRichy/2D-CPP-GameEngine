@@ -2,7 +2,7 @@
 #include "my_types_keywords.h"
 #include "my_math.h"
 #include "array_functions.h"
-
+#include "my_string.h"
 
 
 
@@ -38,8 +38,8 @@ render_weird_gradient(Game_Offscreen_Buffer* buffer, int blue_offset, int green_
 
 extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
 {
-    game_input_device = input_device;
     *input_map = {};
+    input_map->game_input_device = input_device_target;
 }
 
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
@@ -47,8 +47,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_State* game_state = (Game_State*)game_memory->permanent_storage;
     if (!game_memory->is_initalized)
     {
-#if 0
-        //file test
+#if 0 //file test
         DEBUG_File file = game_memory->DEBUG_platform_file_read_entire(__FILE__);
         if (file.memory)
         {
@@ -56,7 +55,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             game_memory->DEBUG_platform_file_free_memory(file.memory);
         }
 #endif
-
+        
         //error check
         Assert(
             (&input_map.bottom_button - &input_map.buttons[0]) ==
