@@ -1,10 +1,10 @@
 //
 #include <math.h>
-#include "array_functions.h"
-#include "my_types_keywords.h"
 
+#include "my_types_constants.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
+#include "render.h"
 #include "game.h"
 
 #include <stdio.h>
@@ -15,21 +15,64 @@
 #include "win32_xaudio.cpp"
 
 
+/*TODO:
+  - Logging to file
+  - Fix game dll double loading bug
+*/
 
-//TODO: global for now
-globalvar bool32 Global_Running = true;
+//NOTE: variables here only get used in THIS file
 globalvar Win32_Render_Buffer Global_Render_Buffer;
-globalvar int64 global_perf_cpu_ticks_per_second;
+globalvar bool32 Global_Running = true;
+
+globalvar bool32 Global_BGMode_Enabled = false;
+globalvar bool32 Global_BGMode_TransOutOfFocus = true;
+
+//TODO:  THIS SHIT
+globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
+//BUG: something is preventing the game dll from loading in without this
+//Upon game dll compilation, we load it into the game by checking its time vs our stored time.
+//For some reason it still gets loaded twice (even with this hack), however-
+//the 1 frame delay that this bool creates, prevents it from failing (for whatever reason)
 
 
-//casdaisdnajiasin
-LRESULT CALLBACK win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
+LRESULT CALLBACK
+win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
     LRESULT Result = 0;
     
     switch (message)
     {
+        case WM_ACTIVATEAPP:{
+            if (!wparam) //out of focus
+            {
+                //BGMODE
+                if (Global_BGMode_Enabled)
+                {
+                    if (Global_BGMode_TransOutOfFocus)
+                        window_set_trans(window, true);
+                }
+                else
+                {
+                    window_set_trans(window, false);
+                }
+
+                OutputDebugStringA("(WM_ACTIVATEAPP): lost focus\n");
+            }
+            else
+            {
+                //BGMODE
+                if (Global_BGMode_Enabled)
+                {
+                    window_set_trans(window, false);
+                }
+
+                OutputDebugStringA("(WM_ACTIVATEAPP): in focus\n");
+                // else window_trans_enable(window, false);
+            }
+        }break;
+
         case WM_SIZE:{
+            // OutputDebugStringA("(WM_SIZE)");
         }break;
 
         case WM_DESTROY:{
@@ -41,17 +84,14 @@ LRESULT CALLBACK win32_main_window_callback(HWND window, UINT message, WPARAM wp
             Global_Running = false;
             OutputDebugStringA("WM_CLOSE\n");
         }break;
-
-        case WM_ACTIVATEAPP:{
-            OutputDebugStringA("WM_ACTIVATEAPP\n");
-        }break;
         
         case WM_PAINT:{
             PAINTSTRUCT paint;
             HDC device_context = BeginPaint(window, &paint);
-            Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
-            win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
+            //Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
+            win32_display_buffer_in_window(&Global_Render_Buffer, device_context, BASE_W * Global_Settings->window_scale, BASE_H * Global_Settings->window_scale);
             EndPaint(window, &paint);
+            // OutputDebugStringA("(WM_PAINT)");
         }break;
 
         default:{
@@ -64,172 +104,23 @@ LRESULT CALLBACK win32_main_window_callback(HWND window, UINT message, WPARAM wp
 
 
 
-
-
-
-
-internal Win32_Init_Error
-win32_test(HINSTANCE instance, HINSTANCE, LPSTR, int)
-{
-    //temp vars
-    int monitor_refresh = 60;
-    #define game_refresh 30
-    float32 target_seconds_per_frame = 1.0f / (float32)game_refresh;
-    void* snd_buffer_test = VirtualAlloc(0, SND_BUFFER_SIZE_BYTES, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-    
-    //load game code
-    char exe_path[300];
-    win32_exe_path(exe_path, false);
-    char dll_filename[] =       "game.dll";
-    char dll_temp_filename[] =  "game_temp.dll";
-    char dll_path[MAX_PATH];
-    char dll_temp_path[MAX_PATH]; 
-    string_cat(dll_path, exe_path, dll_filename);
-    string_cat(dll_temp_path, exe_path, dll_temp_filename);
-    Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
-    
-    //load platform api
-    win32_load_xinput();
-    Win32_XAudio_Data xaudio2_data = win32_xaudio2_init();
-    
-    //window
-    win32_resize_DIB_section(&Global_Render_Buffer, 1280, 720);
-    WNDCLASS window_class = {};
-    window_class.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
-    window_class.lpfnWndProc = win32_main_window_callback;
-    window_class.hInstance = instance;
-    //WindowClass.hIcon;
-    window_class.lpszClassName = "GameWindowClass";
-
-    //performance
-    LARGE_INTEGER perf_frequency_result;
-    QueryPerformanceFrequency(&perf_frequency_result); //returns cpu-clock's ticks/second (hardware/OS-level constant)
-    global_perf_cpu_ticks_per_second = perf_frequency_result.QuadPart;
-    
-    
-    //register window
-    if (RegisterClass(&window_class))
-    {
-        HWND window = CreateWindowEx(
-            0,
-            window_class.lpszClassName,
-            "game of year",
-            WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            0,
-            0,
-            instance,
-            0
-        );
-
-        if (window) //error
-        {
-            HDC device_context = GetDC(window);
-
-            //
-#if MY_INTERNAL 
-            LPVOID game_memory_address = (LPVOID)Terabytes(2);
-#else
-            LPVOID game_memory_address = 0;
-#endif
-                
-            Game_Memory game_memory = {};
-            game_memory.permanent_storage_space = Megabytes(64);
-            game_memory.transient_storage_space = Gigabytes(1);
-            
-            uint64 game_memory_size_total = game_memory.permanent_storage_space + game_memory.transient_storage_space;
-            game_memory.permanent_storage = VirtualAlloc(game_memory_address, game_memory_size_total, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
-            game_memory.transient_storage = (uint8*)game_memory.permanent_storage + game_memory.permanent_storage_space;
-
-            Game_Input_Map game_input_map = {};
-            Game_Input_Map game_input_map_prev = {};
-
-            
-            if (game_memory.permanent_storage && game_memory.transient_storage)
-            {
-                while (Global_Running)
-                {
-                    //reload game code
-                    FILETIME filetime = win32_file_get_write_time(dll_path);
-                    if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
-                    {
-                        game_code.game_dll_last_write_time = filetime;
-                        win32_reload_game_code(game_code, dll_path, dll_temp_path);
-                    }
-                    
-                    //input
-                    win32_xinput_poll(&game_code, &game_input_map);
-                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
-                    
-                    Game_Offscreen_Buffer render_buffer;
-                    render_buffer.memory = Global_Render_Buffer.memory;
-                    render_buffer.width  = Global_Render_Buffer.width;
-                    render_buffer.height = Global_Render_Buffer.height;
-                    render_buffer.pitch  = Global_Render_Buffer.pitch;
-
-                    //game loop
-                    if (game_input_map.up.press)
-                       DEBUG_xaudio2_play_sound("select1.wav", &xaudio2_data, snd_buffer_test);
-                    if (game_input_map.down.press)
-                       DEBUG_xaudio2_play_sound("male_hurt_04.wav", &xaudio2_data, snd_buffer_test);
-
-                    
-                    win32_process_input(&game_input_map, &game_input_map_prev);
-                    game_code.update_and_draw(&game_memory, game_input_map, &render_buffer);
-
-
-                    Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
-                    win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
-
-#if 0
-                    char buffer[256];
-                    float32 kilocycles_per_frame = (float32)perf_cycles_this_frame / 1000.0f;
-                    sprintf_s(buffer, "fps: %.02f | ms/f: %.02f | kc/f: %.02f\n", 0.0f, perf_ms_per_frame,  kilocycles_per_frame);
-                    OutputDebugStringA(buffer);
-#endif
-                }
-            }
-            else
-            {
-                //TODO: Log - memory failed to allocated
-            }
-        }
-        else
-        {
-            //TODO: log - window failed to be created
-        }
-    }
-    else
-    {
-        //TODO: log - window class failed to register
-    }
-
-    //delete trash
-    win32_unload_game_code(&game_code);
-    DeleteFile(dll_temp_path);
-    return Win32_Init_Error::SUCCESS_NO_ERROR;
-}
-
-
-
-
-
-
-
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
-    //temp vars
-    int monitor_refresh = 60;
-    #define game_refresh 30
-    float32 target_seconds_per_frame = 1.0f / (float32)game_refresh;
+    //performance query
+    LARGE_INTEGER __perf_frequency_result;
+    BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
+    global_cpu_freq = __perf_frequency_result.QuadPart;
+    int64 tick_program_start = win32_get_tick();
+    //SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);    
+    UINT DesiredSchedulerMS = 1;
+    bool32 sleep_is_granular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);    
+    //granular my ass
+    
+    //NOTE: TEMP vars
     void* snd_buffer_test = VirtualAlloc(0, SND_BUFFER_SIZE_BYTES, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     
-    //load game code
+    //game code file paths
     char exe_path[300];
     win32_exe_path(exe_path, false);
     char dll_filename[] =       "game.dll";
@@ -238,50 +129,58 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     char dll_temp_path[MAX_PATH]; 
     string_cat(dll_path, exe_path, dll_filename);
     string_cat(dll_temp_path, exe_path, dll_temp_filename);
-    Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
     
-    //load platform api
+    //load Windows api
     win32_load_xinput();
     Win32_XAudio_Data xaudio2_data = win32_xaudio2_init();
+
+    //game init
     
     //window
-    win32_resize_DIB_section(&Global_Render_Buffer, 1280, 720);
+    Game_Data_Pointers game_data = {};
+    Game_Settings settings;
+    Global_Settings = &settings;
+    int8 window_scale = settings.window_scale;
+    
+    win32_set_DIB(&Global_Render_Buffer, BASE_W * window_scale, BASE_H * window_scale);
     WNDCLASS window_class = {};
-    window_class.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
+    window_class.style = CS_HREDRAW|CS_VREDRAW;
     window_class.lpfnWndProc = win32_main_window_callback;
     window_class.hInstance = instance;
     //WindowClass.hIcon;
     window_class.lpszClassName = "GameWindowClass";
-
-    //performance
-    LARGE_INTEGER perf_frequency_result;
-    QueryPerformanceFrequency(&perf_frequency_result); //returns cpu-clock's ticks/second (hardware/OS-level constant)
-    global_perf_cpu_ticks_per_second = perf_frequency_result.QuadPart;
     
-    
-    //register window
     if (RegisterClass(&window_class))
     {
+        OutputDebugStringA("(Win32): registered window class\n");
+
+        RECT client_rect = {0, 0, BASE_W * window_scale, BASE_H * window_scale};
+        DWORD window_style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_VISIBLE;
+        AdjustWindowRectEx(&client_rect, window_style, FALSE, 0);
         HWND window = CreateWindowEx(
-            0,
+            WS_EX_LAYERED,
             window_class.lpszClassName,
             "game of year",
-            WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
+            window_style,
+            //WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+            CW_USEDEFAULT, //x
+            CW_USEDEFAULT, //y
+            client_rect.right - client_rect.left, 
+            client_rect.bottom - client_rect.top, 
             0,
             0,
             instance,
             0
         );
 
+        
         if (window) //error
         {
-            HDC device_context = GetDC(window);
-
-            //
+            OutputDebugStringA("(Win32): window created successfully\n");
+            
+            BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
+            // DWORD last_error = GetLastError();
+            
 #if MY_INTERNAL 
             LPVOID game_memory_address = (LPVOID)Terabytes(2);
 #else
@@ -289,8 +188,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 #endif
                 
             Game_Memory game_memory = {};
-            game_memory.permanent_storage_space = Megabytes(64);
-            game_memory.transient_storage_space = Gigabytes(1);
+            game_memory.permanent_storage_space = Megabytes(GAME_MEMORY_MB_PERMINENT);
+            game_memory.transient_storage_space = Gigabytes(GAME_MEMORY_MB_TRANSIENT);
             
             uint64 game_memory_size_total = game_memory.permanent_storage_space + game_memory.transient_storage_space;
             game_memory.permanent_storage = VirtualAlloc(game_memory_address, game_memory_size_total, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -303,65 +202,137 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             
             if (game_memory.permanent_storage && game_memory.transient_storage)
             {
+                Game_Render_Buffer game_render_buffer = {};
+                Game_Sound_Buffer game_sound_buffer = {};
+                Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
+                
+                Win32_Sleep_Data sleep_data;
+                sleep_data.estimate = 5e-3;
+                sleep_data.mean = 5e-3;
+                sleep_data.m2 = 0;
+                sleep_data.count = 1;
+                int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
+                float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
+
+                game_data.settings = &settings;
+                game_data.memory   = &game_memory;
+                game_data.render   = &game_render_buffer;
+                game_data.sound    = &game_sound_buffer;
+                
                 while (Global_Running)
                 {
                     //reload game code
                     FILETIME filetime = win32_file_get_write_time(dll_path);
                     if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
                     {
-                        game_code.game_dll_last_write_time = filetime;
-                        win32_reload_game_code(game_code, dll_path, dll_temp_path);
+                        dll_flip = !dll_flip; //NOTE: HACK - see dll_flip
+                        if (!dll_flip)
+                        {
+                            game_code.game_dll_last_write_time = filetime;
+                            win32_unload_game_code(&game_code);
+                            game_code = win32_load_game_code(dll_path, dll_temp_path);
+                        }
+                    }
+                    else
+                    {
+                        int cool = 1;
                     }
                     
                     //input
                     win32_xinput_poll(&game_code, &game_input_map);
                     win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
-                    
-                    Game_Offscreen_Buffer render_buffer;
-                    render_buffer.memory = Global_Render_Buffer.memory;
-                    render_buffer.width  = Global_Render_Buffer.width;
-                    render_buffer.height = Global_Render_Buffer.height;
-                    render_buffer.pitch  = Global_Render_Buffer.pitch;
 
-                    //game loop
-                    if (game_input_map.up.press)
-                       DEBUG_xaudio2_play_sound("select1.wav", &xaudio2_data, snd_buffer_test);
-                    if (game_input_map.down.press)
-                       DEBUG_xaudio2_play_sound("male_hurt_04.wav", &xaudio2_data, snd_buffer_test);
+                    //TODO: make Game_Render_Buffer variables into pointers so that we only have to do this once outside the loop
+                    game_render_buffer.memory = Global_Render_Buffer.memory;
+                    game_render_buffer.width  = Global_Render_Buffer.width;
+                    game_render_buffer.height = Global_Render_Buffer.height;
+                    game_render_buffer.pitch  = Global_Render_Buffer.pitch;
 
-                    
                     win32_process_input(&game_input_map, &game_input_map_prev);
-                    game_code.update_and_draw(&game_memory, game_input_map, &render_buffer);
+                    
+                    //DEBUG: 
+                    Game_Input_Map INP = game_input_map;
+                    if (INP.debug_hotkey1.press)
+                        DEBUG_xaudio2_play_sound("select1.wav", &xaudio2_data, snd_buffer_test);
 
+                    //BGMODE
+                    if (INP.debug_hotkey4.press)
+                    {
+                        if (INP.ctrl.hold)
+                        {
+                            if (Global_BGMode_Enabled)
+                            {
+                                Global_BGMode_TransOutOfFocus = !Global_BGMode_TransOutOfFocus;
+                                auto toof_string = Global_BGMode_TransOutOfFocus ? "(BGMode): transparency out of focus enabled\n" : "(BGMode): transparency out of focus disabled\n";
+                                OutputDebugStringA(toof_string);
+                            }
+                        }
+                        else
+                        {
+                            Global_BGMode_Enabled = !Global_BGMode_Enabled;
+                            window_set_topmost(window, Global_BGMode_Enabled);
+                            window_set_trans(window, Global_BGMode_Enabled);
+                            auto bgstatus_string = Global_BGMode_Enabled ? "(BGMode): Enabled\n" : "(BGMode): Disabled\n";
+                            OutputDebugStringA(bgstatus_string);
+                        }
+                    }
+                    
+                    if (INP.debug_win_plus.press)
+                    {
+                        win32_set_window_scale(++Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                    }
+                    if (INP.debug_win_minus.press)
+                    {
+                        win32_set_window_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                    }
+                    
+                    
+                    //GAME LOOP
+                    ZeroMemory(game_render_buffer.memory,  Global_Render_Buffer.memory_size_bytes); //blacken buffer
+                    if (game_code.update_and_draw)
+                        game_code.update_and_draw(&game_data, game_input_map);
 
+                    //windows goes to draw it
+                    HDC device_context = GetDC(window);
                     Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
                     win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
+                    ReleaseDC(window, device_context);
+                    
+                    
+                    //sleep
+                    int64 tick_spent_in_frame = win32_get_tick_diff(tick_loop_start);
+                    float64 sec_spent_in_frame = win32_tick_to_sec(tick_spent_in_frame);
 
-#if 0
+                    if (sec_spent_in_frame < SEC_PER_FRAME_TARGET)
+                    {
+                        sleep_well((SEC_PER_FRAME_TARGET) - sec_spent_in_frame, &sleep_data);
+                    }
+
+                    //perf
+                    int64 tick_loop_end = win32_get_tick();
+                    float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
+                    tick_loop_start = tick_loop_end;
+
+                    //log //TODO: enable with preprocessor define?
                     char buffer[256];
-                    float32 kilocycles_per_frame = (float32)perf_cycles_this_frame / 1000.0f;
-                    sprintf_s(buffer, "fps: %.02f | ms/f: %.02f | kc/f: %.02f\n", 0.0f, perf_ms_per_frame,  kilocycles_per_frame);
+                    sprintf_s(buffer, "ms/f: %.02f \n", ms_this_frame);
                     OutputDebugStringA(buffer);
-#endif
                 }
             }
             else
             {
-                //TODO: Log - memory failed to allocated
+                OutputDebugStringA("(Win32): Game memory failed to allocate\n");
             }
         }
         else
         {
-            //TODO: log - window failed to be created
+            OutputDebugStringA("(Win32): Window failed to be created\n");
         }
     }
     else
     {
-        //TODO: log - window class failed to register
+        OutputDebugStringA("(Win32): Window class failed to register\n");
     }
 
-    //delete trash
-    win32_unload_game_code(&game_code);
-    DeleteFile(dll_temp_path);
     return 0;
 }

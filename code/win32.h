@@ -1,15 +1,12 @@
 #pragma once
 
-#include "windows.h"
-#include "xinput.h"
-#include "my_types_keywords.h"
-#include "game.h"
-
 
 enum struct Win32_Init_Error
 {
     SUCCESS_NO_ERROR,
-    XINPUT_FAILED_TO_INIT
+    XINPUT_FAILED_TO_INIT,
+    WINDOW_FAILED_TO_REGISTER,
+    WINDOW_FAILED_TO_CREATE,
 };
 
 
@@ -20,13 +17,14 @@ struct Win32_Client_Dimensions
 };
 
 struct Win32_Render_Buffer
-{    
+{
     BITMAPINFO info;
     void* memory;
-    int bytes_per_pixel;
     int pitch;
     int width;
     int height;
+    int bytes_per_pixel;
+    int memory_size_bytes;
 };
 
 struct Win32_Sound_Data
@@ -41,10 +39,56 @@ struct Win32_Sound_Data
 
 struct Win32_Game_Code
 {
+    //files
     HMODULE game_dll;
     FILETIME game_dll_last_write_time;
+
+    //functions | REQUIRED: 0 when stubbed, always check != 0 when calling
     Game_Update_And_Draw* update_and_draw;
     Game_Input_Change_Device* input_change_device;
 
     bool32 is_valid;
 };
+
+struct Win32_Key_Data //NOTE: exists purely to be called with win32_key_check()
+{
+    MSG message;
+    bool32 is_down;
+    bool32 was_down;
+};
+
+struct Win32_Sleep_Data
+{
+    float64 estimate;
+    float64 mean;
+    float64 m2;
+    int64   count;
+};
+
+struct Win32_Data_Pointers
+{
+    Win32_Render_Buffer render;
+    Win32_Game_Code* game_code;
+    Win32_Sleep_Data* sleep;
+};
+
+// //TODO: we will need this later
+// struct Win32_State
+// {
+//     bool32 is_bgmode_enabled;
+//     bool32 is_bgmode_transparent_out_of_focus;
+// };
+
+
+
+//EXTRA
+
+// struct PNG_Data
+// {
+//     int32 width;
+//     int32 height;
+//     int32 bit_depth;
+//     int32 color_type;
+//     int32 filter_method;
+//     int32 interlace_method;
+// };

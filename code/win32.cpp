@@ -3,6 +3,8 @@
 #include "game.h"
 #include "my_string.h"
 
+
+
 //XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
 typedef X_INPUT_GET_STATE(x_input_get_state);
@@ -19,22 +21,98 @@ globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
 
 
 
+int64 global_cpu_freq;
+static Game_Settings* Global_Settings;
+
+
+//
+inline float64 win32_tick_to_ms(int64 tick){
+    return ((float64)tick * 1000) / global_cpu_freq;
+}
+inline float64 win32_tick_to_sec(int64 tick){
+    return ((float64)tick) / (float64)global_cpu_freq;
+}
+
+
+//perf query
+inline int64 win32_get_tick()
+{
+    LARGE_INTEGER ticks;
+    if (!QueryPerformanceCounter(&ticks))
+    {
+        return 0;
+    }
+    return ticks.QuadPart;
+}
+
+inline int64
+win32_get_tick_diff(int64 tick_prev)
+{
+    return (win32_get_tick() - tick_prev);
+}
 
 
 
+//function is based on this: https://blat-blatnik.github.io/computerBear/making-accurate-sleep-function/
+internal 
+void sleep_well(double seconds, Win32_Sleep_Data* sleep_data)
+{
+    if (seconds == 0) return; //NOTE: debug
+
+    while (seconds > sleep_data->estimate)
+    {
+        auto start = win32_get_tick();
+        Sleep(1);
+        auto end =   win32_get_tick();
+        
+        float64 sec_observed  = (double)(end - start) / global_cpu_freq;
+        seconds          -= sec_observed;
+
+        sleep_data->count++;
+        float64 delta         = sec_observed - sleep_data->mean;
+        sleep_data->mean     += delta / sleep_data->count;
+        sleep_data->m2       += delta * (sec_observed - sleep_data->mean);
+        double stddev        = sqrt(sleep_data->m2 / (sleep_data->count - 1));
+        sleep_data->estimate  = sleep_data->mean + stddev;
+    }
+
+    // spin lock
+    auto start = win32_get_tick();
+    auto sec_while = win32_tick_to_ms(win32_get_tick_diff(start)) / 1000;
+
+    while(sec_while < seconds)
+    {
+        sec_while = win32_tick_to_sec(win32_get_tick_diff(start));
+    }
+}
+
+
+
+
+
+
+//FILES
 internal FILETIME
-win32_file_get_write_time(const char* filename)
+win32_file_get_write_time(const char* filepath)
 {
     FILETIME time = {};
 
+#if 0
     WIN32_FIND_DATA find_data;
-    HANDLE find_handle = FindFirstFileA(filename, &find_data);
+    HANDLE find_handle = FindFirstFileA(filepath, &find_data);
     if (find_handle != INVALID_HANDLE_VALUE)
     {
         time = find_data.ftLastWriteTime;
         FindClose(find_handle);
     }
-
+#else
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    if (GetFileAttributesEx(filepath, GetFileExInfoStandard, &data))
+    {
+        time = data.ftLastWriteTime;
+    }
+#endif
+    
     return time;
 }
 
@@ -98,12 +176,13 @@ win32_delete_file_with_wildcard(LPCSTR file_path)
 
 
 
+///Dynamic  Loading
 internal Win32_Game_Code
 win32_load_game_code(char* dll_path, char* dll_temp_path)
 {
     Win32_Game_Code result = {};
-    result.update_and_draw = Game_Update_And_Draw_Stub;
-    result.input_change_device = Game_Input_Change_Device_Stub;
+    result.update_and_draw = 0;
+    result.input_change_device = 0;
 
     result.game_dll_last_write_time = win32_file_get_write_time(dll_path);
     CopyFile(dll_path, dll_temp_path, FALSE);
@@ -112,6 +191,10 @@ win32_load_game_code(char* dll_path, char* dll_temp_path)
     {
         result.update_and_draw = (Game_Update_And_Draw*)GetProcAddress(result.game_dll, "game_update_and_draw");
         result.input_change_device = (Game_Input_Change_Device*)GetProcAddress(result.game_dll, "game_input_change_device");
+    }
+    else
+    {
+        OutputDebugStringA("(Win32)(ERROR): game dll failed to load\n");
     }
 
     if (result.input_change_device && result.update_and_draw)
@@ -129,8 +212,8 @@ win32_unload_game_code(Win32_Game_Code* game_code)
     }
 
     game_code->is_valid = false;
-    game_code->update_and_draw = Game_Update_And_Draw_Stub;
-    game_code->input_change_device = Game_Input_Change_Device_Stub;
+    game_code->update_and_draw = 0;
+    game_code->input_change_device = 0;
 }
 
 internal void
@@ -142,7 +225,7 @@ win32_reload_game_code(Win32_Game_Code& game_code, char* dll_path, char* dll_tem
 
 
 
-
+//INTERNAL
 #if MY_INTERNAL
 void DEBUG_platform_file_free_memory(void* memory)
 {
@@ -228,8 +311,8 @@ DEBUG_platform_file_write_entire(const char* name, uint32 memory_size, void* mem
 
 
 
-
-internal Win32_Init_Error
+//INPUT
+internal bool32
 win32_load_xinput()
 {    
     HMODULE xinput_library = LoadLibrary("xinput1_4.dll");
@@ -237,29 +320,35 @@ win32_load_xinput()
     {
         //TODO: Diagnostic
         xinput_library = LoadLibrary("xinput9_1_0.dll");
+        OutputDebugStringA("(XInput): ver. 9_1_0 found\n");
     }
     if (!xinput_library)
     {
         //TODO: Diagnostic
         xinput_library = LoadLibrary("xinput1_3.dll");
+        OutputDebugStringA("(XInput): ver. 1_3 found\n");
     }
+    else OutputDebugStringA("(XInput): ver. 1_4 found\n");
     
     if (xinput_library)
     {
         XInputGetState = (x_input_get_state*)GetProcAddress(xinput_library, "XInputGetState");
         XInputSetState = (x_input_set_state*)GetProcAddress(xinput_library, "XInputSetState");
         //TODO: Diagnostic
-        return Win32_Init_Error::SUCCESS_NO_ERROR;
+        OutputDebugStringA("(XInput): Loaded Successfully\n");
+        return true;
     }
     else
-        return Win32_Init_Error::XINPUT_FAILED_TO_INIT;
+    {
+        OutputDebugStringA("(XInput)(ERROR): Failed to load\n");
+        return false;
+    }
 }
 
 float32 win32_xinput_stick_max(SHORT stick_value)
 {
     return (stick_value > 0 ? 32767.0f : 32768.0f);
 }
-
 
 internal void
 win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
@@ -305,7 +394,8 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
                  abs_i(pad->sThumbRX) > deadzone_l*3 || abs_i(pad->sThumbLY) > deadzone_l*3 ||
                  l_trig > 100 || r_trig > 100))
             {
-                game_code->input_change_device(Game_Input_Device::controller, game_input_map);
+                if (game_code->input_change_device)
+                    game_code->input_change_device(Game_Input_Device::controller, game_input_map);
             }
 
             //send out inputs
@@ -348,7 +438,40 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
     
 }
 
+internal bool32
+win32_key_check(WPARAM vk_code, Game_Input_Button& game_input_button, Win32_Key_Data key_data)
+{
+    if (key_data.message.wParam == vk_code)
+    {
+        game_input_button.hold = key_data.is_down;
+        return true;
+    }
+    return false;
+}
 
+internal void
+win32_process_input(Game_Input_Map* input_map, Game_Input_Map* input_map_prev)
+{
+    int inputs_num = array_length(input_map->buttons);
+    for (int i = 0; i < inputs_num; ++i)
+    {
+        Game_Input_Button* state_prev = &input_map_prev->buttons[i];
+        Game_Input_Button* state = &input_map->buttons[i];
+        
+        bool32 held = state->hold;
+        bool32 held_prev = state_prev->hold;
+        
+        state->press = !held_prev && held;
+        state->release = held_prev && !held;
+        
+        state_prev->hold = held;
+    }
+}
+
+
+
+//WINDOW
+//TODO: MAYBE split out inputs and others into their own functions. wait til it becomes too much?
 internal void
 win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_input_map, bool32* global_is_running)
 {
@@ -357,35 +480,50 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
     {
         switch(message.message)
         {
-            case WM_QUIT:{
-                *global_is_running = false;
-            }break;
-                            
             case WM_SYSKEYDOWN:
             case WM_SYSKEYUP:
             case WM_KEYDOWN:
             case WM_KEYUP:{
+                //device switch
                 if (game_input_map->game_input_device != Game_Input_Device::keyboard_mouse)
-                    game_code->input_change_device(Game_Input_Device::keyboard_mouse, game_input_map);
-            
+                    if (game_code->input_change_device)
+                        game_code->input_change_device(Game_Input_Device::keyboard_mouse, game_input_map);
+
                 uint32 vk_code = (uint32)message.wParam;
 
-                Game_Input_Map* _in = game_input_map;
+                Game_Input_Map* in = game_input_map;
                 bool32 is_down = ((message.lParam & (1 << 31)) == 0);
                 bool32 was_down = ((message.lParam & (1 << 30)) != 0);
-            
+
+                Win32_Key_Data key_data;
+                key_data.message = message;
+                key_data.is_down = is_down;
+                key_data.was_down = was_down;
+                
                 if (was_down != is_down)
                 {
-                    if (vk_code == 'W') _in->up.hold = is_down;
-                    else if (vk_code == 'S') _in->down.hold = is_down;
-                    else if (vk_code == 'A') _in->left.hold = is_down;
-                    else if (vk_code == 'D') _in->right.hold = is_down;
+                    if (win32_key_check('W', in->up,     key_data)) break;
+                    if (win32_key_check('S', in->down,    key_data)) break;
+                    if (win32_key_check('A', in->left,    key_data)) break;
+                    if (win32_key_check('D', in->right,    key_data)) break;
+
+                    if (win32_key_check(VK_F1, in->debug_toggle,    key_data)) break;
+                    if (win32_key_check(VK_F5, in->debug_hotkey1,    key_data)) break;
+                    if (win32_key_check(VK_F6, in->debug_hotkey2,    key_data)) break;
+                    if (win32_key_check(VK_F7, in->debug_hotkey3,    key_data)) break;
+                    if (win32_key_check(VK_F8, in->debug_hotkey4,    key_data)) break;
+                    if (win32_key_check(VK_OEM_PLUS, in->debug_win_plus,       key_data)) break;
+                    if (win32_key_check(VK_OEM_MINUS, in->debug_win_minus,       key_data)) break;
+
+                    if (win32_key_check(VK_SHIFT, in->shift,         key_data)) break;
+                    if (win32_key_check(VK_CONTROL, in->ctrl,        key_data)) break;
+                    if (win32_key_check(VK_RETURN, in->enter,        key_data)) break;
+                    if (win32_key_check(VK_ESCAPE, in->escape,       key_data)) break;
+                    
+                    //else if (vk_code == VK_SHIFT)
                     //else if (vk_code == VK_SPACE) 
                     //else if (vk_code == VK_CONTROL)
-                    //else if (vk_code == VK_SHIFT)
                     //else if (vk_code == VK_MENU) //alt
-                    //else if (vk_code == VK_RETURN)
-                                    
 
                     //alt f4
                     bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
@@ -406,30 +544,6 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
 
 }
 
-
-internal void
-win32_process_input(Game_Input_Map* input_map, Game_Input_Map* input_map_prev)
-{
-    // input_map_prev.up.hold = true;
-    int inputs_num = array_length(input_map->buttons);
-    for (int i = 0; i < inputs_num; ++i)
-    {
-        Game_Input_Button* state_prev = &input_map_prev->buttons[i];
-        Game_Input_Button* state = &input_map->buttons[i];
-        
-        bool32 held = state->hold;
-        bool32 held_prev = state_prev->hold;
-        
-        state->press = !held_prev && held;
-        state->release = held_prev && !held;
-        
-        state_prev->hold = held;
-    }
-}
-
-
-//////////////////////////////////
-//WINDOW//////////////////////////
 internal Win32_Client_Dimensions win32_get_client_dimensions(HWND window)
 {
     RECT client_rect;
@@ -437,9 +551,37 @@ internal Win32_Client_Dimensions win32_get_client_dimensions(HWND window)
     return {client_rect.right - client_rect.left, client_rect.bottom - client_rect.top};
 }
 
+internal void
+window_set_trans(HWND window, bool32 enabled)
+{
+    if (enabled)
+    {
+        BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 150, LWA_ALPHA);        
+    }
+    else
+    {
+        BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
+    }    
+}
+internal void
+window_set_topmost(HWND window, bool32 enabled)
+{
+    RECT window_rect = {0, 0, BASE_W * Global_Settings->window_scale, BASE_H * Global_Settings->window_scale};
+    DWORD curr_style = GetWindowLong(window, GWL_STYLE);
+    AdjustWindowRectEx(&window_rect, curr_style, FALSE, 0);
+    RECT same_pos;
+    GetWindowRect(window, &same_pos);
+    HWND z_order = (enabled ? HWND_TOPMOST : HWND_NOTOPMOST);
+    BOOL win_pos_result = SetWindowPos(
+        window, z_order,
+        same_pos.left, same_pos.top, //xy
+        window_rect.right - window_rect.left, window_rect.bottom - window_rect.top,
+        SWP_SHOWWINDOW
+    );
+}
 
 internal void
-win32_resize_DIB_section(Win32_Render_Buffer* buffer, int width, int height)
+win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
 {
     //bm
     if (buffer->memory)
@@ -447,10 +589,12 @@ win32_resize_DIB_section(Win32_Render_Buffer* buffer, int width, int height)
         VirtualFree(buffer->memory, 0, MEM_RELEASE);
     }
 
+    int bytes_per_pixel = 4;
     buffer->width = width;
     buffer->height = height;
-    int bytes_per_pixel = 4;
     buffer->bytes_per_pixel = bytes_per_pixel;
+    buffer->memory_size_bytes = width * height * bytes_per_pixel;
+    buffer->pitch = buffer->width * bytes_per_pixel; //bytes per row
     
     buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
     buffer->info.bmiHeader.biWidth = buffer->width;
@@ -461,19 +605,15 @@ win32_resize_DIB_section(Win32_Render_Buffer* buffer, int width, int height)
 
     //Draw Pixels loop
     //int bytesPerPixel = 4; //to store RGB + pad //0xRRGGBBxx //global now
-    int bitmap_memory_size = (width * height) * bytes_per_pixel;
-    buffer->memory = VirtualAlloc(0, bitmap_memory_size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
-    buffer->pitch = buffer->width * bytes_per_pixel; //the distance between two rows
+    buffer->memory = VirtualAlloc(0, buffer->memory_size_bytes, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 }
-
 
 internal void
 win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
                                int window_width, int window_height)
 {
     StretchDIBits(device_context,
-                  0, 0, window_width, window_height,
+                  0, 0, buffer->width, buffer->height,
                   0, 0, buffer->width, buffer->height,
                   buffer->memory,
                   &buffer->info,
@@ -481,19 +621,76 @@ win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
     );
 }
 
-
-
+internal void
+win32_get_monitor_resolution(HWND window, int* width, int* height)
+{
+    HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX info = {};
+    info.cbSize = sizeof(MONITORINFOEX);
+    BOOL info_result = GetMonitorInfo(monitor, &info);
+    DEVMODE devmode = {};
+    devmode.dmSize = sizeof(DEVMODE);
+    BOOL disp_settings_result = EnumDisplaySettings(info.szDevice, ENUM_CURRENT_SETTINGS, &devmode);
+    *width = devmode.dmPelsWidth;
+    *height = devmode.dmPelsHeight;
+}
 
 internal void
-win32_debug_draw_vertical_line(Win32_Render_Buffer* render_buffer, int x, int top, int bottom, uint32 color)
+win32_set_window_scale(int8 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
 {
-    uint8* pixel = ((uint8*)render_buffer->memory +
-            x * render_buffer->bytes_per_pixel +
-            top * render_buffer->pitch);
+    //get target size
+    RECT new_client_rect = {0, 0, BASE_W * scale, BASE_H * scale};
+    DWORD curr_style = GetWindowLong(window, GWL_STYLE);
+    AdjustWindowRectEx(&new_client_rect, curr_style, FALSE, 0);
+
+    //get position
+    int32 target_w = new_client_rect.right - new_client_rect.left;
+    int32 target_h = new_client_rect.bottom - new_client_rect.top;
+    int32 disp_w=0, disp_h=0;
+    win32_get_monitor_resolution(window, &disp_w, &disp_h);
+    int32 target_x = (disp_w / 2) - (target_w/2);
+    int32 target_y = (disp_h / 2) - (target_h/2);
     
-    for (int Y = 0; Y < bottom; ++Y)
-    {
-        *(uint32*)pixel = color;
-        pixel += render_buffer->pitch;
-    }
+    
+    SetWindowPos(window, 0,
+                 target_x, target_y,
+                 target_w, target_h,
+                 SWP_SHOWWINDOW);
+    win32_set_DIB(win32_render_buffer, BASE_W * scale, BASE_H * scale);
+                        
+    game_render_buffer->memory = win32_render_buffer->memory;
+    game_render_buffer->width  = win32_render_buffer->width;
+    game_render_buffer->height = win32_render_buffer->height;
+    game_render_buffer->pitch  = win32_render_buffer->pitch;
 }
+
+
+///EXTRA
+// void PNG_Load(const char* filename)
+// {
+//     DEBUG_File file = DEBUG_platform_file_read_entire(filename);
+    
+//     uint64* file_32 = (uint64*)file.memory; //full signature
+//     file_32++; //skip to next 8 bytes;
+//     for (uint32 i = 0; i < file.size; ++i)
+//     {
+//         uint8* file_8 = (uint8*)file_32;
+//         file_32++;
+//     }
+//     uint64 type = 0x89504e470d0a1a0a; //TODO: typecheck //this is probably wrong
+// }
+
+
+// internal void
+// win32_debug_draw_vertical_line(Win32_Render_Buffer* render_buffer, int x, int top, int bottom, uint32 color)
+// {
+//     uint8* pixel = ((uint8*)render_buffer->memory +
+//             x * render_buffer->bytes_per_pixel +
+//             top * render_buffer->pitch);
+    
+//     for (int Y = 0; Y < bottom; ++Y)
+//     {
+//         *(uint32*)pixel = color;
+//         pixel += render_buffer->pitch;
+//     }
+// }

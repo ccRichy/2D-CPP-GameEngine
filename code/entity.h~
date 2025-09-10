@@ -1,0 +1,12 @@
+#pragma once
+
+#include "my_vec.h"
+
+struct Game_Data_Pointers;
+struct Wall
+{
+    Vec2 pos;
+    int8 size;
+
+    void Draw(Game_Data_Pointers*);
+};

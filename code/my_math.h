@@ -1,5 +1,4 @@
 #pragma once
-#include "my_types_keywords.h"
 #include "my_vec.h"
 
 //TODO: 64-bit versions

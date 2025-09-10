@@ -1,0 +1,13 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
+#include "game.h"
+#include "entity.h"
+
+void Wall::Draw(Game_Data_Pointers*)
+{
+    int i = 0;
+}

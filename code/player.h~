@@ -1,0 +1,17 @@
+#pragma once
+
+#include "input.h" //TODO: turn to cpp
+
+
+struct Game_Data_Pointers;
+struct Player
+{
+    Vec2     pos;
+    Vec2     spd;
+    int32    size;
+    My_Color color;
+
+    Player* Create(Vec2 _pos, int32 _size, My_Color _color);
+    void Update(Game_Input_Map INP);
+    void Draw(Game_Data_Pointers* game_data);
+};

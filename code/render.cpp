@@ -1,0 +1,36 @@
+#include "render.h"
+
+
+void draw_rect(Game_Data_Pointers* game_data, Vec2 pos, Vec2 size, My_Color color)
+{
+    int8 scale = game_data->settings->window_scale;
+    
+    int32 x = (int32)(pos.x * scale); //NOTE: (int32)pos.x * scale =   pixel grid rendering
+    int32 y = (int32)(pos.y * scale); //      (int32)(pos.x * scale) = sub-pixel rendering
+                                      //one pair of parenthesis determines that
+    
+    uint8* row = (uint8*)game_data->render->memory;
+    int32 row_offset = (y < 0 ? 0 : y);
+    row += (game_data->render->pitch * row_offset);
+    
+    int32 yoffset = (y < 0 ? -y : 0);
+    for (int Y = y + yoffset; Y < y + (size.x * (float32)scale); ++Y)
+    {
+        if (Y >= game_data->render->height) break;
+        uint32* pixel = (uint32*)row;
+        int32 pixel_offset = (x < 0 ? 0 : x);
+        pixel += pixel_offset;
+        
+        int32 xoffset = (x < 0 ? -x : 0);
+        for (int X = x + xoffset; X < x + (size.y * (float32)scale); ++X)
+        {
+            if (X >= game_data->render->width) break;
+            *pixel++ = (uint32)color;
+            // uint8 Red = 0;
+            // uint8 Green = 0;
+            // uint8 Blue = 100;
+            // *pixel++ = ( (Red << 16) | (Green < 8) | Blue );
+        }
+        row += game_data->render->pitch;
+    }
+}

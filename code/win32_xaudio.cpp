@@ -1,26 +1,19 @@
-#include "xaudio2.h"
-#include "my_types_keywords.h"
-//#include "game.h"
-
 #ifdef _XBOX 
-#define fourccRIFF 'RIFF'
-#define fourccDATA 'data'
-#define fourccFMT 'fmt '
-#define fourccWAVE 'WAVE'
-#define fourccXWMA 'XWMA'
+  #define fourccRIFF 'RIFF'
+  #define fourccDATA 'data'
+  #define fourccFMT 'fmt '
+  #define fourccWAVE 'WAVE'
+  #define fourccXWMA 'XWMA'
 #define fourccDPDS 'dpds'
 
 #else
-
-#define fourccRIFF 'FFIR'
-#define fourccDATA 'atad'
-#define fourccFMT ' tmf'
-#define fourccWAVE 'EVAW'
-#define fourccXWMA 'AMWX'
-#define fourccDPDS 'sdpd'
-
+  #define fourccRIFF 'FFIR'
+  #define fourccDATA 'atad'
+  #define fourccFMT ' tmf'
+  #define fourccWAVE 'EVAW'
+  #define fourccXWMA 'AMWX'
+  #define fourccDPDS 'sdpd'
 #endif
-
 
 
 
@@ -88,9 +81,9 @@ struct Win32_XAudio_Voice : public IXAudio2VoiceCallback
 
     void OnVoiceProcessingPassEnd() noexcept {}
     void OnVoiceProcessingPassStart(UINT32) noexcept {}
-    void OnBufferEnd( void*) noexcept {}
-    void OnLoopEnd( void*) noexcept {}
-    void OnVoiceEnd( void*, HRESULT) noexcept {}
+    void OnBufferEnd(void*) noexcept {}
+    void OnLoopEnd(void*) noexcept {}
+    void OnVoiceEnd(void*, HRESULT) noexcept {}
 };
 
 struct Win32_XAudio_Group
