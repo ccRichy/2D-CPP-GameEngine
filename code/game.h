@@ -18,9 +18,11 @@
 
 #define BASE_W 320
 #define BASE_H 180
+#define WINDOW_SCALE_DEFAULT 4
 
 #define TILE_SIZE 8
 #define Tile(value) (value * TILE_SIZE)
+#define Tile_Pos(value) (value * TILE_SIZE)
 
 #define GAME_MEMORY_MB_PERMINENT 8
 #define GAME_MEMORY_MB_TRANSIENT 16
@@ -114,7 +116,9 @@ struct Game_State
 {
 //    Game_Settings settings;
     Player player;
-    Walls walls;
+    Walls  walls;
+    Enemys enemys;
+    Bullets bullets;
 };
 
 struct Game_Data_Pointers //just all the fuckin data

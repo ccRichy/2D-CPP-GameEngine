@@ -36,7 +36,24 @@ int32 round(float32 value)
 }
 
 
+float clamp(float value, float min, float max)
+{
+    float result = (value < min)? min : value;
+
+    if (result > max) result = max;
+
+    return result;
+}
 float32 map_value(float32 value, Vec2 range_input, Vec2 range_output)
 {
     return range_output.x + ((range_output.y - range_output.x) / (range_input.y - range_input.x)) * (value - range_input.x);
+}
+
+
+float approach(float32 value, float32 dest, float32 spd)
+{
+      if (value < dest)
+          return MIN(value + spd, dest); 
+      else
+          return MAX(value - spd, dest);
 }

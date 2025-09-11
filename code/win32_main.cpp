@@ -137,10 +137,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     //game init
     
     //window
-    Game_Data_Pointers game_data = {};
-    Game_Settings settings;
-    Global_Settings = &settings;
-    int8 window_scale = settings.window_scale;
+    int8 window_scale = WINDOW_SCALE_DEFAULT;
     
     win32_set_DIB(&Global_Render_Buffer, BASE_W * window_scale, BASE_H * window_scale);
     WNDCLASS window_class = {};
@@ -205,6 +202,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 Game_Render_Buffer game_render_buffer = {};
                 Game_Sound_Buffer game_sound_buffer = {};
                 Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
+                Game_Settings settings;
+                Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
                 
                 Win32_Sleep_Data sleep_data;
                 sleep_data.estimate = 5e-3;
@@ -213,11 +212,13 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 sleep_data.count = 1;
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
-
+                                    
+                Game_Data_Pointers game_data = {};
                 game_data.settings = &settings;
                 game_data.memory   = &game_memory;
                 game_data.render   = &game_render_buffer;
                 game_data.sound    = &game_sound_buffer;
+                //game_data.input //input gets passed by value
                 
                 while (Global_Running)
                 {
@@ -241,22 +242,22 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     //input
                     win32_xinput_poll(&game_code, &game_input_map);
                     win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
+                    win32_process_input(&game_input_map, &game_input_map_prev);
+                    Game_Input_Map INP = game_input_map;
 
-                    //TODO: make Game_Render_Buffer variables into pointers so that we only have to do this once outside the loop
+                    //TODO: make Game_Render_Buffer variables into pointers so we only set once?
                     game_render_buffer.memory = Global_Render_Buffer.memory;
                     game_render_buffer.width  = Global_Render_Buffer.width;
                     game_render_buffer.height = Global_Render_Buffer.height;
                     game_render_buffer.pitch  = Global_Render_Buffer.pitch;
 
-                    win32_process_input(&game_input_map, &game_input_map_prev);
                     
                     //DEBUG: 
-                    Game_Input_Map INP = game_input_map;
                     if (INP.debug_hotkey1.press)
                         DEBUG_xaudio2_play_sound("select1.wav", &xaudio2_data, snd_buffer_test);
 
                     //BGMODE
-                    if (INP.debug_hotkey4.press)
+                    if (INP.debug_bgmode.press)
                     {
                         if (INP.ctrl.hold)
                         {

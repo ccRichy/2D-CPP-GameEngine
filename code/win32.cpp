@@ -5,22 +5,6 @@
 
 
 
-//XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
-#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
-typedef X_INPUT_GET_STATE(x_input_get_state);
-X_INPUT_GET_STATE(XInputGetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
-globalvar x_input_get_state* XInputGetState_ = XInputGetStateStub;
-#define XInputGetState XInputGetState_
-
-#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_VIBRATION*)
-typedef X_INPUT_SET_STATE(x_input_set_state);
-X_INPUT_SET_STATE(XInputSetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
-globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
-#define XInputSetState XInputSetState_
-
-
-
-
 int64 global_cpu_freq;
 static Game_Settings* Global_Settings;
 
@@ -502,30 +486,33 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 
                 if (was_down != is_down)
                 {
-                    if (win32_key_check('W', in->up,     key_data)) break;
-                    if (win32_key_check('S', in->down,    key_data)) break;
-                    if (win32_key_check('A', in->left,    key_data)) break;
-                    if (win32_key_check('D', in->right,    key_data)) break;
-
-                    if (win32_key_check(VK_F1, in->debug_toggle,    key_data)) break;
-                    if (win32_key_check(VK_F5, in->debug_hotkey1,    key_data)) break;
-                    if (win32_key_check(VK_F6, in->debug_hotkey2,    key_data)) break;
-                    if (win32_key_check(VK_F7, in->debug_hotkey3,    key_data)) break;
-                    if (win32_key_check(VK_F8, in->debug_hotkey4,    key_data)) break;
-                    if (win32_key_check(VK_OEM_PLUS, in->debug_win_plus,       key_data)) break;
-                    if (win32_key_check(VK_OEM_MINUS, in->debug_win_minus,       key_data)) break;
-
-                    if (win32_key_check(VK_SHIFT, in->shift,         key_data)) break;
-                    if (win32_key_check(VK_CONTROL, in->ctrl,        key_data)) break;
-                    if (win32_key_check(VK_RETURN, in->enter,        key_data)) break;
-                    if (win32_key_check(VK_ESCAPE, in->escape,       key_data)) break;
+                    //game
+                    win32_key_check('W', in->up,    key_data);
+                    win32_key_check('S', in->down,  key_data);
+                    win32_key_check('A', in->left,  key_data);
+                    win32_key_check('D', in->right, key_data);
+                    win32_key_check(VK_SPACE, in->jump,  key_data);
+                    win32_key_check(VK_SHIFT, in->shoot,  key_data);
                     
-                    //else if (vk_code == VK_SHIFT)
-                    //else if (vk_code == VK_SPACE) 
-                    //else if (vk_code == VK_CONTROL)
-                    //else if (vk_code == VK_MENU) //alt
 
-                    //alt f4
+                    //debug
+                    win32_key_check('R', in->reset,                     key_data);
+                    win32_key_check(VK_F1, in->debug_toggle,            key_data);
+                    win32_key_check(VK_F8, in->debug_bgmode,            key_data);
+                    win32_key_check(VK_OEM_PLUS, in->debug_win_plus,    key_data);
+                    win32_key_check(VK_OEM_MINUS, in->debug_win_minus,  key_data);
+
+                    win32_key_check(VK_F5, in->debug_hotkey1,  key_data);
+                    win32_key_check(VK_F6, in->debug_hotkey2,  key_data);
+                    win32_key_check(VK_F7, in->debug_hotkey3,  key_data);
+
+                    win32_key_check(VK_SPACE, in->space,    key_data);
+                    win32_key_check(VK_SHIFT, in->shift,    key_data);
+                    win32_key_check(VK_CONTROL, in->ctrl,   key_data);
+                    win32_key_check(VK_RETURN, in->enter,   key_data);
+                    win32_key_check(VK_ESCAPE, in->escape,  key_data);
+
+                    //Alt f4
                     bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
                     if (alt_hold && vk_code == VK_F4)
                         *global_is_running = false;

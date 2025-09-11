@@ -6,8 +6,10 @@
 #include "game.h"
 
 #include "render.cpp"
+#include "collide.cpp"
 #include "player.cpp"
 #include "entity.cpp"
+
 
 
 extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
@@ -22,26 +24,48 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_State* game_state = (Game_State*)game_data->memory->permanent_storage;
     
     //initialize
-    if (! game_data->memory->is_initalized)
+    if (!game_data->memory->is_initalized)
     {
         Assert( (&input.bottom_button - &input.buttons[0]) == (array_length(input.buttons) - 1) );
-        game_data->state = game_state;
+        game_data->state = (Game_State*)game_data->memory->permanent_storage;
         game_data->memory->is_initalized = true;
         
-        game_state->player.Create({50, 50}, {Tile(1), Tile(1)}, red); //NOTE: parameters not used rn
-        game_state->walls.Create({100, 50}, {Tile(1), Tile(8)}, white);
+        game_state->player.Create(
+            {50, 50},
+            {Tile(1), Tile(2)},
+            green);
+        game_state->walls.Create(
+            {Tile(4), Tile(16)},
+            {Tile(32), Tile(1)},
+            white);
+        game_state->enemys.Create(
+            {Tile(4), Tile(14)},
+            {Tile(1), Tile(2)},
+            red);
     }
     Game_Settings* settings = game_data->settings;
+    Game_Input_Map INP = input;
 
     Player* player = &game_state->player;
     Walls* walls = &game_state->walls;
-
+    Enemys* enemys = &game_state->enemys;
+    Bullets* bullets = &game_state->bullets;
+    
     //update
-    game_state->player.Update(input);
+    if (INP.reset.press)  //NOTE: temp RESET
+        player->pos = {50, 50}; 
+    player->Update(*game_data, input);
+    enemys->Update(*game_data);
+    bullets->Update(*game_data);
 
     //draw
-    game_state->player.Draw(game_data);
-    walls->Draw(game_data);
+    walls->Draw(*game_data);
+    enemys->Draw(*game_data);
+    bullets->Draw(*game_data);
+    player->Draw(*game_data);
+
+    //clean
+    bullets->Cleanup_End_Frame();
 }
 
 
