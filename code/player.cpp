@@ -7,11 +7,13 @@
 #include "player.h"
 
 
+
 Player* Player::Create(Vec2 _pos, Vec2 _size, My_Color _color)
 {
     pos   = _pos;
     size  = _size;
     color = _color;
+    origin = {size.x/2, size.y};
     return this;
 }
 
@@ -21,22 +23,27 @@ void Player::Update(Game_Data_Pointers game_data, Game_Input_Map INP)
     float32 grav = 0.1f;
     float32 jumpspd = 3.0f;
     
-    Vec2 move_input = {
-        (float32)(INP.right.hold - INP.left.hold),
-        (float32)(INP.down.hold - INP.up.hold)
-    };
+    Vec2 move_input = {(float32)(INP.right.hold - INP.left.hold),
+                       (float32)(INP.down.hold - INP.up.hold)};
+    
     spd.x = move_input.x * maxspd;
-
+    if (move_input.x != 0)
+        aim_dir = (int8)move_input.x;
+    
+    size.y = Tile(2); //reset size
     if (INP.shoot.press)
     {
         Bullets* bullets = &game_data.state->bullets;
-        bullets->Create(pos, {2, 0});
+        Entity_Identity bullet = bullets->Create({pos.x + (size.x/2), pos.y+4},
+                                                 {3.0f * aim_dir, 0});
+        if (bullet.id != -1)
+            size.y += 2;
     }
     
     switch (state)
     {        
         case Player_States::ground:{
-            maxspd = 2.0f;
+            spd.x *= 2;
             spd.y += grav;
             
             move_collide_wall(game_data, &pos, &spd, size);
@@ -51,8 +58,11 @@ void Player::Update(Game_Data_Pointers game_data, Game_Input_Map INP)
         
         case Player_States::air:{
             if (INP.jump.release){
+                if (spd.y < 0)
+                {
+                    spd.y /= 2;
+                 }
                 grav *= 2;
-                spd.y /= 2;
             }
             spd.y += grav;
 

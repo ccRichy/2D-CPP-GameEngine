@@ -19,6 +19,9 @@ struct Player
     My_Color color;
     Player_States state;
 
+    int8 aim_dir;
+    Vec2 origin;
+
     Player* Create(Vec2 _pos, Vec2 _size, My_Color _color);
     void Update(Game_Data_Pointers game_data, Game_Input_Map INP);
     void Draw(Game_Data_Pointers game_data);

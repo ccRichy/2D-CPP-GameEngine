@@ -8,153 +8,156 @@
 #include "render.h"
 
 
+
+//
 Walls* Walls::Create(Vec2 _pos, Vec2 _size, My_Color _color)
 {
-    pos[count] = _pos;
-    size[count] = _size;
-    color[count] = _color;
+    pos[count_alive] = _pos;
+    size[count_alive] = _size;
+    color[count_alive] = _color;
 
-    count++;
+    count_alive++;
     return this;
 }
 void Walls::Draw(Game_Data_Pointers game_data)
 {
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < count_alive; ++i)
     {
         draw_rect(game_data, pos[i], size[i], color[i]);
     }
 }
 
 
+
+//
 Enemys* Enemys::Create(Vec2 _pos, Vec2 _size, My_Color _color)
 {
-    pos[count] = _pos;
-    size[count] = _size;
-    color[count] = _color;
+    pos[count_alive] = _pos;
+    size[count_alive] = _size;
+    color[count_alive] = _color;
 
-    spd[count].x = 0.4f;
+    hp[count_alive] = 2;
+    spd[count_alive].x = 0.4f;
+
+    identity[count_alive] = {count_alive, count_alive};
     
-    count++;
+    count_alive++;
     return this;
 }
 void Enemys::Update(Game_Data_Pointers game_data)
 {
     float32 maxspd = 0.4f;
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < count_alive; ++i)
     {
         float32 coll_xoffset = (size[i].x * sign(spd[i].x) + spd[i].x);
         if (!collide_wall(game_data, pos[i], size[i], {coll_xoffset, 1}))
             spd[i].x *= -1;
         
         pos[i] += spd[i];
+
+        if (hp <= 0)
+            Clean(identity[i]);
     }
 }
 void Enemys::Draw(Game_Data_Pointers game_data)
 {
-    for (int i = 0; i < count; ++i)
+    for (int i = 0; i < count_alive; ++i)
     {
         draw_rect(game_data, pos[i], size[i], color[i]);
     }
 }
 
 
-Bullets* Bullets::Create(Vec2 _pos, Vec2 _spd)
-{
-    Entity_ID wrapped_i = count_total % (BULLET_MAX); //actual array index position
 
+// void
+// entity_is_valid(Entity_Identity identity)
+// {
+//     if ()
+// }
+
+//
+Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
+{   
+    if (count_alive >= BULLET_MAX) return {-1, -1};
+
+    Entity_ID wrapped_i = count_total % (BULLET_MAX); //actual array index position
     Entity_ID target_i = wrapped_i;
-    if (is_initialized[target_i])
+    if (is_initialized[target_i]) //slot already in use
     {
-        for (Entity_ID i = 0; i < BULLET_MAX; ++i) 
+        for (int i = 0; i < BULLET_MAX; ++i) //loop through all slots (from position)
         {
-            Entity_ID next_i = (i + target_i + 1) % (BULLET_MAX); //check if slots are open
-            if (!is_initialized[next_i])
-                target_i = next_i;
+            Entity_ID next_index = (i + target_i + 1) % (BULLET_MAX); //wrap
+            if (!is_initialized[next_index]) //if free, use that
+                target_i = next_index;
         }
-        if (target_i == wrapped_i){ //couldnt find a slot
-            //TODO: Log? Crash? Depends on the desired behavior, perhaps its a need-to-care basis
-            return this;
-        }
+        if (target_i == wrapped_i) //NOTE: this should never happen because of the early out
+            return {-1, -1};
     }
+     
+    is_initialized[target_i] = true;
+    index[target_i] = target_i;
+    alive[count_alive] = target_i;
     
     pos[target_i] = _pos;
     spd[target_i] = _spd;
-
+    
     size[target_i] = {4, 4};
     color[target_i] = blue;
 
-    id[target_i] = count_total;
-    index[target_i] = target_i;
-//    alive[count_alive] = index[target_i];
-    is_initialized[target_i] = true;
     count_alive++;
     count_total++;
-    return this;
+    return {count_alive-1, target_i};
 }
 void Bullets::Update(Game_Data_Pointers game_data)
 {
     // float32 maxspd = 3.0f;
-    for (int8 i = 0; i < BULLET_MAX; ++i)
+    for (int8 i = 0; i < count_alive; ++i)
     {
-        Entity_ID ai = i;
-        if (!is_initialized[i]) continue;
+        Entity_ID ai = alive[i];
         
         pos[ai] += spd[ai];
+
+//        collide_entity(enemy_coll, game_data.state->enemys, pos[ai], size[ai], {});
+        Entity_Identity enemy_id = collide_enemy(game_data, pos[ai], size[ai]);
+        if (enemy_id.id != -1) //TODO: validity check
+        {
+            spd[ai].y -= 5;
+            game_data.state->enemys.hp[enemy_id.index] -= 1;
+        }
         
-        if (pos[ai].x > 200)
-            marked_to_clean[ai] = true;
+        if (on_screen(pos[ai], size[ai]))
+            Clean(index[ai]);
     }
 }
 void Bullets::Draw(Game_Data_Pointers game_data)
 {
-    for (Entity_ID i = 0; i < BULLET_MAX; ++i)
+    for (Entity_ID i = 0; i < count_alive; ++i)
     {
-        Entity_ID ai = i;
-        if (!is_initialized[i]) continue;
+        Entity_ID ai = alive[i];
         
         draw_rect(game_data, pos[ai], size[ai], color[ai]);
     }
 }
 
-
-// void Bullets::Clean(Entity_ID _index)
-// {
-//     marked_to_clean[_index] = true;    
-//     count_clean++;
-// }
-
-// void Bullets::Destroy(Entity_ID alive_index)
-// {
-//     count_alive--;
-//     Entity_ID real_index = alive[alive_index];
-//     is_initialized[real_index] = false;
-
-//     alive[alive_index] = 0;
-//     // if (_index == count_alive)
-//     //     return;
-//     for (Entity_ID i = alive_index; i+1 < BULLET_MAX; ++i)
-//     {
-//         Entity_ID id_to_move_back = alive[i+1];
-//         alive[i] = id_to_move_back;
-//     }
-//     // while (i+1 < BULLET_MAX) //NOTE: this currently automatically zeros all further indexes
-//     // {                        //we could make BULLET_MAX count_alive to save loops,
-//     //     Entity_ID id_to_move_back = alive[i+1]; //but leaving it as-is, is visually useful
-//     //     alive[i] = id_to_move_back;
-//     //     i++;
-//     // }
-//     // if (index+1 < BULLET_MAX)
-//     //     index+1
-// }
-
+void Bullets::Clean(Entity_ID _index) //real-index
+{
+    marked_for_clean[_index] = true;
+    count_clean++;
+}
 void Bullets::Cleanup_End_Frame()
 {
-    for (int i = 0; i < BULLET_MAX; ++i)
+    if (count_clean <= 0) return;
+    
+    for (int i = count_alive-1; i >= 0; --i) //loop backwards to prevent skip
     {
-        if (marked_to_clean[i])
+        Entity_ID real_index = alive[i];
+        if (marked_for_clean[real_index])
         {
-            is_initialized[i] = false;
+            array_erase_index(alive, BULLET_MAX, i, 0);
+            is_initialized[real_index] = false;
+            marked_for_clean[real_index] = false;
             count_alive--;
         }
     }
+    count_clean = 0;
 }

@@ -9,6 +9,8 @@
 
 //NOTE: pos_offset - useful for easily passing in a sprite's origin point
 
+
+//GENERIC
 bool32 collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2, Vec2 pos_offset)
 {
     float x1 = pos1.x + pos_offset.x;
@@ -31,10 +33,27 @@ bool32 collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2, Vec2 pos_offset)
 	return (vert && hori);
 }
 
+
+Entity_Identity collide_enemy(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
+{
+    Enemys* enemys = &game_data.state->enemys;
+    for (int i = 0; i < enemys->count_alive; ++i)
+    {
+        Vec2 _pos = enemys->pos[i];
+        Vec2 _size = enemys->size[i];
+        if (collide(pos, size, _pos, _size, pos_offset))
+            return enemys->identity[i];
+    }
+    return {-1, -1};
+}
+
+
+
+//WALL
 bool32 collide_wall(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
 {
     Walls* walls = &game_data.state->walls;
-    for (int i = 0; i < walls->count; ++i)
+    for (int i = 0; i < walls->count_alive; ++i)
     {
         Vec2 wall_pos = walls->pos[i];
         Vec2 wall_size = walls->size[i];
@@ -47,7 +66,7 @@ bool32 collide_wall(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_
 Rectangle collide_wall_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
 {
     Walls* walls = &game_data.state->walls;
-    for (int i = 0; i < walls->count; ++i)
+    for (int i = 0; i < walls->count_alive; ++i)
     {
         Vec2 wall_pos = walls->pos[i];
         Vec2 wall_size = walls->size[i];
@@ -121,4 +140,16 @@ Collide_Data move_collide_wall(Game_Data_Pointers game_data, Vec2* pos, Vec2* sp
 	}
 
 	return wallCollData;
+}
+
+
+
+//MISC
+bool32 on_screen(Vec2 pos, Vec2 padding)
+{
+    return (pos.x + padding.x >= BASE_W ||
+            pos.x - padding.x <= 0 ||
+            pos.y + padding.y >= BASE_H ||
+            pos.y - padding.y <= 0
+    );
 }
