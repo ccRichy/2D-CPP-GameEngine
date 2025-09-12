@@ -1,7 +1,8 @@
 #include "render.h"
 
 
-void draw_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, My_Color color)
+
+void draw_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Color color)
 {
     int8 scale = game_data.settings->window_scale;
     
@@ -25,11 +26,12 @@ void draw_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, My_Color color
         for (int X = x + xoffset; X < x + (size.x * (float32)scale); ++X)
         {
             if (X >= game_data.render->width) break;
-            *pixel++ = (uint32)color;
+            *pixel++ = color_struct_to_bits(color);
+            //*pixel++ = (uint32)color;
             // uint8 Red = 0;
             // uint8 Green = 0;
             // uint8 Blue = 100;
-            // *pixel++ = ( (Red << 16) | (Green < 8) | Blue );
+            // *pixel++ = ( (Red << 16) | (Green << 8) | Blue );
         }
         row += game_data.render->pitch;
     }

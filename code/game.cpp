@@ -33,15 +33,15 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         game_state->player.Create(
             {50, 50},
             {Tile(1), Tile(2)},
-            green);
+            GREEN);
         game_state->walls.Create(
             {Tile(4), Tile(16)},
             {Tile(32), Tile(1)},
-            white);
+            WHITE);
         game_state->enemys.Create(
             {Tile(4), Tile(14)},
             {Tile(1), Tile(2)},
-            red);
+            RED);
     }
     Game_Settings* settings = game_data->settings;
     Game_Input_Map INP = input;
@@ -65,6 +65,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     player->Draw(*game_data);
 
     //clean
+    enemys->Cleanup_End_Frame();
     bullets->Cleanup_End_Frame();
 }
 

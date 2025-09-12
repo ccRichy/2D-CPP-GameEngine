@@ -8,7 +8,7 @@
 
 
 
-Player* Player::Create(Vec2 _pos, Vec2 _size, My_Color _color)
+Player* Player::Create(Vec2 _pos, Vec2 _size, Color _color)
 {
     pos   = _pos;
     size  = _size;

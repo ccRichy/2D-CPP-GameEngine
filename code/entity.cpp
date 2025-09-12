@@ -10,7 +10,7 @@
 
 
 //
-Walls* Walls::Create(Vec2 _pos, Vec2 _size, My_Color _color)
+Walls* Walls::Create(Vec2 _pos, Vec2 _size, Color _color)
 {
     pos[count_alive] = _pos;
     size[count_alive] = _size;
@@ -30,7 +30,7 @@ void Walls::Draw(Game_Data_Pointers game_data)
 
 
 //
-Enemys* Enemys::Create(Vec2 _pos, Vec2 _size, My_Color _color)
+Enemys* Enemys::Create(Vec2 _pos, Vec2 _size, Color _color)
 {
     pos[count_alive] = _pos;
     size[count_alive] = _size;
@@ -66,14 +66,21 @@ void Enemys::Draw(Game_Data_Pointers game_data)
         draw_rect(game_data, pos[i], size[i], color[i]);
     }
 }
+void Enemys::Clean(Entity_Identity _identity)
+{
+    marked_for_clean[_identity.index] = true;
+}
+void Enemys::Cleanup_End_Frame()
+{
+    // for (int i = 0; i < count_alive; ++i)
+    // {
+        
+    // }
+    // marked_for_clean[_identity.index] = true;
+}
 
 
-
-// void
-// entity_is_valid(Entity_Identity identity)
-// {
-//     if ()
-// }
+void entity_find_open_slot(Entity_ID target_i){}
 
 //
 Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
@@ -102,7 +109,7 @@ Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
     spd[target_i] = _spd;
     
     size[target_i] = {4, 4};
-    color[target_i] = blue;
+    color[target_i] = BLUE;
 
     count_alive++;
     count_total++;
@@ -119,7 +126,7 @@ void Bullets::Update(Game_Data_Pointers game_data)
 
 //        collide_entity(enemy_coll, game_data.state->enemys, pos[ai], size[ai], {});
         Entity_Identity enemy_id = collide_enemy(game_data, pos[ai], size[ai]);
-        if (enemy_id.id != -1) //TODO: validity check
+        if (enemy_id)
         {
             spd[ai].y -= 5;
             game_data.state->enemys.hp[enemy_id.index] -= 1;
