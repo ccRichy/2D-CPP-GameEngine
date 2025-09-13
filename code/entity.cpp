@@ -39,7 +39,7 @@ Enemys* Enemys::Create(Vec2 _pos, Vec2 _size, Color _color)
     hp[count_alive] = 2;
     spd[count_alive].x = 0.4f;
 
-    identity[count_alive] = {count_alive, count_alive};
+    identity[count_alive] = {count_alive+1, count_alive};
     
     count_alive++;
     return this;
@@ -80,30 +80,54 @@ void Enemys::Cleanup_End_Frame()
 }
 
 
-void entity_find_open_slot(Entity_ID target_i){}
+bool32 bullet_find_open_slot(Bullets* bullets, Entity_ID* return_variable, Entity_ID first_target_index, Entity_ID max)
+{
+    *return_variable = first_target_index;
+    if (bullets->identity[first_target_index]) //slot already in use
+    {
+        for (int i = 0; i < max; ++i) //loop through all slots (from position)
+        {
+            Entity_ID next_index = (i + first_target_index + 1) % (max); //wrap
+            if (!bullets->identity[next_index]) //if free, use that
+            { 
+                *return_variable = next_index;
+                return true;
+            }
+        }
+        if (*return_variable == first_target_index) //NOTE: shouldnt happen with the early out
+            return false;
+    }
+    return true;
+}
 
 //
 Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
 {   
-    if (count_alive >= BULLET_MAX) return {-1, -1};
+    if (count_alive >= BULLET_MAX) return {};
 
     Entity_ID wrapped_i = count_total % (BULLET_MAX); //actual array index position
+    // Entity_ID target_i;
+    // bool32 slot_result = bullet_find_open_slot(this, &target_i, wrapped_i, BULLET_MAX);
+    // if (!slot_result)
+    //     return {};
     Entity_ID target_i = wrapped_i;
-    if (is_initialized[target_i]) //slot already in use
+    if (identity[target_i]) //slot already in use
     {
         for (int i = 0; i < BULLET_MAX; ++i) //loop through all slots (from position)
         {
             Entity_ID next_index = (i + target_i + 1) % (BULLET_MAX); //wrap
-            if (!is_initialized[next_index]) //if free, use that
+            if (!identity[next_index]) //if free, use that
+            {
                 target_i = next_index;
+                break;
+            }
         }
         if (target_i == wrapped_i) //NOTE: this should never happen because of the early out
-            return {-1, -1};
+            return {};
     }
      
-    is_initialized[target_i] = true;
-    index[target_i] = target_i;
     alive[count_alive] = target_i;
+    identity[target_i] = {count_total+1, target_i};
     
     pos[target_i] = _pos;
     spd[target_i] = _spd;
@@ -113,7 +137,8 @@ Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
 
     count_alive++;
     count_total++;
-    return {count_alive-1, target_i};
+    
+    return identity[target_i];
 }
 void Bullets::Update(Game_Data_Pointers game_data)
 {
@@ -133,7 +158,7 @@ void Bullets::Update(Game_Data_Pointers game_data)
         }
         
         if (on_screen(pos[ai], size[ai]))
-            Clean(index[ai]);
+            Clean(identity[ai].index);
     }
 }
 void Bullets::Draw(Game_Data_Pointers game_data)
@@ -161,7 +186,7 @@ void Bullets::Cleanup_End_Frame()
         if (marked_for_clean[real_index])
         {
             array_erase_index(alive, BULLET_MAX, i, 0);
-            is_initialized[real_index] = false;
+            identity[real_index] = {};
             marked_for_clean[real_index] = false;
             count_alive--;
         }

@@ -9,20 +9,20 @@
 //      the common elements so we can work on all of that data together
 
 
-typedef int32 Entity_ID;
-struct Entity_Identity //TODO: ELABORATE
+typedef int32 Entity_ID; //REQUIRED: 0 = NULL
+struct Entity_Identity
 {
     Entity_ID id;
     Entity_ID index;
 
     explicit operator bool() const noexcept {
-        return id != -1;
+        return id != 0;
     }
 };
 
 
-//NOTE: the only time validation is necessary is when we are referencing a STORED entity
-//TODO: BULLETPROOF THIS!!
+//NOTE: validation is ONLY necessary when referencing a previously STORED identity
+//TODO: test this further
 #define is_entity_valid(__entity_struct, __entity_identity)\
 (__entity_struct.identity[__entity_identity.index].id == __entity_identity.id)
 
@@ -64,15 +64,13 @@ struct Enemys
 #define BULLET_MAX 4
 struct Bullets
 {
-    bool32 is_initialized[BULLET_MAX];
-    bool32 marked_for_clean[BULLET_MAX];
-    Entity_ID alive[BULLET_MAX] = {};
-
     Entity_ID count_total;
     Entity_ID count_alive;
     Entity_ID count_clean;
 
-    Entity_ID index[BULLET_MAX];
+    Entity_Identity identity[BULLET_MAX];
+    Entity_ID alive[BULLET_MAX];
+    bool32 marked_for_clean[BULLET_MAX];
     
     Vec2     pos[BULLET_MAX];
     Vec2     spd[BULLET_MAX];

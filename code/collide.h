@@ -15,17 +15,17 @@ struct Collide_Data
 };
 
 
-#define collide_entity(return_value, entity_struct, __pos, __size, pos_offset)\
-auto entitys = &entity_struct;\
-auto __ret_val = &return_value;\
-for (int __it = 0; __it < entitys->count_alive; ++__it)\
-{\
-    Vec2 ___pos = entitys->pos[__it];\
-    Vec2 ___size = entitys->size[__it];\
-    if (collide(__pos, __size, ___pos, ___size, pos_offset))\
-        *__ret_val = true;\
-}\
-*__ret_val = false;
+// #define collide_entity(return_value, entity_struct, __pos, __size, pos_offset)\
+// auto entitys = &entity_struct;\
+// auto __ret_val = &return_value;\
+// for (int __it = 0; __it < entitys->count_alive; ++__it)\
+// {\
+//     Vec2 ___pos = entitys->pos[__it];\
+//     Vec2 ___size = entitys->size[__it];\
+//     if (collide(__pos, __size, ___pos, ___size, pos_offset))\
+//         *__ret_val = true;\
+// }\
+// *__ret_val = false;
 
 
 

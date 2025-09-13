@@ -45,7 +45,7 @@ Entity_Identity collide_enemy(Game_Data_Pointers game_data, Vec2 pos, Vec2 size,
             return enemys->identity[i];
                 
     }
-    return {-1, -1};
+    return {};
 }
 
 

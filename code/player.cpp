@@ -36,7 +36,7 @@ void Player::Update(Game_Data_Pointers game_data, Game_Input_Map INP)
         Bullets* bullets = &game_data.state->bullets;
         Entity_Identity bullet = bullets->Create({pos.x + (size.x/2), pos.y+4},
                                                  {3.0f * aim_dir, 0});
-        if (bullet.id != -1)
+        if (bullet)
             size.y += 2;
     }
     
