@@ -45,7 +45,19 @@ void string_cat(char* buffer, const char* string_pre, const char* string_post)
     }
 }
 
-int32 string_len(const char* string)
+
+
+int32 string_length(char* string)
+{
+    int32 result = 0;
+    for (int char_pos = 0; char_pos < 4096; ++char_pos)
+    {
+        if (string[char_pos] == 0) break;
+        result++;
+    }
+    return result;
+}
+int32 string_length(const char* string)
 {
     int32 result = 0;
     for (int char_pos = 0; char_pos < 4096; ++char_pos)
@@ -56,13 +68,39 @@ int32 string_len(const char* string)
     return result;
 }
 
-int32 string_len(char* string)
+
+
+bool32 string_equals(char* string1, char* string2)
 {
-    int32 result = 0;
-    for (int char_pos = 0; char_pos < 4096; ++char_pos)
+    bool32 result = true;
+    for (int i = 0; i < 1024; ++i)
     {
-        if (string[char_pos] == 0) break;
-        result++;
+        char char1 = string1[i];
+        char char2 = string2[i];
+        if (string1[i] != string2[i])
+        {
+            result = false;
+            break;
+        }
+        else if (char1 == 0 || char2 == 0)
+            break;
+    }
+    return result;
+}
+bool32 string_equals(const char* string1, const char* string2)
+{
+    bool32 result = true;
+    for (int i = 0; i < 1024; ++i)
+    {
+        const char char1 = string1[i];
+        const char char2 = string2[i];
+        if (string1[i] != string2[i])
+        {
+            result = false;
+            break;
+        }
+        else if (char1 == 0 || char2 == 0)
+            break;
     }
     return result;
 }

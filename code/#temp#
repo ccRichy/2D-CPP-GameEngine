@@ -29,16 +29,15 @@ struct Entity_Identity
 #define entity_spawn(__entity_struct, __pos) game_pointers->entity->__entity_struct.Create(__pos)
 
 
-#define WALL_MAX 32
+#define WALL_MAX 
 struct Walls
 {
-    int8  count_alive;
-    
+    int8 count_alive;
     Vec2     pos[WALL_MAX];
     Vec2     size[WALL_MAX];
-    Color    color[WALL_MAX];
+    Color color[WALL_MAX];
     
-    Walls* Create(Vec2 _pos, Vec2 _size);
+    Walls* Create(Vec2 _pos, Vec2 _size, Color _color);
     void Draw(Game_Pointers game_pointers);
 };
 

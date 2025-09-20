@@ -10,6 +10,25 @@ internal uint32 color_struct_to_bits(Color color)
     return ( (color.r << 16) | (color.g << 8) | (color.b) );
 }
 
+Color color_mult_value(Color input, float32 value)
+{
+    return {
+        (uint8)((float32)input.r * value),
+        (uint8)((float32)input.g * value),
+        (uint8)((float32)input.b * value)
+    };
+};
+
+Color color_mult_value_alpha(Color input, float32 value)
+{
+    return {
+        (uint8)((float32)input.r * value),
+        (uint8)((float32)input.g * value),
+        (uint8)((float32)input.b * value),
+        (uint8)((float32)input.a * value)
+    };    
+};
+
 
 #define LIGHTGRAY  Color{ 200, 200, 200, 255 }   // Light Gray
 #define GRAY       Color{ 130, 130, 130, 255 }   // Gray
@@ -38,14 +57,3 @@ internal uint32 color_struct_to_bits(Color color)
 #define BLANK      Color{ 0, 0, 0, 0 }           // Blank (Transparent)
 #define MAGENTA    Color{ 255, 0, 255, 255 }     // Magenta
 #define RAYWHITE   Color{ 245, 245, 245, 255 }   // My own White (raylib logo)
-
-
-
-// enum My_Color
-// {
-//     white = ((255 << 16) | (255 << 8) | (255)),
-//     black = ((0 << 16) | (0 << 8) | (0)),
-//     red = ((255 << 16) | (0 << 8) | (0)),
-//     green = ((0 << 16) | (255 << 8) | (0)),
-//     blue = ((0 << 16) | (0 << 8) | (255)),
-// };

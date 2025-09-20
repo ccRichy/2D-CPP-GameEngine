@@ -34,26 +34,10 @@ bool32 collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2, Vec2 pos_offset)
 }
 
 
-Entity_Identity collide_enemy(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
-{
-    Enemys* enemys = &game_data.state->enemys;
-    for (int i = 0; i < enemys->count_alive; ++i)
-    {
-        Vec2 _pos = enemys->pos[i];
-        Vec2 _size = enemys->size[i];
-        if (collide(pos, size, _pos, _size, pos_offset))
-            return enemys->identity[i];
-                
-    }
-    return {};
-}
-
-
-
 //WALL
-bool32 collide_wall(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
+bool32 collide_wall(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Vec2 pos_offset)
 {
-    Walls* walls = &game_data.state->walls;
+    Walls* walls = &game_pointers.entity->walls;
     for (int i = 0; i < walls->count_alive; ++i)
     {
         Vec2 wall_pos = walls->pos[i];
@@ -64,9 +48,9 @@ bool32 collide_wall(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_
     return false;
 }
 
-Rectangle collide_wall_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Vec2 pos_offset)
+Rectangle collide_wall_rect(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Vec2 pos_offset)
 {
-    Walls* walls = &game_data.state->walls;
+    Walls* walls = &game_pointers.entity->walls;
     for (int i = 0; i < walls->count_alive; ++i)
     {
         Vec2 wall_pos = walls->pos[i];
@@ -78,7 +62,7 @@ Rectangle collide_wall_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, V
 }
 
 
-Collide_Data move_collide_wall(Game_Data_Pointers game_data, Vec2* pos, Vec2* spd, Vec2 size)
+Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 {
 	Collide_Data wallCollData = {};
 
@@ -95,7 +79,7 @@ Collide_Data move_collide_wall(Game_Data_Pointers game_data, Vec2* pos, Vec2* sp
 	pos->y += spd->y;
 	entBboxTop = pos->y;
 	entBboxBottom = entBboxTop + size.y;
-	Rectangle wall = collide_wall_rect(game_data, *pos, size, {0.0f, (float32)sign(spd->y)});
+	Rectangle wall = collide_wall_rect(game_pointers, *pos, size, {0.0f, (float32)sign(spd->y)});
     bool32 wall_exists = !(wall.size.x == 0 && wall.size.y == 0);
 	if (wall_exists)
 	{
@@ -120,7 +104,7 @@ Collide_Data move_collide_wall(Game_Data_Pointers game_data, Vec2* pos, Vec2* sp
 	pos->x += spd->x;
 	entBboxLeft = pos->x;
 	entBboxRight = entBboxLeft + size.x;
-	wall = collide_wall_rect(game_data, *pos, size, {(float32)sign(spd->x), 0.0f});
+	wall = collide_wall_rect(game_pointers, *pos, size, {(float32)sign(spd->x), 0.0f});
     wall_exists = !(wall.size.x == 0 && wall.size.y == 0);
 	if (wall_exists)
     {

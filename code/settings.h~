@@ -1,8 +1,0 @@
-#pragma once
-
-struct _settings
-{
-    int8 window_scale = 4;
-};
-
-globalvar _settings Settings;

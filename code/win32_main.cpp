@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "my_types_constants.h"
+#include "array_functions.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
 #include "render.h"
@@ -35,6 +36,12 @@ globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
 //the 1 frame delay that this bool creates, prevents it from failing (for whatever reason)
 
 
+//NOTE: KEYBOARD TPYING TEST
+globalvar char global_typing_buffer[256];
+globalvar int32 global_typing_index;
+
+
+
 LRESULT CALLBACK
 win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lparam)
 {
@@ -42,6 +49,12 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
     
     switch (message)
     {
+
+        case WM_CHAR:{
+            global_typing_buffer = wparam;
+            global_typing_index++;
+        }break;
+        
         case WM_ACTIVATEAPP:{
             if (!wparam) //out of focus
             {
@@ -56,7 +69,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
                     window_set_trans(window, false);
                 }
 
-                OutputDebugStringA("(WM_ACTIVATEAPP): lost focus\n");
+                OutputDebugStringA("(Win32)(WM_ACTIVATEAPP): lost focus\n");
             }
             else
             {
@@ -66,7 +79,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
                     window_set_trans(window, false);
                 }
 
-                OutputDebugStringA("(WM_ACTIVATEAPP): in focus\n");
+                OutputDebugStringA("(Win32)(WM_ACTIVATEAPP): in focus\n");
                 // else window_trans_enable(window, false);
             }
         }break;
@@ -77,12 +90,12 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 
         case WM_DESTROY:{
             Global_Running = false;
-            OutputDebugStringA("WM_DESTROY\n");
+            OutputDebugStringA("(Win32)(WM_DESTROY)\n");
         }break;
 
         case WM_CLOSE:{
             Global_Running = false;
-            OutputDebugStringA("WM_CLOSE\n");
+            OutputDebugStringA("(Win32)(WM_CLOSE)\n");
         }break;
         
         case WM_PAINT:{
@@ -106,7 +119,9 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
-{
+{    
+    ShowCursor(FALSE);
+    
     //performance query
     LARGE_INTEGER __perf_frequency_result;
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
@@ -185,8 +200,11 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 #endif
                 
             Game_Memory game_memory = {};
-            game_memory.permanent_storage_space = Megabytes(GAME_MEMORY_MB_PERMINENT);
+            game_memory.permanent_storage_space = Megabytes(GAME_MEMORY_MB_PERMANENT);
             game_memory.transient_storage_space = Gigabytes(GAME_MEMORY_MB_TRANSIENT);
+            game_memory.DEBUG_platform_file_free_memory = DEBUG_platform_file_free_memory;
+            game_memory.DEBUG_platform_file_read_entire = DEBUG_platform_file_read_entire;
+            game_memory.DEBUG_platform_file_write_entire = DEBUG_platform_file_write_entire;
             
             uint64 game_memory_size_total = game_memory.permanent_storage_space + game_memory.transient_storage_space;
             game_memory.permanent_storage = VirtualAlloc(game_memory_address, game_memory_size_total, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -213,12 +231,12 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
                                     
-                Game_Data_Pointers game_data = {};
-                game_data.settings = &settings;
-                game_data.memory   = &game_memory;
-                game_data.render   = &game_render_buffer;
-                game_data.sound    = &game_sound_buffer;
-                //game_data.input //input gets passed by value
+                Game_Pointers game_pointers = {};
+                game_pointers.settings = &settings;
+                game_pointers.memory   = &game_memory;
+                game_pointers.render   = &game_render_buffer;
+                game_pointers.sound    = &game_sound_buffer;
+                //game_pointers.input //input gets passed by value
                 
                 while (Global_Running)
                 {
@@ -234,81 +252,70 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                             game_code = win32_load_game_code(dll_path, dll_temp_path);
                         }
                     }
-                    else
-                    {
+                    else{
                         int cool = 1;
                     }
-                    
-                    //input
-                    win32_xinput_poll(&game_code, &game_input_map);
-                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
-                    win32_process_input(&game_input_map, &game_input_map_prev);
-                    Game_Input_Map INP = game_input_map;
 
                     //TODO: make Game_Render_Buffer variables into pointers so we only set once?
                     game_render_buffer.memory = Global_Render_Buffer.memory;
                     game_render_buffer.width  = Global_Render_Buffer.width;
                     game_render_buffer.height = Global_Render_Buffer.height;
                     game_render_buffer.pitch  = Global_Render_Buffer.pitch;
-
                     
-                    //DEBUG: 
-                    if (INP.debug_hotkey1.press)
-                        DEBUG_xaudio2_play_sound("select1.wav", &xaudio2_data, snd_buffer_test);
-
+                    //input
+                    win32_xinput_poll(&game_code, &game_input_map);
+                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
+                    win32_process_input(&game_input_map, &game_input_map_prev);
+                    Game_Input_Map input = game_input_map;
+                    
                     //BGMODE
-                    if (INP.debug_bgmode.press)
-                    {
-                        if (INP.ctrl.hold)
-                        {
-                            if (Global_BGMode_Enabled)
-                            {
+                    if (input.debug_bgmode){
+                        OutputDebugStringA("(Win32)(BGMode): ");
+                        if (input.ctrl.hold){
+                            if (Global_BGMode_Enabled){
                                 Global_BGMode_TransOutOfFocus = !Global_BGMode_TransOutOfFocus;
-                                auto toof_string = Global_BGMode_TransOutOfFocus ? "(BGMode): transparency out of focus enabled\n" : "(BGMode): transparency out of focus disabled\n";
+                                auto toof_string = Global_BGMode_TransOutOfFocus ? "transparency out of focus enabled\n" : "transparency out of focus disabled\n";
                                 OutputDebugStringA(toof_string);
                             }
-                        }
-                        else
-                        {
+                        }else{
                             Global_BGMode_Enabled = !Global_BGMode_Enabled;
                             window_set_topmost(window, Global_BGMode_Enabled);
                             window_set_trans(window, Global_BGMode_Enabled);
-                            auto bgstatus_string = Global_BGMode_Enabled ? "(BGMode): Enabled\n" : "(BGMode): Disabled\n";
+                            auto bgstatus_string = Global_BGMode_Enabled ? "Enabled\n" :  "Disabled\n";
                             OutputDebugStringA(bgstatus_string);
                         }
                     }
                     
-                    if (INP.debug_win_plus.press)
-                    {
+                    if (input.debug_win_plus)
                         win32_set_window_scale(++Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
-                    }
-                    if (INP.debug_win_minus.press)
-                    {
-                        win32_set_window_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
-                    }
                     
+                    if (input.debug_win_minus)
+                        win32_set_window_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+
+
                     
                     //GAME LOOP
                     ZeroMemory(game_render_buffer.memory,  Global_Render_Buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
-                        game_code.update_and_draw(&game_data, game_input_map);
+                        game_code.update_and_draw(&game_pointers, game_input_map);
 
-                    //windows goes to draw it
+                    //render
                     HDC device_context = GetDC(window);
                     Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
                     win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
                     ReleaseDC(window, device_context);
-                    
+
+
                     
                     //sleep
                     int64 tick_spent_in_frame = win32_get_tick_diff(tick_loop_start);
                     float64 sec_spent_in_frame = win32_tick_to_sec(tick_spent_in_frame);
 
                     if (sec_spent_in_frame < SEC_PER_FRAME_TARGET)
-                    {
                         sleep_well((SEC_PER_FRAME_TARGET) - sec_spent_in_frame, &sleep_data);
-                    }
 
+
+                    
                     //perf
                     int64 tick_loop_end = win32_get_tick();
                     float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
@@ -317,7 +324,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     //log //TODO: enable with preprocessor define?
                     char buffer[256];
                     sprintf_s(buffer, "ms/f: %.02f \n", ms_this_frame);
-                    OutputDebugStringA(buffer);
+                    // OutputDebugStringA(buffer);
                 }
             }
             else

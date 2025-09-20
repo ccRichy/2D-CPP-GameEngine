@@ -9,138 +9,148 @@
 
 
 
+//agnostic
+Entity_ID entity_find_open_slot(Entity_ID first_target_index,
+                             Entity_Identity* identity_array, Entity_ID array_length)
+{
+    if (identity_array[first_target_index]) //slot already in use
+    {
+        for (int i = 0; i < array_length; ++i) //loop through all slots (from position)
+        {
+            Entity_ID next_index = (i + first_target_index + 1) % (array_length); //wrap
+            if (!identity_array[next_index]) //if free, use that
+                return next_index;
+        }
+    }
+    return first_target_index;
+}
+
+
+
+
 //
-Walls* Walls::Create(Vec2 _pos, Vec2 _size, Color _color)
+Walls* Walls::Create(Vec2 _pos, Vec2 _size)
 {
     pos[count_alive] = _pos;
     size[count_alive] = _size;
-    color[count_alive] = _color;
+    color[count_alive] = WHITE;
 
     count_alive++;
     return this;
 }
-void Walls::Draw(Game_Data_Pointers game_data)
+void Walls::Draw(Game_Pointers game_pointers)
 {
     for (int i = 0; i < count_alive; ++i)
     {
-        draw_rect(game_data, pos[i], size[i], color[i]);
+        draw_rect(game_pointers, pos[i], size[i], color[i]);
     }
 }
 
 
 
 //
-Enemys* Enemys::Create(Vec2 _pos, Vec2 _size, Color _color)
+Enemys* Enemys::Create(Vec2 _pos)
 {
-    pos[count_alive] = _pos;
-    size[count_alive] = _size;
-    color[count_alive] = _color;
+    if (count_alive >= ENEMY_MAX) return {};
 
-    hp[count_alive] = 2;
-    spd[count_alive].x = 0.4f;
+    Entity_ID wrapped_i = count_total % ENEMY_MAX; //actual array index position
+    Entity_ID target_i = entity_find_open_slot(wrapped_i, identity, ENEMY_MAX);
+    if (identity[target_i])
+        return {};
+    
+    alive[count_alive] = target_i;
+    identity[target_i] = {target_i+1, target_i};
 
-    identity[count_alive] = {count_alive+1, count_alive};
+    pos[target_i] = _pos;
+
+    color[target_i] = RED;
+    size[target_i] = {Tile(1), Tile(2)};
+    hp[target_i] = 3;
+    spd[target_i].x = 0.4f;
     
     count_alive++;
+    count_total++;
     return this;
 }
-void Enemys::Update(Game_Data_Pointers game_data)
+void Enemys::Update(Game_Pointers game_pointers)
 {
     float32 maxspd = 0.4f;
     for (int i = 0; i < count_alive; ++i)
     {
-        float32 coll_xoffset = (size[i].x * sign(spd[i].x) + spd[i].x);
-        if (!collide_wall(game_data, pos[i], size[i], {coll_xoffset, 1}))
-            spd[i].x *= -1;
-        
-        pos[i] += spd[i];
+        Entity_ID ai = alive[i];
 
-        if (hp <= 0)
-            Clean(identity[i]);
+        float32 coll_xoffset = (size[ai].x * sign(spd[ai].x) + spd[ai].x);
+        if (!collide_wall(game_pointers, pos[ai], size[ai], {coll_xoffset, 1}))
+            spd[ai].x *= -1;
+        
+        pos[ai] += spd[ai];
+
+        if (hp[ai] <= 0)
+            Clean(identity[ai]);
     }
 }
-void Enemys::Draw(Game_Data_Pointers game_data)
+void Enemys::Draw(Game_Pointers game_pointers)
 {
     for (int i = 0; i < count_alive; ++i)
     {
-        draw_rect(game_data, pos[i], size[i], color[i]);
+        Entity_ID ai = alive[i];
+        draw_rect(game_pointers, pos[ai], size[ai], color[ai]);
+
+        Vec2 hp_pos_offset = {0, -8};
+        Vec2 hp_length = {4.0f * hp[ai], 2.0f};
+        draw_rect(game_pointers, pos[ai] + hp_pos_offset, hp_length, color[ai]);
     }
 }
 void Enemys::Clean(Entity_Identity _identity)
 {
     marked_for_clean[_identity.index] = true;
+    count_clean++;
 }
 void Enemys::Cleanup_End_Frame()
 {
-    // for (int i = 0; i < count_alive; ++i)
-    // {
-        
-    // }
-    // marked_for_clean[_identity.index] = true;
-}
-
-
-bool32 bullet_find_open_slot(Bullets* bullets, Entity_ID* return_variable, Entity_ID first_target_index, Entity_ID max)
-{
-    *return_variable = first_target_index;
-    if (bullets->identity[first_target_index]) //slot already in use
+    if (count_clean <= 0) return;
+    
+    for (int i = count_alive-1; i >= 0; --i) //loop backwards to prevent skip
     {
-        for (int i = 0; i < max; ++i) //loop through all slots (from position)
+        Entity_ID real_index = alive[i];
+        if (marked_for_clean[real_index])
         {
-            Entity_ID next_index = (i + first_target_index + 1) % (max); //wrap
-            if (!bullets->identity[next_index]) //if free, use that
-            { 
-                *return_variable = next_index;
-                return true;
-            }
+            array_erase_index(alive, ENEMY_MAX, i, 0);
+            identity[real_index] = {};
+            marked_for_clean[real_index] = false;
+            count_alive--;
         }
-        if (*return_variable == first_target_index) //NOTE: shouldnt happen with the early out
-            return false;
     }
-    return true;
+    count_clean = 0;
 }
+
+
 
 //
 Entity_Identity Bullets::Create(Vec2 _pos, Vec2 _spd)
 {   
     if (count_alive >= BULLET_MAX) return {};
 
-    Entity_ID wrapped_i = count_total % (BULLET_MAX); //actual array index position
-    // Entity_ID target_i;
-    // bool32 slot_result = bullet_find_open_slot(this, &target_i, wrapped_i, BULLET_MAX);
-    // if (!slot_result)
-    //     return {};
-    Entity_ID target_i = wrapped_i;
-    if (identity[target_i]) //slot already in use
-    {
-        for (int i = 0; i < BULLET_MAX; ++i) //loop through all slots (from position)
-        {
-            Entity_ID next_index = (i + target_i + 1) % (BULLET_MAX); //wrap
-            if (!identity[next_index]) //if free, use that
-            {
-                target_i = next_index;
-                break;
-            }
-        }
-        if (target_i == wrapped_i) //NOTE: this should never happen because of the early out
-            return {};
-    }
-     
+    Entity_ID wrapped_i = count_total % BULLET_MAX; //actual array index position
+    Entity_ID target_i = entity_find_open_slot(wrapped_i, identity, BULLET_MAX);
+    if (identity[target_i])
+        return {};
+
     alive[count_alive] = target_i;
     identity[target_i] = {count_total+1, target_i};
-    
+
     pos[target_i] = _pos;
     spd[target_i] = _spd;
-    
+
     size[target_i] = {4, 4};
     color[target_i] = BLUE;
 
     count_alive++;
     count_total++;
-    
+
     return identity[target_i];
 }
-void Bullets::Update(Game_Data_Pointers game_data)
+void Bullets::Update(Game_Pointers game_pointers)
 {
     // float32 maxspd = 3.0f;
     for (int8 i = 0; i < count_alive; ++i)
@@ -149,31 +159,34 @@ void Bullets::Update(Game_Data_Pointers game_data)
         
         pos[ai] += spd[ai];
 
-//        collide_entity(enemy_coll, game_data.state->enemys, pos[ai], size[ai], {});
-        Entity_Identity enemy_id = collide_enemy(game_data, pos[ai], size[ai]);
+//        Entity_Identity enemy_id = collide_enemy(game_pointers, pos[ai], size[ai]);
+        Entity_Identity enemy_id = {};
+        collide_entity(enemy_id, pos[ai], size[ai], game_pointers.entity->enemys);
         if (enemy_id)
         {
+            pos[ai].y -= 16;
             spd[ai].y -= 5;
-            game_data.state->enemys.hp[enemy_id.index] -= 1;
+            game_pointers.entity->enemys.hp[enemy_id.index] -= 1;
+            game_pointers.entity->enemys.color[enemy_id.index] = color_mult_value(game_pointers.entity->enemys.color[enemy_id.index], 0.9f);
         }
         
         if (on_screen(pos[ai], size[ai]))
-            Clean(identity[ai].index);
+            Clean(identity[ai]);
     }
 }
-void Bullets::Draw(Game_Data_Pointers game_data)
+void Bullets::Draw(Game_Pointers game_pointers)
 {
     for (Entity_ID i = 0; i < count_alive; ++i)
     {
         Entity_ID ai = alive[i];
         
-        draw_rect(game_data, pos[ai], size[ai], color[ai]);
+        draw_rect(game_pointers, pos[ai], size[ai], color[ai]);
     }
 }
 
-void Bullets::Clean(Entity_ID _index) //real-index
+void Bullets::Clean(Entity_Identity _identity) //real-index
 {
-    marked_for_clean[_index] = true;
+    marked_for_clean[_identity.index] = true;
     count_clean++;
 }
 void Bullets::Cleanup_End_Frame()

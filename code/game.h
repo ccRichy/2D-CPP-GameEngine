@@ -10,11 +10,12 @@
 #define Assert(condition)
 #endif
 
-#define Kilobytes(Value) ((Value)*1024LL)
-#define Megabytes(Value) (Kilobytes(Value)*1024LL)
-#define Gigabytes(Value) (Megabytes(Value)*1024LL)
-#define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
+
+#define LEVEL_FIRST "test.lvl"
+
+
+#define FPS_TARGET 60
 
 #define BASE_W 320
 #define BASE_H 180
@@ -22,21 +23,23 @@
 
 #define TILE_SIZE 8
 #define Tile(value) (value * TILE_SIZE)
-#define Tile_Pos(value) (value * TILE_SIZE)
 
-#define GAME_MEMORY_MB_PERMINENT 8
+#define GAME_MEMORY_MB_PERMANENT 8
 #define GAME_MEMORY_MB_TRANSIENT 16
 
-#define FPS                   60
 #define SND_MAX_CONCURRENT    64
-
 #define SND_SAMPLE_RATE       44100
 #define SND_BITS_PER_SAMPLE   16
 #define SND_CHANNELS          2
 #define SND_BUFFER_SIZE_BYTES (((SND_SAMPLE_RATE) * (SND_BITS_PER_SAMPLE/8)))
-#define SEC_PER_FRAME_TARGET  (1.0f/FPS)
+#define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
 
 
+enum struct Game_State
+{
+    edit,
+    play
+};
 
 
 
@@ -62,10 +65,10 @@ struct DEBUG_File
 #define DEBUG_PLATORM_FILE_FREE_MEMORY(name) void name(void* memory)
 typedef DEBUG_PLATORM_FILE_FREE_MEMORY(DEBUG_Platform_File_Free_Memory);
 
-#define DEBUG_PLATORM_FILE_READ_ENTIRE(name) DEBUG_File name(const char* name)
+#define DEBUG_PLATORM_FILE_READ_ENTIRE(name) DEBUG_File name(const char* filename)
 typedef DEBUG_PLATORM_FILE_READ_ENTIRE(DEBUG_Platform_File_Read_Entire);
 
-#define DEBUG_PLATORM_FILE_WRITE_ENTIRE(name) bool32 name(const char* name, uint32 memory_size, void* memory)
+#define DEBUG_PLATORM_FILE_WRITE_ENTIRE(name) bool32 name(const char* filename, uint32 memory_size, void* memory)
 typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
 #endif
 
@@ -107,33 +110,39 @@ struct Game_Settings //REQUIRED: give members default value
 
 struct Game_Sound_Buffer
 {
-    int    channels;
-    int    sample_rate;
+    int32  channels;
+    int32  sample_rate;
     int16* memory;
 };
 
-struct Game_State
+struct Game_Entities
 {
-//    Game_Settings settings;
-    Player player;
-    Walls  walls;
-    Enemys enemys;
-    Bullets bullets;
+    Player  player;
+    Walls   walls;
+    Enemys  enemys;
+    Bullets bullets;        
+};
+struct Game_Data
+{
+    const char* level_current;
+    Game_State state;
+    Game_Entities entity;
 };
 
-struct Game_Data_Pointers //just all the fuckin data
+struct Game_Pointers //just all the fuckin data
 {
     Game_Render_Buffer* render;
     Game_Memory*        memory;
     Game_Sound_Buffer*  sound;
     Game_Settings*      settings;
     
-    Game_State* state; //populated in game init
+    Game_Data* data; //populated in game init
+    Game_Entities* entity; //populated in game init
 };
 
 
 
-#define GAME_UPDATE_AND_DRAW(name) void name(Game_Data_Pointers* game_data, Game_Input_Map input)
+#define GAME_UPDATE_AND_DRAW(name) void name(Game_Pointers* game_pointers, Game_Input_Map input)
 typedef GAME_UPDATE_AND_DRAW(Game_Update_And_Draw);
 GAME_UPDATE_AND_DRAW(Game_Update_And_Draw_Stub) {}
 

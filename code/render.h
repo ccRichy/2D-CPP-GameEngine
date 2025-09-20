@@ -3,4 +3,4 @@
 #include "game.h"
 
 
-void draw_rect(Game_Data_Pointers game_data, Vec2 pos, Vec2 size, Color color);
+void draw_rect(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Color color);
