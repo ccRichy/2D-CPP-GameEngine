@@ -26,13 +26,13 @@ float32 abs_f(float32 value)
 }
 
 
-int32 floor(float32 value)
-{
-    return (int32)value;
-}
-int32 round(float32 value)
+int32 round_i32(float32 value)
 {
     return (int32)(value + 0.5);
+}
+float32 round_f32(float32 value)
+{
+    return (float32)(int32)(value + 0.5);
 }
 
 

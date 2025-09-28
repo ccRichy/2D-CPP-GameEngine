@@ -21,19 +21,20 @@
   - Fix game dll double loading bug
 */
 
-//NOTE: variables here only get used in THIS file
+
 globalvar Win32_Render_Buffer Global_Render_Buffer;
 globalvar bool32 Global_Running = true;
 
 globalvar bool32 Global_BGMode_Enabled = false;
 globalvar bool32 Global_BGMode_TransOutOfFocus = true;
 
-//TODO:  THIS SHIT
+
 globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
 //BUG: something is preventing the game dll from loading in without this
 //Upon game dll compilation, we load it into the game by checking its time vs our stored time.
 //For some reason it still gets loaded twice (even with this hack), however-
 //the 1 frame delay that this bool creates, prevents it from failing (for whatever reason)
+
 
 
 //NOTE: KEYBOARD TPYING TEST
@@ -49,9 +50,10 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
     
     switch (message)
     {
-
         case WM_CHAR:{
-            global_typing_buffer = wparam;
+            bool32 is_down = ((lparam & (1 << 31)) == 0);
+            bool32 was_down = ((lparam & (1 << 30)) != 0);
+            global_typing_buffer[global_typing_index] = (char)wparam;
             global_typing_index++;
         }break;
         
@@ -245,8 +247,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
                     {
                         dll_flip = !dll_flip; //NOTE: HACK - see dll_flip
-                        if (!dll_flip)
-                        {
+                        if (!dll_flip){
                             game_code.game_dll_last_write_time = filetime;
                             win32_unload_game_code(&game_code);
                             game_code = win32_load_game_code(dll_path, dll_temp_path);
@@ -295,7 +296,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
                     
                     //GAME LOOP
-                    ZeroMemory(game_render_buffer.memory,  Global_Render_Buffer.memory_size_bytes); //blacken buffer
+                    ZeroMemory(game_render_buffer.memory, Global_Render_Buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
                         game_code.update_and_draw(&game_pointers, game_input_map);
 

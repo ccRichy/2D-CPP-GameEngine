@@ -36,7 +36,7 @@ struct Game_Input_Map
     Vec2 mouse_pos;
     
     union {
-        Game_Input_Button buttons[33 + 1];
+        Game_Input_Button buttons[35 + 1];
         struct {
             //GAME
             Game_Input_Button up;
@@ -48,6 +48,8 @@ struct Game_Input_Map
 
             //editor
             Game_Input_Button editor_toggle;
+            Game_Input_Button editor_save_level;
+            Game_Input_Button editor_load_level;
             
             //DEBUG
             Game_Input_Button reset;

@@ -538,6 +538,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
 
                     //editor
                     win32_key_check(VK_F12, in->editor_toggle, key_data);
+                    win32_key_check('S', in->editor_save_level, key_data);
+                    win32_key_check('L', in->editor_load_level, key_data);
 
                     //debug
                     win32_key_check('R', in->reset,                     key_data);
@@ -650,9 +652,7 @@ win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
 {
     //bm
     if (buffer->memory)
-    {
         VirtualFree(buffer->memory, 0, MEM_RELEASE);
-    }
 
     int bytes_per_pixel = 4;
     buffer->width = width;

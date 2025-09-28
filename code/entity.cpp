@@ -167,7 +167,7 @@ void Bullets::Update(Game_Pointers game_pointers)
             pos[ai].y -= 16;
             spd[ai].y -= 5;
             game_pointers.entity->enemys.hp[enemy_id.index] -= 1;
-            game_pointers.entity->enemys.color[enemy_id.index] = color_mult_value(game_pointers.entity->enemys.color[enemy_id.index], 0.9f);
+            game_pointers.entity->enemys.color[enemy_id.index] = color_mult_value_rgb(game_pointers.entity->enemys.color[enemy_id.index], 0.9f);
         }
         
         if (on_screen(pos[ai], size[ai]))
