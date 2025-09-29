@@ -52,21 +52,6 @@ typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
 #endif
 
 
-#pragma pack(push, 1)
-struct BMP_File
-{
-    uint16 type;
-    uint32 size;
-    uint16 reserved1;
-    uint16 reserved2;
-    uint32 offset;
-    uint32 info_size;
-    int32  width;
-    int32  height;
-    uint16 planes;
-    uint16 bits_per_pixel;
-};
-#pragma pack(pop)
 
 
 

@@ -9,6 +9,15 @@
 //      the common elements so we can work on all of that data together
 
 
+enum class Ent_Type
+{
+    player,
+    wall,
+    enemy,
+    null
+};
+
+
 typedef int32 Entity_ID; //REQUIRED: 0 = NULL
 struct Entity_Identity
 {

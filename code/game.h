@@ -24,6 +24,23 @@ enum struct Game_State
 };
 
 
+#pragma pack(push, 1)
+struct BMP_File
+{
+    uint16 type;
+    uint32 size;
+    uint16 reserved1;
+    uint16 reserved2;
+    uint32 offset;
+    uint32 info_size;
+    int32  width;
+    int32  height;
+    uint16 planes;
+    uint16 bits_per_pixel;
+};
+#pragma pack(pop)
+
+
 struct Game_Settings //REQUIRED: give members default value
 {
     int8 window_scale = 4;
