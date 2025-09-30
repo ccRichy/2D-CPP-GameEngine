@@ -4,6 +4,7 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
+
 #include "player.h"
 
 
@@ -13,25 +14,25 @@ Player* Player::Create(Vec2 _pos)
     pos   = _pos;
     size  = {Tile(1), Tile(2)};
     color = GREEN;
-    origin = {size.x/2, size.y};
+    state = Player_State::ground;
     return this;
 }
 
-void Player::Update(Game_Pointers game_pointers, Game_Input_Map INP)
+void Player::Update(Game_Pointers game_pointers, Game_Input_Map input)
 {
     float32 maxspd = 1.0f;
     float32 grav = 0.1f;
     float32 jumpspd = 3.0f;
     
-    Vec2 move_input = {(float32)(INP.right.hold - INP.left.hold),
-                       (float32)(INP.down.hold - INP.up.hold)};
+    Vec2 move_input = {(float32)(input.right.hold - input.left.hold),
+                       (float32)(input.down.hold - input.up.hold)};
     
     spd.x = move_input.x * maxspd;
     if (move_input.x != 0)
         aim_dir = (int8)move_input.x;
     
     size.y = Tile(2); //reset size
-    if (INP.shoot.press)
+    if (input.shoot.press)
     {
         Bullets* bullets = &game_pointers.entity->bullets;
         Entity_Identity bullet = bullets->Create({pos.x + (size.x/2), pos.y+4},
@@ -42,51 +43,43 @@ void Player::Update(Game_Pointers game_pointers, Game_Input_Map INP)
     
     switch (state)
     {        
-        case Player_States::ground:{
+        case Player_State::ground:{
             spd.x *= 2;
-            spd.y += grav;
-            
+
             move_collide_wall(game_pointers, &pos, &spd, size);
-            
-            if (INP.jump.press)
+                
+            if (input.jump.press)
             {
                 //if (spd.y != 0) spd.y *= (spd.y * 0.1f);
                 spd.y -= jumpspd;
-                state = Player_States::air;
+                state = Player_State::air;
             }
+            else if (!collide_wall(game_pointers, pos, size, {0.f, pos.y+1}))
+                state = Player_State::air;
         }break;
         
-        case Player_States::air:{
-            if (INP.jump.release){
-                if (spd.y < 0)
-                {
+        case Player_State::air:{
+            if (input.jump.release){
+                if (spd.y < 0){
                     spd.y /= 2;
-                 }
+                }
                 grav *= 2;
             }
             spd.y += grav;
 
-//            pos += spd;
             Collide_Data coll = move_collide_wall(game_pointers, &pos, &spd, size);
 
-            if (coll.dir.y == 1.0f)
-            {
-                state = Player_States::ground;
-            }
+            if (coll.ydir == 1)
+                state = Player_State::ground;
         }break;
     }
-    
 }
 
 void Player::Draw(Game_Pointers game_pointers)
 {
-    //test rect
-    bool32 is_colliding = collide_wall(game_pointers, pos, size);
-    // color = is_colliding ? white : red;
-    
     //Draw me :)
     draw_rect(game_pointers, pos, size, color);
-    
+    draw_pixel(game_pointers, pos, MAGENTA);
     //DRAW SMILEY FACE
     // float32 smile_size = 4;
     // draw_rect(game_pointers, {pos.x, pos.y}, {smile_size, smile_size * 5}, blue);

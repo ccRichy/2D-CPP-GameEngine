@@ -416,8 +416,8 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
             //input device state
             if ((game_input_map->game_input_device != Game_Input_Device::controller) &&
                 (pad->wButtons ||
-                 abs_i(pad->sThumbLX) > deadzone_l*3 || abs_i(pad->sThumbLY) > deadzone_l*3 ||
-                 abs_i(pad->sThumbRX) > deadzone_l*3 || abs_i(pad->sThumbLY) > deadzone_l*3 ||
+                 abs_i32(pad->sThumbLX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
+                 abs_i32(pad->sThumbRX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
                  l_trig > 100 || r_trig > 100))
             {
                 if (game_code->input_change_device)
@@ -595,8 +595,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             case WM_MOUSEMOVE:{
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
                 in->mouse_pos = {
-                    (float32)(mouse_points.x / Global_Settings->window_scale),
-                    (float32)(mouse_points.y / Global_Settings->window_scale)
+                    ((float32)mouse_points.x / (float32)Global_Settings->window_scale),
+                    ((float32)mouse_points.y / (float32)Global_Settings->window_scale)
                 };
             }break;
 
@@ -716,11 +716,12 @@ win32_set_window_scale(int8 scale, HWND window, Win32_Render_Buffer* win32_rende
     int32 target_x = (disp_w / 2) - (target_w/2);
     int32 target_y = (disp_h / 2) - (target_h/2);
     
-    
-    SetWindowPos(window, 0,
-                 target_x, target_y,
-                 target_w, target_h,
-                 SWP_SHOWWINDOW);
+    SetWindowPos(
+        window, 0,
+        target_x, target_y,
+        target_w, target_h,
+        SWP_SHOWWINDOW
+    );
     win32_set_DIB(win32_render_buffer, BASE_W * scale, BASE_H * scale);
                         
     game_render_buffer->memory = win32_render_buffer->memory;

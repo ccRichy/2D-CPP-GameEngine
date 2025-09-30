@@ -10,7 +10,8 @@ struct Collide_Data
 {
     bool32 hori;
     bool32 vert;
-    Vec2 dir;
+    int32 xdir;
+    int32 ydir;
     Vec2 spd;
 };
 

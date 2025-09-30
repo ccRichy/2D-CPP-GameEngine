@@ -150,7 +150,7 @@ void draw_line_vert(Game_Pointers game_pointers, Vec2 pos_start, Vec2 pos_end)
 }
 void draw_line(Game_Pointers game_pointers, Vec2 pos_start, Vec2 pos_end)
 {
-    if ( abs_f(pos_end.x - pos_start.x) > abs_f(pos_end.y - pos_start.y) )
+    if ( abs_f32(pos_end.x - pos_start.x) > abs_f32(pos_end.y - pos_start.y) )
         draw_line_hori(game_pointers, pos_start, pos_end);
     else
         draw_line_vert(game_pointers, pos_start, pos_end);
@@ -162,7 +162,7 @@ void draw_line_old(Game_Pointers game_pointers, Vec2 pos_start, Vec2 pos_end)
 
     float32 deltaX = pos_end.x - pos_start.x;
     float32 deltaY = pos_end.y - pos_start.y;
-    float32 max_delta = MAX( abs_f(deltaX), abs_f(deltaY) );
+    float32 max_delta = MAX( abs_f32(deltaX), abs_f32(deltaY) );
     if (max_delta != 0)
     {
         //float32 slope = deltaY / deltaX;

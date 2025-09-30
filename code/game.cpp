@@ -1,3 +1,4 @@
+#include "my_types_constants.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
 #include "my_color.h"
@@ -12,26 +13,31 @@
 
 
 
-///LEVEL SHIT TODO: move this!!
-void
-level_save(const char* filename, Game_Pointers game_pointers)
-{
-    game_pointers.memory->DEBUG_platform_file_write_entire(filename, sizeof(Game_Entities), game_pointers.entity);
-}
-void
-level_load(const char* filename, Game_Pointers game_pointers)
-{
-    DEBUG_File level = game_pointers.memory->DEBUG_platform_file_read_entire(filename);
-    //TODO: error handle
-    *game_pointers.entity = *(Game_Entities*)level.memory;
-    game_pointers.data->level_current = filename;
-}
-
+//file loading NOTE: move out of here?
 BMP_File*
 DEBUG_load_bmp(Game_Pointers game_pointers, const char* filename)
 {
     return (BMP_File*)game_pointers.memory->DEBUG_platform_file_read_entire(filename).memory;
 };
+
+
+
+///editor stuff
+void
+DEBUG_level_save(const char* filename, Game_Pointers game_pointers)
+{
+    if (true) return;
+    game_pointers.memory->DEBUG_platform_file_write_entire(filename, sizeof(Game_Entities), game_pointers.entity);
+}
+void
+DEBUG_level_load(const char* filename, Game_Pointers game_pointers)
+{
+    if (true) return;
+    DEBUG_File level = game_pointers.memory->DEBUG_platform_file_read_entire(filename);
+    //TODO: error handle
+    *game_pointers.entity = *(Game_Entities*)level.memory;
+    game_pointers.data->level_current = filename;
+}
 
 globalvar Ent_Type global_editor_ent_to_spawn; //NOTE: factor out
 Ent_Type editor_pick_entity(Game_Input_Map input)
@@ -51,6 +57,7 @@ void editor_entity_spawn(Ent_Type type, Vec2 pos, Game_Entities* entity)
 
 
 
+//
 extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
 {
     *input_map = {};
@@ -74,10 +81,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         game_pointers->entity = &game_pointers->data->entity;
         game_pointers->memory->is_initalized = true;
 
-        level_load(LEVEL_FIRST, *game_pointers);
+        DEBUG_level_load(LEVEL_FIRST, *game_pointers);
 
-        //bitmap test
-        // bitmap_file = (BMP_File*)game_pointers->memory->DEBUG_platform_file_read_entire("bitmap.bmp").memory;
         data->bmp_file = DEBUG_load_bmp(*game_pointers, "bitmap.bmp");
     }
 
@@ -92,6 +97,15 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     {
         if (input.editor_toggle)
             data->state = Game_State::play;
+
+        if (input.ctrl.hold)
+        {
+            if (input.editor_save_level)
+                DEBUG_level_save("test.lvl", *game_pointers);
+            if (input.editor_load_level)
+                DEBUG_level_load("test.lvl", *game_pointers);
+        }
+
             
         global_editor_ent_to_spawn = editor_pick_entity(input);
         if (input.left_click)
@@ -101,7 +115,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     {
         if (input.editor_toggle){
             data->state = Game_State::edit;
-            level_load(LEVEL_FIRST, *game_pointers);
+            DEBUG_level_load(LEVEL_FIRST, *game_pointers);
         }
             
         player->Update(*game_pointers, input);
@@ -112,15 +126,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
     //DEBUG
     if (input.reset)  //NOTE: temp RESET
-        level_load(data->level_current, *game_pointers);
+        DEBUG_level_load(data->level_current, *game_pointers);
 
-    if (input.ctrl.hold)
-    {
-        if (input.editor_save_level)
-            level_save("test.lvl", *game_pointers);
-        if (input.editor_load_level)
-            level_load("test.lvl", *game_pointers);
-    }
     
     //draw
     walls->Draw(*game_pointers);

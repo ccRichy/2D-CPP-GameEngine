@@ -62,7 +62,8 @@ Rectangle collide_wall_rect(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Ve
 }
 
 
-Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
+Collide_Data
+move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 {
 	Collide_Data wallCollData = {};
 
@@ -74,28 +75,30 @@ Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd
 	float wallBboxBottom = 0;
 	float wallBboxLeft = 0;
 	float wallBboxRight = 0;
-
+    Rectangle wall;
+    bool32 wall_exists;
+    
 	//VERTICAL
 	pos->y += spd->y;
 	entBboxTop = pos->y;
 	entBboxBottom = entBboxTop + size.y;
-	Rectangle wall = collide_wall_rect(game_pointers, *pos, size, {0.0f, (float32)sign(spd->y)});
-    bool32 wall_exists = !(wall.size.x == 0 && wall.size.y == 0);
+	wall = collide_wall_rect(game_pointers, *pos, size, {0.f, (float32)sign(spd->y)});
+    wall_exists = (wall.size.x != 0);
 	if (wall_exists)
 	{
 		float32 resY = pos->y;
 		wallBboxTop = wall.pos.y;
 		wallBboxBottom = wallBboxTop + wall.size.y;
-		
+
 		if (spd->y > 0){
 			resY = MIN(resY, wallBboxTop + pos->y - entBboxBottom);
 		}
 		else if (spd->y < 0){
 			resY = MAX(resY, wallBboxBottom + pos->y - entBboxTop);
 		}
-		
-		wallCollData.hori = true;
-		wallCollData.dir.y = (float32)sign(spd->y);
+
+		wallCollData.vert = true;
+		wallCollData.ydir = sign(spd->y);
 		pos->y = resY;
 		spd->y = 0;
 	}
@@ -104,8 +107,8 @@ Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd
 	pos->x += spd->x;
 	entBboxLeft = pos->x;
 	entBboxRight = entBboxLeft + size.x;
-	wall = collide_wall_rect(game_pointers, *pos, size, {(float32)sign(spd->x), 0.0f});
-    wall_exists = !(wall.size.x == 0 && wall.size.y == 0);
+	wall = collide_wall_rect(game_pointers, *pos, size, {(float32)sign(spd->x), 0.f});
+    wall_exists = (wall.size.x != 0);
 	if (wall_exists)
     {
 		float32 resX = pos->x;
@@ -119,7 +122,7 @@ Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd
 		}
 		
 		wallCollData.hori = true;
-		wallCollData.dir.x = (float32)sign(spd->x);
+		wallCollData.xdir = sign(spd->x);
 		pos->x = resX;
 		spd->x = 0;
 	}
@@ -132,9 +135,10 @@ Collide_Data move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd
 //MISC
 bool32 on_screen(Vec2 pos, Vec2 padding)
 {
-    return (pos.x + padding.x >= BASE_W ||
-            pos.x - padding.x <= 0 ||
-            pos.y + padding.y >= BASE_H ||
-            pos.y - padding.y <= 0
+    return (
+        pos.x + padding.x >= BASE_W ||
+        pos.x - padding.x <= 0 ||
+        pos.y + padding.y >= BASE_H ||
+        pos.y - padding.y <= 0
     );
 }

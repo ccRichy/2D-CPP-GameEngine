@@ -5,7 +5,7 @@ struct Game_Pointers;
 
 
 
-enum struct Player_States
+enum struct Player_State
 {
     ground,
     air
@@ -17,12 +17,11 @@ struct Player
     Vec2     spd;
     Vec2     size;
     Color    color;
-    Player_States state;
+    Player_State state;
 
     int8 aim_dir;
-    Vec2 origin;
 
     Player* Create(Vec2 _pos);
-    void Update(Game_Pointers game_pointers, Game_Input_Map INP);
+    void Update(Game_Pointers game_pointers, Game_Input_Map input);
     void Draw(Game_Pointers game_pointers);
 };
