@@ -11,10 +11,11 @@
 
 
 //GENERIC
-bool32 collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2, Vec2 pos_offset)
+bool32
+collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2)
 {
-    float x1 = pos1.x + pos_offset.x;
-	float y1 = pos1.y + pos_offset.y;
+    float x1 = pos1.x;
+	float y1 = pos1.y;
 	float bboxLeft1 = x1;
 	float bboxRight1 = x1 + size1.x;
 	float bboxTop1 = y1;
@@ -32,113 +33,89 @@ bool32 collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2, Vec2 pos_offset)
 
 	return (vert && hori);
 }
-
-
-//WALL
-bool32 collide_wall(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Vec2 pos_offset)
+//MISC
+bool32
+on_screen(Vec2 pos, Vec2 padding)
 {
-    Walls* walls = &game_pointers.entity->walls;
-    for (int i = 0; i < walls->count_alive; ++i)
-    {
-        Vec2 wall_pos = walls->pos[i];
-        Vec2 wall_size = walls->size[i];
-        if (collide(pos, size, wall_pos, wall_size, pos_offset))
-            return true;
-    }
-    return false;
+    return (
+        pos.x + padding.x <= BASE_W ||
+        pos.x - padding.x >= 0 ||
+        pos.y + padding.y <= BASE_H ||
+        pos.y - padding.y >= 0
+    );
 }
 
-Rectangle collide_wall_rect(Game_Pointers game_pointers, Vec2 pos, Vec2 size, Vec2 pos_offset)
-{
-    Walls* walls = &game_pointers.entity->walls;
-    for (int i = 0; i < walls->count_alive; ++i)
-    {
-        Vec2 wall_pos = walls->pos[i];
-        Vec2 wall_size = walls->size[i];
-        if (collide(pos, size, wall_pos, wall_size, pos_offset))
-            return {walls->pos[i], walls->size[i]};
-    }
-    return {};
-}
 
+Entity*
+collide_ent_pointer(Vec2 pos, Vec2 size, Entity* entity_array, int32 entity_num)
+{
+    for (int i = 0; i < entity_num; ++i)
+    {
+        Entity* ent = &entity_array[i];
+        if (collide(pos, size, ent->pos, ent->size))
+            return ent;
+    }
+    return nullptr;
+}
 
 Collide_Data
 move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 {
-	Collide_Data wallCollData = {};
+    Collide_Data coll_data = {};
 
-	float entBboxTop = 0;
-	float entBboxBottom = 0;
-	float entBboxLeft = 0;
-	float entBboxRight = 0;
-	float wallBboxTop = 0;
-	float wallBboxBottom = 0;
-	float wallBboxLeft = 0;
-	float wallBboxRight = 0;
-    Rectangle wall;
-    bool32 wall_exists;
-    
-	//VERTICAL
+    float32 caller_bbox_top;
+    float32 caller_bbox_bottom;
+    float32 caller_bbox_left;
+    float32 caller_bbox_right;
+
+    float32 wall_bbox_top;
+    float32 wall_bbox_bottom;
+    float32 wall_bbox_left;
+    float32 wall_bbox_right;
+
+    //
 	pos->y += spd->y;
-	entBboxTop = pos->y;
-	entBboxBottom = entBboxTop + size.y;
-	wall = collide_wall_rect(game_pointers, *pos, size, {0.f, (float32)sign(spd->y)});
-    wall_exists = (wall.size.x != 0);
-	if (wall_exists)
-	{
-		float32 resY = pos->y;
-		wallBboxTop = wall.pos.y;
-		wallBboxBottom = wallBboxTop + wall.size.y;
-
-		if (spd->y > 0){
-			resY = MIN(resY, wallBboxTop + pos->y - entBboxBottom);
-		}
-		else if (spd->y < 0){
-			resY = MAX(resY, wallBboxBottom + pos->y - entBboxTop);
-		}
-
-		wallCollData.vert = true;
-		wallCollData.ydir = sign(spd->y);
-		pos->y = resY;
-		spd->y = 0;
-	}
-
-	//HORIZONTAL
-	pos->x += spd->x;
-	entBboxLeft = pos->x;
-	entBboxRight = entBboxLeft + size.x;
-	wall = collide_wall_rect(game_pointers, *pos, size, {(float32)sign(spd->x), 0.f});
-    wall_exists = (wall.size.x != 0);
-	if (wall_exists)
+    caller_bbox_top = pos->y;
+    caller_bbox_bottom = caller_bbox_top + size.y;
+    Entity* wall = collide_ent_pointer(*pos, size, game_pointers.entity->walls, game_pointers.entity->wall_num);
+    if (wall)
     {
-		float32 resX = pos->x;
-		wallBboxLeft = wall.pos.x;
-		wallBboxRight = wallBboxLeft + wall.size.x;
-		if (spd->x > 0){
-			resX = MIN(resX, wallBboxLeft + pos->x - entBboxRight);
-		}
-		else if (spd->x < 0){
-			resX = MAX(resX, wallBboxRight + pos->x - entBboxLeft);
-		}
-		
-		wallCollData.hori = true;
-		wallCollData.xdir = sign(spd->x);
-		pos->x = resX;
-		spd->x = 0;
-	}
+        wall_bbox_top = wall->pos.y;
+        wall_bbox_bottom = wall_bbox_top + wall->size.y;
+        
+        float32 y_res = pos->y;
+        if (spd->y > 0)
+            y_res = MIN(y_res, wall_bbox_top - size.y);
+        if (spd->y < 0)
+            y_res = MAX(y_res, wall_bbox_bottom);
 
-	return wallCollData;
-}
+        coll_data.vert = true;
+        coll_data.ydir = sign(spd->y);
+        pos->y = y_res;
+        spd->y = 0;
+    }
+    
+    //
+	pos->x += spd->x;
+    caller_bbox_left = pos->x;
+    caller_bbox_right = caller_bbox_left + size.x;
+    wall = collide_ent_pointer(*pos, size, game_pointers.entity->walls, game_pointers.entity->wall_num);
+    if (wall)
+    {
+        wall_bbox_left = wall->pos.x;
+        wall_bbox_right = wall_bbox_left + wall->size.x;
+        
+        float32 x_res = pos->x;
+        if (spd->x > 0)
+            x_res = MIN(x_res, wall_bbox_left - size.x);
+        if (spd->x < 0)
+            x_res = MAX(x_res, wall_bbox_right);
 
-
-
-//MISC
-bool32 on_screen(Vec2 pos, Vec2 padding)
-{
-    return (
-        pos.x + padding.x >= BASE_W ||
-        pos.x - padding.x <= 0 ||
-        pos.y + padding.y >= BASE_H ||
-        pos.y - padding.y <= 0
-    );
+        coll_data.hori = true;
+        coll_data.xdir = sign(spd->x);
+        pos->x = round_f32(x_res);
+        spd->x = 0;
+    }
+    
+    return coll_data;
 }

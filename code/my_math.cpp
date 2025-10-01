@@ -38,6 +38,12 @@ struct Vec2
     }
 };
 
+struct Rect
+{
+    Vec2 pos;
+    Vec2 size;
+};
+
 
 
 inline int32
@@ -69,16 +75,37 @@ abs_f32(float32 value)
     return value;
 }
 
-
+#include "math.h" //TODO: INTRINSICS
 inline int32
 round_i32(float32 value)
 {
-    return (int32)(value + 0.5);
+    return (int32)roundf(value);
 }
 inline float32
 round_f32(float32 value)
 {
-    return (float32)(int32)(value + 0.5);
+    return roundf(value);
+}
+
+inline int32
+floor_i32(float32 value)
+{
+    return (int32)floorf(value);
+}
+inline float32
+floor_f32(float32 value)
+{
+    return floorf(value);
+}
+inline int32
+ceil_i32(float32 value)
+{
+    return (int32)floorf(value + 1);
+}
+inline float32
+ceil_f32(float32 value)
+{
+    return floorf(value + 1);
 }
 
 

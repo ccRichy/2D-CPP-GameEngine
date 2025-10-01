@@ -13,12 +13,26 @@
 
 
 
+
+
 //file loading NOTE: move out of here?
 BMP_File*
 DEBUG_load_bmp(Game_Pointers game_pointers, const char* filename)
 {
     return (BMP_File*)game_pointers.memory->DEBUG_platform_file_read_entire(filename).memory;
 };
+
+Sprite
+sprite_create(Game_Pointers game_pointers, const char* bmp_filename, int32 frame_num, float32 fps)
+{
+    Sprite sprite = {};   
+    sprite.bmp = DEBUG_load_bmp(game_pointers, bmp_filename);
+    sprite.origin = {};
+    sprite.fps = fps;
+    sprite.frame_num = frame_num;
+    sprite.is_animation = (frame_num > 0);
+    return sprite;
+}
 
 
 
@@ -48,13 +62,6 @@ Ent_Type editor_pick_entity(Game_Input_Map input)
     else if (input.num3) return_val = Ent_Type::wall;
     return return_val;
 }
-void editor_entity_spawn(Ent_Type type, Vec2 pos, Game_Entities* entity)
-{
-    if (type == Ent_Type::player)     entity->player.Create(pos);
-    else if (type == Ent_Type::enemy) entity->enemys.Create(pos);
-    else if (type == Ent_Type::wall)  entity->walls.Create(pos, {Tile(1), Tile(1)});
-}
-
 
 
 //
@@ -69,6 +76,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_Data* data = (Game_Data*)game_pointers->memory->permanent_storage;
     Game_Entities* entity = &data->entity;
     Game_Settings* settings = game_pointers->settings;
+
+    Player* player = &entity->player;
     
     //initialize
     if (!game_pointers->memory->is_initalized)
@@ -81,18 +90,25 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         game_pointers->entity = &game_pointers->data->entity;
         game_pointers->memory->is_initalized = true;
 
-        DEBUG_level_load(LEVEL_FIRST, *game_pointers);
-
-        data->bmp_file = DEBUG_load_bmp(*game_pointers, "bitmap.bmp");
+#define BMP_LOAD(name) data->##name = DEBUG_load_bmp(*game_pointers, #name ".bmp")
+        data->sPlayer_idle = sprite_create(*game_pointers, "sPlayer_idle.bmp", 2, 1);
+        data->sPlayer_walk = sprite_create(*game_pointers, "sPlayer_walk.bmp", 4, 5);
+        
+        BMP_LOAD(sTest);
+        BMP_LOAD(sTest_wide);
+        BMP_LOAD(sMan);
+        BMP_LOAD(sMan_anim);
+                
+        player_create(*game_pointers, {BASE_W/2, BASE_H/2});
+        wall_create(*game_pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
+        wall_create(*game_pointers, {Tile(17), Tile(20)}, {Tile(18), Tile(1)});
+        wall_create(*game_pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
+        wall_create(*game_pointers, {Tile(2), Tile(11)}, {Tile(1), Tile(10)});
+        wall_create(*game_pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
+        enemy_create(*game_pointers, {10, 10});
     }
 
-
-    // DEBUG_draw_bmp(*game_pointers, data->bmp_file, {50, 50});    
-    Player*  player  = &entity->player;
-    Walls*   walls   = &entity->walls;
-    Enemys*  enemys  = &entity->enemys;
-    Bullets* bullets = &entity->bullets;
-
+    //GAME_STATE
     if (data->state == Game_State::edit)
     {
         if (input.editor_toggle)
@@ -108,8 +124,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
             
         global_editor_ent_to_spawn = editor_pick_entity(input);
-        if (input.left_click)
-            editor_entity_spawn(global_editor_ent_to_spawn, input.mouse_pos, entity);        
+        if (input.left_click){
+            //TODO: spawn entity
+        }
+            
     }
     else if (data->state == Game_State::play)
     {
@@ -118,35 +136,33 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             DEBUG_level_load(LEVEL_FIRST, *game_pointers);
         }
             
-        player->Update(*game_pointers, input);
-        enemys->Update(*game_pointers);
-        bullets->Update(*game_pointers);
+        player_update(*game_pointers, input);
+        enemy_update(*game_pointers);
     }
 
 
     //DEBUG
-    if (input.reset)  //NOTE: temp RESET
-        DEBUG_level_load(data->level_current, *game_pointers);
+    if (input.reset){  //NOTE: temp RESET
+        player->pos = {BASE_W/2, BASE_H/2};
+        player->spd = {};
+    }
+        // DEBUG_level_load(data->level_current, *game_pointers);
 
     
     //draw
-    walls->Draw(*game_pointers);
-    enemys->Draw(*game_pointers);
-    bullets->Draw(*game_pointers);
-    player->Draw(*game_pointers);
+    wall_draw(*game_pointers);
+    enemy_draw(*game_pointers);
+    player_draw(player, *game_pointers);
 
     persist float32 draw_y = 0;
     persist float32 draw_x = 0;
     if (input.jump) draw_x -= 0.05f;
-    draw_bmp(*game_pointers, data->bmp_file, {draw_x, draw_y});    
     
     //draw mouse
     draw_rect(*game_pointers, input.mouse_pos, {2, 2}, MAGENTA);
     draw_rect(*game_pointers, input.mouse_pos, {1, 1}, LIME);
     
     //clean
-    enemys->Cleanup_End_Frame();
-    bullets->Cleanup_End_Frame();
 }
 
 

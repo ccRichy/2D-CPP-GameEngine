@@ -2,6 +2,7 @@
 
 #include "input.h" //TODO: turn to cpp
 struct Game_Pointers;
+struct Sprite;
 
 
 
@@ -16,10 +17,19 @@ struct Player
     Vec2     pos;
     Vec2     spd;
     Vec2     size;
+    Vec2     scale;
     Color    color;
-    Player_State state;
 
-    int8 aim_dir;
+    //anim
+    Sprite* sprite;
+    float32 anim_index;
+    float32 anim_speed_mult;
+    
+    Player_State state;
+    float32 grav_default;
+    float32 grav_low;
+    float32 grav;
+    int32 aim_dir;
 
     Player* Create(Vec2 _pos);
     void Update(Game_Pointers game_pointers, Game_Input_Map input);

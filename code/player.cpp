@@ -9,83 +9,124 @@
 
 
 
-Player* Player::Create(Vec2 _pos)
+void
+player_create(Game_Pointers game_pointers, Vec2 _pos)
 {
-    pos   = _pos;
-    size  = {Tile(1), Tile(2)};
-    color = GREEN;
-    state = Player_State::ground;
-    return this;
+    Player* plr = &game_pointers.entity->player;
+    
+    plr->sprite = &game_pointers.data->sPlayer_idle;
+    plr->anim_speed_mult = 0;
+    
+    plr->pos   = _pos;
+    
+    plr->size  = {4, Tile(1)-1};
+    plr->scale = {1, 1};
+    plr->color = GREEN;
+
+    plr->state = Player_State::ground;
+    plr->grav_default = 0.12f;
+    plr->grav_low = 0.09f;
+    plr->grav = plr->grav_default;
 }
 
-void Player::Update(Game_Pointers game_pointers, Game_Input_Map input)
+void
+player_update(Game_Pointers game_pointers, Game_Input_Map input)
 {
-    float32 maxspd = 1.0f;
-    float32 grav = 0.1f;
-    float32 jumpspd = 3.0f;
+    Player* plr = &game_pointers.entity->player;
+    
+    float32 target_spd = 1.f;
+    float32 jumpspd = 1.9f;
     
     Vec2 move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
+
     
-    spd.x = move_input.x * maxspd;
-    if (move_input.x != 0)
-        aim_dir = (int8)move_input.x;
-    
-    size.y = Tile(2); //reset size
-    if (input.shoot.press)
+    plr->spd.x = approach(plr->spd.x, move_input.x * target_spd, 0.05f);
+
+    if (plr->state == Player_State::ground)
     {
-        Bullets* bullets = &game_pointers.entity->bullets;
-        Entity_Identity bullet = bullets->Create({pos.x + (size.x/2), pos.y+4},
-                                                 {3.0f * aim_dir, 0});
-        if (bullet)
-            size.y += 2;
-    }
-    
-    switch (state)
-    {        
-        case Player_State::ground:{
-            spd.x *= 2;
+        //sprite
+        if (plr->spd.x != 0){
+            plr->sprite = &game_pointers.data->sPlayer_walk;
+            plr->anim_speed_mult = abs_f32(plr->spd.x);
+        }
+        else{
+            plr->anim_index = (float32)(input.up.hold);
+            
+            plr->sprite = &game_pointers.data->sPlayer_idle;
+            plr->anim_speed_mult = 0;
+        }
 
-            move_collide_wall(game_pointers, &pos, &spd, size);
-                
-            if (input.jump.press)
-            {
-                //if (spd.y != 0) spd.y *= (spd.y * 0.1f);
-                spd.y -= jumpspd;
-                state = Player_State::air;
-            }
-            else if (!collide_wall(game_pointers, pos, size, {0.f, pos.y+1}))
-                state = Player_State::air;
-        }break;
+        //input
+        if (move_input.x != 0)
+            plr->scale.x = (float32)sign(move_input.x);
         
-        case Player_State::air:{
-            if (input.jump.release){
-                if (spd.y < 0){
-                    spd.y /= 2;
-                }
-                grav *= 2;
+        if (input.jump){
+            plr->spd.y -= jumpspd;
+            plr->grav = plr->grav_low;
+            plr->state = Player_State::air;            
+        }
+
+        //
+        plr->spd.y += plr->grav;
+        Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    }
+    else if (plr->state == Player_State::air)
+    {
+        plr->sprite = &game_pointers.data->sPlayer_walk;
+        plr->anim_speed_mult = 0;
+        plr->anim_index = 0;
+        
+        if (input.jump.release){
+            if (plr->spd.y < 0)
+            {
+                plr->spd.y /= 3;
+                plr->grav = plr->grav_default;
             }
-            spd.y += grav;
-
-            Collide_Data coll = move_collide_wall(game_pointers, &pos, &spd, size);
-
-            if (coll.ydir == 1)
-                state = Player_State::ground;
-        }break;
+        }
+        plr->spd.y += plr->grav;
+        Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+        if (coll.ydir == 1){
+            plr->grav = plr->grav_default;
+            plr->state = Player_State::ground;
+            plr->anim_index = 0;
+        }
     }
 }
 
-void Player::Draw(Game_Pointers game_pointers)
+void
+player_draw(Player* plr, Game_Pointers game_pointers)
 {
-    //Draw me :)
-    draw_rect(game_pointers, pos, size, color);
-    draw_pixel(game_pointers, pos, MAGENTA);
-    //DRAW SMILEY FACE
-    // float32 smile_size = 4;
-    // draw_rect(game_pointers, {pos.x, pos.y}, {smile_size, smile_size * 5}, blue);
-    // draw_rect(game_pointers, {pos.x - smile_size, pos.y-smile_size}, {smile_size, smile_size}, red);
-    // draw_rect(game_pointers, {pos.x + smile_size*5, pos.y-smile_size}, {smile_size, smile_size}, red);
-    // draw_rect(game_pointers, {pos.x, pos.y - (smile_size*3)}, {smile_size, smile_size}, red);
-    // draw_rect(game_pointers, {pos.x + (smile_size*4), (pos.y-smile_size*3)}, {smile_size, smile_size}, red);
 
+    //DRAW BBOX
+    // draw_rect(game_pointers, plr->pos, plr->size, color);
+    
+    Sprite* spr = plr->sprite;
+    int32 frame_size = (int32)(spr->bmp->width / spr->frame_num);
+
+    plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed_mult;
+    if (plr->anim_index >= spr->frame_num) plr->anim_index = 0;
+    int32 frame = floor_i32(plr->anim_index);
+    
+    Vec2 sprite_offset = {-6.f, -5.f};
+    draw_bmp_part(game_pointers, plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
+                  frame * frame_size, 0, //pos
+                  16, 16);//size
+
+    //DRAW ORIGIN
+    // draw_pixel(game_pointers, plr->pos, WHITE);
 }
+
+
+
+
+/* DRAW SMILEY FACE
+  
+    float32 smile_size = 4;
+    draw_rect(game_pointers, {pos.x, pos.y}, {smile_size, smile_size * 5}, blue);
+    draw_rect(game_pointers, {pos.x - smile_size, pos.y-smile_size}, {smile_size, smile_size}, red);
+    draw_rect(game_pointers, {pos.x + smile_size*5, pos.y-smile_size}, {smile_size, smile_size}, red);
+    draw_rect(game_pointers, {pos.x, pos.y - (smile_size*3)}, {smile_size, smile_size}, red);
+    draw_rect(game_pointers, {pos.x + (smile_size*4), (pos.y-smile_size*3)}, {smile_size, smile_size}, red);
+
+ */

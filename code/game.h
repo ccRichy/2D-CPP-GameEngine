@@ -16,6 +16,8 @@
 #define TILE_SIZE 8
 #define Tile(value) (value * TILE_SIZE)
 
+#define G_DATA game_pointers.data
+
 
 enum struct Game_State
 {
@@ -39,6 +41,15 @@ struct BMP_File
     uint16 bits_per_pixel;
 };
 #pragma pack(pop)
+struct Sprite
+{
+    BMP_File* bmp;
+	Vec2 origin;
+    float32 fps;
+    int32 frame_num;
+    bool32 is_animation;
+};
+
 
 
 struct Game_Settings //REQUIRED: give members default value
@@ -47,14 +58,25 @@ struct Game_Settings //REQUIRED: give members default value
 };
 struct Game_Entities
 {
-    Player  player;
-    Walls   walls;
-    Enemys  enemys;
-    Bullets bullets;
+    Player player;
+    Entity walls[WALL_MAX];
+    int32  wall_num;
+    Entity enemys[ENEMY_MAX];
+    int32  enemy_num;
 };
 struct Game_Data
 {
-    BMP_File* bmp_file;
+  //Sprites
+    //player
+    Sprite sPlayer_idle;
+    Sprite sPlayer_walk;
+
+    //misc
+    BMP_File* sTest;
+    BMP_File* sTest_wide;
+    BMP_File* sMan;
+    BMP_File* sMan_anim;
+    
     
     const char* level_current;
     Game_State state;

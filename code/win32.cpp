@@ -594,9 +594,15 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             }break;
             case WM_MOUSEMOVE:{
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
+                //NOTE: float
+                // in->mouse_pos = {
+                //     ((float32)mouse_points.x / (float32)Global_Settings->window_scale),
+                //     ((float32)mouse_points.y / (float32)Global_Settings->window_scale)
+                // };
+                //NOTE: pixel aligned
                 in->mouse_pos = {
-                    ((float32)mouse_points.x / (float32)Global_Settings->window_scale),
-                    ((float32)mouse_points.y / (float32)Global_Settings->window_scale)
+                    (float32)(mouse_points.x / Global_Settings->window_scale),
+                    (float32)(mouse_points.y / Global_Settings->window_scale)
                 };
             }break;
 
