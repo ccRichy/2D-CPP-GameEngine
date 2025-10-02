@@ -76,7 +76,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_Data* data = (Game_Data*)game_pointers->memory->permanent_storage;
     Game_Entities* entity = &data->entity;
     Game_Settings* settings = game_pointers->settings;
-
+    Game_Pointers pointers;
+    
     Player* player = &entity->player;
     
     //initialize
@@ -90,54 +91,70 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         game_pointers->entity = &game_pointers->data->entity;
         game_pointers->memory->is_initalized = true;
 
-#define BMP_LOAD(name) data->##name = DEBUG_load_bmp(*game_pointers, #name ".bmp")
-        data->sPlayer_idle = sprite_create(*game_pointers, "sPlayer_idle.bmp", 2, 1);
-        data->sPlayer_walk = sprite_create(*game_pointers, "sPlayer_walk.bmp", 4, 5);
-        
+        //TODO: remove this vv later cuz this shit below is not stayin
+        pointers = *game_pointers;
+
+        //images
+        data->sPlayer_idle = sprite_create(pointers, "sPlayer_idle.bmp", 2, 1);
+        data->sPlayer_walk = sprite_create(pointers, "sPlayer_walk.bmp", 4, 5);
+    #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(pointers, #name ".bmp")
         BMP_LOAD(sTest);
         BMP_LOAD(sTest_wide);
         BMP_LOAD(sMan);
         BMP_LOAD(sMan_anim);
-                
-        player_create(*game_pointers, {BASE_W/2, BASE_H/2});
-        wall_create(*game_pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
-        wall_create(*game_pointers, {Tile(17), Tile(20)}, {Tile(18), Tile(1)});
-        wall_create(*game_pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
-        wall_create(*game_pointers, {Tile(2), Tile(11)}, {Tile(1), Tile(10)});
-        wall_create(*game_pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
-        enemy_create(*game_pointers, {10, 10});
+        BMP_LOAD(sFont_test);
+        BMP_LOAD(sFont_ASCII_lilliput);
+
+        //LEVEL TEMP
+        player_create(pointers, {BASE_W/2, BASE_H/2});
+        wall_create(pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
+        wall_create(pointers, {Tile(17), Tile(20)}, {Tile(18), Tile(1)});
+        wall_create(pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
+        wall_create(pointers, {Tile(2), Tile(11)}, {Tile(1), Tile(10)});
+        wall_create(pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
+        // enemy_create(pointers, {10, 10});
+    }
+    pointers = *game_pointers;
+
+    draw_bmp(pointers, data->sTest, input.mouse_pos, {0.5, 0.5});
+    // //TEXT TEST
+    // const char* font_string = "HELP im stuck in a crappy game engine!!!11!";
+    // BMP_File* font = data->sFont_ASCII_lilliput;
+    // int32 frame_size = font->height;
+    // int32 frame_num = font->width / frame_size;
+    // for (int i = 0; i < string_length(font_string); ++i)
+    // {
+    //     int32 frame = font_string[i] - 33;
+    //     draw_bmp_part(pointers, font, {10.f + ((frame_size-2) * i), 10}, {0.5, 0.5},
+    //                   frame * frame_size, 0, //pos
+    //                   frame_size, frame_size);//size
+    // }
+    
+    //ZOOM TEST
+    if (input.mouse_scroll > 0)
+        game_pointers->settings->zoom_scale *= (float32)(sqrt(sqrt(2)));
+    else if (input.mouse_scroll < 0)
+        game_pointers->settings->zoom_scale /= (float32)(sqrt(sqrt(2)));
+
+    if (input.mouse_back){
+        game_pointers->settings->zoom_scale = 1;
     }
 
+    
     //GAME_STATE
     if (data->state == Game_State::edit)
     {
         if (input.editor_toggle)
             data->state = Game_State::play;
-
-        if (input.ctrl.hold)
-        {
-            if (input.editor_save_level)
-                DEBUG_level_save("test.lvl", *game_pointers);
-            if (input.editor_load_level)
-                DEBUG_level_load("test.lvl", *game_pointers);
-        }
-
-            
-        global_editor_ent_to_spawn = editor_pick_entity(input);
-        if (input.left_click){
-            //TODO: spawn entity
-        }
-            
     }
     else if (data->state == Game_State::play)
     {
         if (input.editor_toggle){
             data->state = Game_State::edit;
-            DEBUG_level_load(LEVEL_FIRST, *game_pointers);
         }
             
-        player_update(*game_pointers, input);
-        enemy_update(*game_pointers);
+        player_update(pointers, input);
+        enemy_update(pointers);
     }
 
 
@@ -146,23 +163,15 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         player->pos = {BASE_W/2, BASE_H/2};
         player->spd = {};
     }
-        // DEBUG_level_load(data->level_current, *game_pointers);
 
-    
     //draw
-    wall_draw(*game_pointers);
-    enemy_draw(*game_pointers);
-    player_draw(player, *game_pointers);
-
-    persist float32 draw_y = 0;
-    persist float32 draw_x = 0;
-    if (input.jump) draw_x -= 0.05f;
+    wall_draw(pointers);
+    enemy_draw(pointers);
+    player_draw(player, pointers);
     
     //draw mouse
-    draw_rect(*game_pointers, input.mouse_pos, {2, 2}, MAGENTA);
-    draw_rect(*game_pointers, input.mouse_pos, {1, 1}, LIME);
-    
-    //clean
+    draw_rect(pointers, input.mouse_pos, {2, 2}, MAGENTA);
+    draw_rect(pointers, input.mouse_pos, {1, 1}, LIME);
 }
 
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "input.h" //TODO: turn to cpp
+#include "input.h"
 struct Game_Pointers;
 struct Sprite;
 

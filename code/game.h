@@ -54,7 +54,8 @@ struct Sprite
 
 struct Game_Settings //REQUIRED: give members default value
 {
-    int8 window_scale = 4;
+    float32 window_scale = 4.0f;
+    float32 zoom_scale = 1.0f;
 };
 struct Game_Entities
 {
@@ -76,8 +77,9 @@ struct Game_Data
     BMP_File* sTest_wide;
     BMP_File* sMan;
     BMP_File* sMan_anim;
-    
-    
+    BMP_File* sFont_test;
+    BMP_File* sFont_ASCII_lilliput;
+
     const char* level_current;
     Game_State state;
     Game_Entities entity;
@@ -88,7 +90,7 @@ struct Game_Pointers //just all the fuckin data
     Game_Memory*        memory;
     Game_Sound_Buffer*  sound;
     Game_Settings*      settings;
-    
+
     Game_Data* data; //populated in game init
     Game_Entities* entity; //populated in game init
 };

@@ -24,8 +24,8 @@ player_create(Game_Pointers game_pointers, Vec2 _pos)
     plr->color = GREEN;
 
     plr->state = Player_State::ground;
-    plr->grav_default = 0.12f;
-    plr->grav_low = 0.09f;
+    plr->grav_default = 0.11f;
+    plr->grav_low = 0.08f;
     plr->grav = plr->grav_default;
 }
 
@@ -35,7 +35,8 @@ player_update(Game_Pointers game_pointers, Game_Input_Map input)
     Player* plr = &game_pointers.entity->player;
     
     float32 target_spd = 1.f;
-    float32 jumpspd = 1.9f;
+    float32 jumpspd = 2.1f;
+    float32 max_fall_spd = 4.f;
     
     Vec2 move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
@@ -73,11 +74,17 @@ player_update(Game_Pointers game_pointers, Game_Input_Map input)
     }
     else if (plr->state == Player_State::air)
     {
+        //sprite
         plr->sprite = &game_pointers.data->sPlayer_walk;
         plr->anim_speed_mult = 0;
         plr->anim_index = 0;
-        
-        if (input.jump.release){
+
+        //spd
+        if (input.jump){
+            plr->spd.y -= jumpspd;
+            plr->grav = plr->grav_low;
+        }
+        else if (input.jump.release){
             if (plr->spd.y < 0)
             {
                 plr->spd.y /= 3;
@@ -85,6 +92,8 @@ player_update(Game_Pointers game_pointers, Game_Input_Map input)
             }
         }
         plr->spd.y += plr->grav;
+        if (plr->spd.y > max_fall_spd) plr->spd.y = max_fall_spd;
+
         Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
         if (coll.ydir == 1){
             plr->grav = plr->grav_default;
@@ -97,7 +106,6 @@ player_update(Game_Pointers game_pointers, Game_Input_Map input)
 void
 player_draw(Player* plr, Game_Pointers game_pointers)
 {
-
     //DRAW BBOX
     // draw_rect(game_pointers, plr->pos, plr->size, color);
     

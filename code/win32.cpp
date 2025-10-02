@@ -580,17 +580,28 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 }
             }break;
 
+            case WM_MOUSEWHEEL:{
+                int32 zDelta = GET_WHEEL_DELTA_WPARAM(message.wParam);
+                in->mouse_scroll = sign(zDelta);
+                // in->mouse_wheel_up.hold = (zDelta > 0);
+                // in->mouse_wheel_down.hold = (zDelta < 0);
+            }break;
+                
             case WM_LBUTTONDOWN:
             case WM_LBUTTONUP:
             case WM_RBUTTONDOWN:
             case WM_RBUTTONUP:
             case WM_MBUTTONDOWN:
-            case WM_MBUTTONUP:{
+            case WM_MBUTTONUP:
+            case WM_XBUTTONDOWN:
+            case WM_XBUTTONUP:{
                 UINT mbs = message.wParam & (MK_LBUTTON | MK_RBUTTON | MK_MBUTTON | MK_XBUTTON1 | MK_XBUTTON2);
                 
-                in->left_click.hold = (mbs & MK_LBUTTON) != 0;
-                in->right_click.hold = (mbs & MK_RBUTTON) != 0;
-                in->middle_click.hold = (mbs & MK_MBUTTON) != 0;
+                in->mouse_left.hold   = (mbs & MK_LBUTTON) != 0;
+                in->mouse_right.hold  = (mbs & MK_RBUTTON) != 0;
+                in->mouse_middle.hold = (mbs & MK_MBUTTON) != 0;
+                in->mouse_back.hold   = (mbs & MK_XBUTTON1) != 0;
+                in->mouse_front.hold  = (mbs & MK_XBUTTON2) != 0;
             }break;
             case WM_MOUSEMOVE:{
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
@@ -599,6 +610,7 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 //     ((float32)mouse_points.x / (float32)Global_Settings->window_scale),
                 //     ((float32)mouse_points.y / (float32)Global_Settings->window_scale)
                 // };
+                
                 //NOTE: pixel aligned
                 in->mouse_pos = {
                     (float32)(mouse_points.x / Global_Settings->window_scale),
@@ -639,7 +651,7 @@ window_set_trans(HWND window, bool32 enabled)
 internal void
 window_set_topmost(HWND window, bool32 enabled)
 {
-    RECT window_rect = {0, 0, BASE_W * Global_Settings->window_scale, BASE_H * Global_Settings->window_scale};
+    RECT window_rect = {0, 0, (int32)(BASE_W * Global_Settings->window_scale), (int32)(BASE_H * Global_Settings->window_scale)};
     DWORD curr_style = GetWindowLong(window, GWL_STYLE);
     AdjustWindowRectEx(&window_rect, curr_style, FALSE, 0);
     RECT same_pos;
@@ -707,10 +719,10 @@ win32_get_monitor_resolution(HWND window, int* width, int* height)
 }
 
 internal void
-win32_set_window_scale(int8 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
+win32_set_window_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
 {
     //get target size
-    RECT new_client_rect = {0, 0, BASE_W * scale, BASE_H * scale};
+    RECT new_client_rect = {0, 0, (int32)(BASE_W * scale), (int32)(BASE_H * scale)};
     DWORD curr_style = GetWindowLong(window, GWL_STYLE);
     AdjustWindowRectEx(&new_client_rect, curr_style, FALSE, 0);
 
@@ -728,7 +740,7 @@ win32_set_window_scale(int8 scale, HWND window, Win32_Render_Buffer* win32_rende
         target_w, target_h,
         SWP_SHOWWINDOW
     );
-    win32_set_DIB(win32_render_buffer, BASE_W * scale, BASE_H * scale);
+    win32_set_DIB(win32_render_buffer, (int32)(BASE_W * scale), (int32)(BASE_H * scale));
                         
     game_render_buffer->memory = win32_render_buffer->memory;
     game_render_buffer->width  = win32_render_buffer->width;

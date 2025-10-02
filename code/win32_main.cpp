@@ -30,10 +30,10 @@ globalvar bool32 Global_BGMode_TransOutOfFocus = true;
 
 
 globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
-//BUG: something is preventing the game dll from loading in without this
-//Upon game dll compilation, we load it into the game by checking its time vs our stored time.
+//BUG: something is preventing the game dll from loading in (majority of the time) without this
+//Upon game dll compilation, we load it into the game by checking its create time vs our stored time.
 //For some reason it still gets loaded twice (even with this hack), however-
-//the 1 frame delay that this bool creates, prevents it from failing (for whatever reason)
+//the 1 frame delay that this bool creates, HELPS prevent it from failing (for whatever reason)
 
 
 
@@ -104,7 +104,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
             PAINTSTRUCT paint;
             HDC device_context = BeginPaint(window, &paint);
             //Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
-            win32_display_buffer_in_window(&Global_Render_Buffer, device_context, BASE_W * Global_Settings->window_scale, BASE_H * Global_Settings->window_scale);
+            win32_display_buffer_in_window(&Global_Render_Buffer, device_context, (int32)(BASE_W * Global_Settings->window_scale), (int32)(BASE_H * Global_Settings->window_scale));
             EndPaint(window, &paint);
             // OutputDebugStringA("(WM_PAINT)");
         }break;
@@ -264,6 +264,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     game_render_buffer.pitch  = Global_Render_Buffer.pitch;
                     
                     //input
+                    game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
                     win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
                     win32_process_input(&game_input_map, &game_input_map_prev);

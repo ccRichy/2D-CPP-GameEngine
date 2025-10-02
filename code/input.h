@@ -1,12 +1,5 @@
 #pragma once
 
-/*
-
-  NOTE: Currently passed by value for simplicity sake.
-  However, if we wanted to do things like: disable certain inputs in the middle of the game loop,
-  We need to start passing this by pointer
-
- */
 
 enum struct Game_Input_Device
 {
@@ -23,7 +16,6 @@ struct Game_Input_Button
     explicit operator bool() const noexcept {
         return press;
     }
-
 };
 
 struct Game_Input_Map
@@ -34,9 +26,10 @@ struct Game_Input_Map
     Vec2 r_axes;
     
     Vec2 mouse_pos;
+    int32 mouse_scroll;
     
     union {
-        Game_Input_Button buttons[35 + 1];
+        Game_Input_Button buttons[37 + 1];
         struct {
             //GAME
             Game_Input_Button up;
@@ -69,9 +62,11 @@ struct Game_Input_Map
             Game_Input_Button enter;
             Game_Input_Button escape;
 
-            Game_Input_Button left_click;
-            Game_Input_Button right_click;
-            Game_Input_Button middle_click;
+            Game_Input_Button mouse_left;
+            Game_Input_Button mouse_right;
+            Game_Input_Button mouse_middle;
+            Game_Input_Button mouse_back;
+            Game_Input_Button mouse_front;
 
             Game_Input_Button num0;
             Game_Input_Button num1;
@@ -83,7 +78,6 @@ struct Game_Input_Map
             Game_Input_Button num7;
             Game_Input_Button num8;
             Game_Input_Button num9;
-
             
             
             //REQUIRED: bottom of this struct for assert check
