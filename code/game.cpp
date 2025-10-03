@@ -14,54 +14,42 @@
 
 
 
+//text drawing
+void draw_text(Game_Pointers* game_pointers, const char* text, Vec2 pos, Vec2 scale = {1, 1}, int32 hori_spacing = 5)
+{
+    //TEXT TEST
+    BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
+    int32 frame_size = font_image->height;
+    for (int i = 0; i < string_length(text); ++i)
+    {
+        int32 frame = text[i] - 32;
+        draw_bmp_part(game_pointers, font_image, {pos.x + ((hori_spacing * scale.x) * i), pos.y}, {scale.x, scale.y},
+                      frame * frame_size, 0, //pos
+                      frame_size, frame_size);//size
+    }
+    
+}
+
+
 
 //file loading NOTE: move out of here?
 BMP_File*
-DEBUG_load_bmp(Game_Pointers game_pointers, const char* filename)
+DEBUG_load_bmp(Game_Pointers* game_pointers, const char* filename)
 {
-    return (BMP_File*)game_pointers.memory->DEBUG_platform_file_read_entire(filename).memory;
+    return (BMP_File*)game_pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
 };
-
 Sprite
-sprite_create(Game_Pointers game_pointers, const char* bmp_filename, int32 frame_num, float32 fps)
+sprite_create(Game_Pointers* game_pointers, const char* bmp_filename, uint32 frame_num, float32 fps)
 {
     Sprite sprite = {};   
     sprite.bmp = DEBUG_load_bmp(game_pointers, bmp_filename);
     sprite.origin = {};
     sprite.fps = fps;
     sprite.frame_num = frame_num;
-    sprite.is_animation = (frame_num > 0);
+    sprite.is_animation = (frame_num > 0 && fps != 0);
     return sprite;
 }
 
-
-
-///editor stuff
-void
-DEBUG_level_save(const char* filename, Game_Pointers game_pointers)
-{
-    if (true) return;
-    game_pointers.memory->DEBUG_platform_file_write_entire(filename, sizeof(Game_Entities), game_pointers.entity);
-}
-void
-DEBUG_level_load(const char* filename, Game_Pointers game_pointers)
-{
-    if (true) return;
-    DEBUG_File level = game_pointers.memory->DEBUG_platform_file_read_entire(filename);
-    //TODO: error handle
-    *game_pointers.entity = *(Game_Entities*)level.memory;
-    game_pointers.data->level_current = filename;
-}
-
-globalvar Ent_Type global_editor_ent_to_spawn; //NOTE: factor out
-Ent_Type editor_pick_entity(Game_Input_Map input)
-{
-    auto return_val = global_editor_ent_to_spawn;
-    if (input.num1)      return_val = Ent_Type::player;
-    else if (input.num2) return_val = Ent_Type::enemy;
-    else if (input.num3) return_val = Ent_Type::wall;
-    return return_val;
-}
 
 
 //
@@ -71,12 +59,13 @@ extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
     input_map->game_input_device = input_device_current;
 }
 
+#include "stdio.h"
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 {
     Game_Data* data = (Game_Data*)game_pointers->memory->permanent_storage;
     Game_Entities* entity = &data->entity;
     Game_Settings* settings = game_pointers->settings;
-    Game_Pointers pointers;
+    Game_Pointers* pointers = game_pointers;
     
     Player* player = &entity->player;
     
@@ -87,16 +76,29 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         Assert( sizeof(Game_Data) <= game_pointers->memory->permanent_storage_space );
 
         data->state = Game_State::play;
+        game_pointers->entity = &data->entity;
+        game_pointers->player = &data->entity.player;
         game_pointers->data = (Game_Data*)game_pointers->memory->permanent_storage;
-        game_pointers->entity = &game_pointers->data->entity;
         game_pointers->memory->is_initalized = true;
-
         //TODO: remove this vv later cuz this shit below is not stayin
-        pointers = *game_pointers;
 
         //images
-        data->sPlayer_idle = sprite_create(pointers, "sPlayer_idle.bmp", 2, 1);
-        data->sPlayer_walk = sprite_create(pointers, "sPlayer_walk.bmp", 4, 5);
+        data->sPlayer_air         = sprite_create(pointers, "sPlayer_air.bmp", 7, 15);
+        data->sPlayer_air_reach   = sprite_create(pointers, "sPlayer_air_reach.bmp", 2, 0);  
+        data->sPlayer_idle        = sprite_create(pointers, "sPlayer_idle.bmp", 2, 0);               
+        data->sPlayer_ledge       = sprite_create(pointers, "sPlayer_ledge.bmp", 4, 10);      
+        data->sPlayer_ledge_reach = sprite_create(pointers, "sPlayer_ledge_reach.bmp", 3, 0);
+        data->sPlayer_rope_climb  = sprite_create(pointers, "sPlayer_rope_climb.bmp", 2, 10); 
+        data->sPlayer_rope_slide  = sprite_create(pointers, "sPlayer_rope_slide.bmp", 2, 10); 
+        data->sPlayer_splat_slow  = sprite_create(pointers, "sPlayer_splat_slow.bmp", 5, 7); 
+        data->sPlayer_splat_swift = sprite_create(pointers, "sPlayer_splat_swift.bmp", 6, 10);
+        data->sPlayer_turn        = sprite_create(pointers, "sPlayer_turn.bmp", 1, 6);       
+        data->sPlayer_walk        = sprite_create(pointers, "sPlayer_walk.bmp", 4, 10);       
+        data->sPlayer_walk_reach  = sprite_create(pointers, "sPlayer_walk_reach.bmp", 4, 10); 
+        data->sPlayer_wire_idle   = sprite_create(pointers, "sPlayer_idle.bmp", 5, 6);  
+        data->sPlayer_wire_walk   = sprite_create(pointers, "sPlayer_walk.bmp", 4, 6);  
+
+        
     #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(pointers, #name ".bmp")
         BMP_LOAD(sTest);
         BMP_LOAD(sTest_wide);
@@ -108,27 +110,12 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         //LEVEL TEMP
         player_create(pointers, {BASE_W/2, BASE_H/2});
         wall_create(pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
-        wall_create(pointers, {Tile(17), Tile(20)}, {Tile(18), Tile(1)});
+        wall_create(pointers, {Tile(17), Tile(20)}, {Tile(50), Tile(1)});
         wall_create(pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
         wall_create(pointers, {Tile(2), Tile(11)}, {Tile(1), Tile(10)});
         wall_create(pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
         // enemy_create(pointers, {10, 10});
     }
-    pointers = *game_pointers;
-
-    draw_bmp(pointers, data->sTest, input.mouse_pos, {0.5, 0.5});
-    // //TEXT TEST
-    // const char* font_string = "HELP im stuck in a crappy game engine!!!11!";
-    // BMP_File* font = data->sFont_ASCII_lilliput;
-    // int32 frame_size = font->height;
-    // int32 frame_num = font->width / frame_size;
-    // for (int i = 0; i < string_length(font_string); ++i)
-    // {
-    //     int32 frame = font_string[i] - 33;
-    //     draw_bmp_part(pointers, font, {10.f + ((frame_size-2) * i), 10}, {0.5, 0.5},
-    //                   frame * frame_size, 0, //pos
-    //                   frame_size, frame_size);//size
-    // }
     
     //ZOOM TEST
     if (input.mouse_scroll > 0)
@@ -154,6 +141,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         }
             
         player_update(pointers, input);
+        pointers->data->camera_pos = player->pos - Vec2{BASE_W/2, BASE_H/2};
         enemy_update(pointers);
     }
 
@@ -164,14 +152,20 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         player->spd = {};
     }
 
+    char buffer[256];
+    float32 zoom_scale = pointers->settings->zoom_scale;
+    sprintf_s(buffer, "zoom: %.2f", zoom_scale);
+    draw_text(pointers, buffer, {10, 10}, {0.5f, 0.5f});
     //draw
     wall_draw(pointers);
     enemy_draw(pointers);
     player_draw(player, pointers);
     
     //draw mouse
-    draw_rect(pointers, input.mouse_pos, {2, 2}, MAGENTA);
-    draw_rect(pointers, input.mouse_pos, {1, 1}, LIME);
+    Vec2 mouse_gui_pos = (input.mouse_pos + pointers->data->camera_pos);
+        
+    draw_rect(pointers, mouse_gui_pos, {2, 2}, MAGENTA);
+    draw_rect(pointers, mouse_gui_pos, {1, 1}, LIME);
 }
 
 

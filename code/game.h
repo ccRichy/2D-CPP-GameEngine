@@ -46,7 +46,7 @@ struct Sprite
     BMP_File* bmp;
 	Vec2 origin;
     float32 fps;
-    int32 frame_num;
+    uint32 frame_num;
     bool32 is_animation;
 };
 
@@ -69,8 +69,23 @@ struct Game_Data
 {
   //Sprites
     //player
+    Sprite sPlayer_air;
+    Sprite sPlayer_air_reach;
     Sprite sPlayer_idle;
+    Sprite sPlayer_ledge;
+    Sprite sPlayer_ledge_reach;
+    Sprite sPlayer_rope_climb;
+    Sprite sPlayer_rope_slide;
+    Sprite sPlayer_splat_slow;
+    Sprite sPlayer_splat_swift;
+    Sprite sPlayer_turn;
     Sprite sPlayer_walk;
+    Sprite sPlayer_walk_reach;
+    Sprite sPlayer_wire_idle;
+    Sprite sPlayer_wire_walk;
+
+    //rope
+    Sprite sRope;
 
     //misc
     BMP_File* sTest;
@@ -80,9 +95,10 @@ struct Game_Data
     BMP_File* sFont_test;
     BMP_File* sFont_ASCII_lilliput;
 
-    const char* level_current;
+    // const char* level_current;
     Game_State state;
     Game_Entities entity;
+    Vec2 camera_pos;
 };
 struct Game_Pointers //just all the fuckin data
 {
@@ -93,4 +109,5 @@ struct Game_Pointers //just all the fuckin data
 
     Game_Data* data; //populated in game init
     Game_Entities* entity; //populated in game init
+    Player* player;
 };

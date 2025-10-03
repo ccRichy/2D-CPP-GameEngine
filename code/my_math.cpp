@@ -36,6 +36,27 @@ struct Vec2
         result -= other;
         return result;
     }
+
+    Vec2& operator*=(const Vec2& other) {
+        x *= other.x;
+        y *= other.y;
+        return *this; // return the modified object
+    }
+    Vec2 operator*(const Vec2& other) const {
+        Vec2 result = *this;
+        result *= other;
+        return result;
+    }
+    Vec2& operator/=(const Vec2& other) {
+        x /= other.x;
+        y /= other.y;
+        return *this; // return the modified object
+    }
+    Vec2 operator/(const Vec2& other) const {
+        Vec2 result = *this;
+        result /= other;
+        return result;
+    }
 };
 
 struct Rect
@@ -121,15 +142,24 @@ clamp(float value, float min, float max)
 inline float32
 map_value(float32 value, Vec2 range_input, Vec2 range_output)
 {
-    return range_output.x + ((range_output.y - range_output.x) / (range_input.y - range_input.x)) * (value - range_input.x);
+    float32 result = range_output.x + ((range_output.y - range_output.x) / (range_input.y - range_input.x)) * (value - range_input.x);
+    return result;
 }
 
 
 inline float32
 approach(float32 value, float32 dest, float32 spd)
 {
-      if (value < dest)
-          return MIN(value + spd, dest); 
-      else
-          return MAX(value - spd, dest);
+    float32 result;
+    if (value < dest)
+        result = MIN(value + spd, dest); 
+    else
+        result = MAX(value - spd, dest);
+    return result;
+}
+
+inline float32
+lerp(float32 value, float32 dest, float32 spd)
+{
+    
 }

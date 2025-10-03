@@ -129,10 +129,11 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
     global_cpu_freq = __perf_frequency_result.QuadPart;
     int64 tick_program_start = win32_get_tick();
-    //SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);    
+    int64 cycle_program_start = __rdtsc();
     UINT DesiredSchedulerMS = 1;
     bool32 sleep_is_granular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);    
     //granular my ass
+    //SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);    
     
     //NOTE: TEMP vars
     void* snd_buffer_test = VirtualAlloc(0, SND_BUFFER_SIZE_BYTES, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
@@ -151,8 +152,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     win32_load_xinput();
     Win32_XAudio_Data xaudio2_data = win32_xaudio2_init();
 
-    //game init
-    
     //window
     int8 window_scale = WINDOW_SCALE_DEFAULT;
     
@@ -203,7 +202,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 
             Game_Memory game_memory = {};
             game_memory.permanent_storage_space = Megabytes(GAME_MEMORY_MB_PERMANENT);
-            game_memory.transient_storage_space = Gigabytes(GAME_MEMORY_MB_TRANSIENT);
+            game_memory.transient_storage_space = Megabytes(GAME_MEMORY_MB_TRANSIENT);
             game_memory.DEBUG_platform_file_free_memory = DEBUG_platform_file_free_memory;
             game_memory.DEBUG_platform_file_read_entire = DEBUG_platform_file_read_entire;
             game_memory.DEBUG_platform_file_write_entire = DEBUG_platform_file_write_entire;
@@ -230,8 +229,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 sleep_data.mean = 5e-3;
                 sleep_data.m2 = 0;
                 sleep_data.count = 1;
-                int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
-                float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
                                     
                 Game_Pointers game_pointers = {};
                 game_pointers.settings = &settings;
@@ -239,6 +236,10 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers.render   = &game_render_buffer;
                 game_pointers.sound    = &game_sound_buffer;
                 //game_pointers.input //input gets passed by value
+
+                int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
+                float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
+                int64 cycle_loop_start = __rdtsc() - cycle_program_start;
                 
                 while (Global_Running)
                 {
@@ -312,20 +313,23 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     //sleep
                     int64 tick_spent_in_frame = win32_get_tick_diff(tick_loop_start);
                     float64 sec_spent_in_frame = win32_tick_to_sec(tick_spent_in_frame);
+                    int64 cycle_work = __rdtsc() - cycle_loop_start;
+                    float64 megacycle_work = (float64)cycle_work / (1000 * 1000);
 
                     if (sec_spent_in_frame < SEC_PER_FRAME_TARGET)
                         sleep_well((SEC_PER_FRAME_TARGET) - sec_spent_in_frame, &sleep_data);
 
-
+                    
                     
                     //perf
                     int64 tick_loop_end = win32_get_tick();
                     float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
                     tick_loop_start = tick_loop_end;
+                    cycle_loop_start = __rdtsc();
 
                     //log //TODO: enable with preprocessor define?
-                    char buffer[256];
-                    sprintf_s(buffer, "ms/f: %.02f \n", ms_this_frame);
+                    // char buffer[256];
+                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
                     // OutputDebugStringA(buffer);
                 }
             }

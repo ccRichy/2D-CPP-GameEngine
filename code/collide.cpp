@@ -59,7 +59,7 @@ collide_ent_pointer(Vec2 pos, Vec2 size, Entity* entity_array, int32 entity_num)
 }
 
 Collide_Data
-move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
+move_collide_wall(Game_Pointers* game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 {
     Collide_Data coll_data = {};
 
@@ -77,7 +77,7 @@ move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 	pos->y += spd->y;
     caller_bbox_top = pos->y;
     caller_bbox_bottom = caller_bbox_top + size.y;
-    Entity* wall = collide_ent_pointer(*pos, size, game_pointers.entity->walls, game_pointers.entity->wall_num);
+    Entity* wall = collide_ent_pointer(*pos, size, game_pointers->entity->walls, game_pointers->entity->wall_num);
     if (wall)
     {
         wall_bbox_top = wall->pos.y;
@@ -99,7 +99,7 @@ move_collide_wall(Game_Pointers game_pointers, Vec2* pos, Vec2* spd, Vec2 size)
 	pos->x += spd->x;
     caller_bbox_left = pos->x;
     caller_bbox_right = caller_bbox_left + size.x;
-    wall = collide_ent_pointer(*pos, size, game_pointers.entity->walls, game_pointers.entity->wall_num);
+    wall = collide_ent_pointer(*pos, size, game_pointers->entity->walls, game_pointers->entity->wall_num);
     if (wall)
     {
         wall_bbox_left = wall->pos.x;
