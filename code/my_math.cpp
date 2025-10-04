@@ -161,5 +161,6 @@ approach(float32 value, float32 dest, float32 spd)
 inline float32
 lerp(float32 value, float32 dest, float32 spd)
 {
-    
+    float32 result = value * (1.0f - spd) + (dest * spd);
+    return result;
 }

@@ -76,6 +76,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         Assert( sizeof(Game_Data) <= game_pointers->memory->permanent_storage_space );
 
         data->state = Game_State::play;
+        data->draw_mode = GAME_DRAW_MODE_DEFAULT;
         game_pointers->entity = &data->entity;
         game_pointers->player = &data->entity.player;
         game_pointers->data = (Game_Data*)game_pointers->memory->permanent_storage;
@@ -83,7 +84,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         //TODO: remove this vv later cuz this shit below is not stayin
 
         //images
-        data->sPlayer_air         = sprite_create(pointers, "sPlayer_air.bmp", 7, 15);
+        data->sPlayer_air         = sprite_create(pointers, "sPlayer_air2.bmp", 7, 15);
         data->sPlayer_air_reach   = sprite_create(pointers, "sPlayer_air_reach.bmp", 2, 0);  
         data->sPlayer_idle        = sprite_create(pointers, "sPlayer_idle.bmp", 2, 0);               
         data->sPlayer_ledge       = sprite_create(pointers, "sPlayer_ledge.bmp", 4, 10);      
@@ -108,7 +109,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         BMP_LOAD(sFont_ASCII_lilliput);
 
         //LEVEL TEMP
-        player_create(pointers, {BASE_W/2, BASE_H/2});
+        player_create(pointers, {BASE_W/2, BASE_H/2 - 20});
         wall_create(pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
         wall_create(pointers, {Tile(17), Tile(20)}, {Tile(50), Tile(1)});
         wall_create(pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
@@ -126,7 +127,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     if (input.mouse_back){
         game_pointers->settings->zoom_scale = 1;
     }
-
     
     //GAME_STATE
     if (data->state == Game_State::edit)
@@ -152,18 +152,19 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         player->spd = {};
     }
 
-    char buffer[256];
-    float32 zoom_scale = pointers->settings->zoom_scale;
-    sprintf_s(buffer, "zoom: %.2f", zoom_scale);
-    draw_text(pointers, buffer, {10, 10}, {0.5f, 0.5f});
-    //draw
+    GAME_DATA->draw_mode = Draw_Mode::world;
+    draw_line(game_pointers, {40, 40}, {80, 80}, PURPLE);
     wall_draw(pointers);
     enemy_draw(pointers);
     player_draw(player, pointers);
     
-    //draw mouse
-    Vec2 mouse_gui_pos = (input.mouse_pos + pointers->data->camera_pos);
-        
+    GAME_DATA->draw_mode = Draw_Mode::gui;
+    char buffer[256];
+    float32 zoom_scale = pointers->settings->zoom_scale;
+    sprintf_s(buffer, "zoom: %.2f", zoom_scale);
+    draw_text(pointers, buffer, {10, 10}, {1.f, 1.f});
+
+    Vec2 mouse_gui_pos = (input.mouse_pos);    
     draw_rect(pointers, mouse_gui_pos, {2, 2}, MAGENTA);
     draw_rect(pointers, mouse_gui_pos, {1, 1}, LIME);
 }

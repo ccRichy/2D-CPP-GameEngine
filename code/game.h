@@ -16,13 +16,24 @@
 #define TILE_SIZE 8
 #define Tile(value) (value * TILE_SIZE)
 
-#define G_DATA game_pointers.data
+#define GAME_STATE_DEFAULT Game_State::play;
+#define GAME_DRAW_MODE_DEFAULT Draw_Mode::world;
 
+//convenience
+#define GAME_POINTERS game_pointers->data
+#define GAME_MEMORY game_pointers->data
+#define GAME_DATA game_pointers->data
+#define GAME_ENTITY game_pointers->entity
+#define GAME_SETTINGS game_pointers->settings
 
-enum struct Game_State
-{
+enum struct Game_State{
     edit,
     play
+};
+
+enum struct Draw_Mode{
+    world,
+    gui
 };
 
 
@@ -83,7 +94,6 @@ struct Game_Data
     Sprite sPlayer_walk_reach;
     Sprite sPlayer_wire_idle;
     Sprite sPlayer_wire_walk;
-
     //rope
     Sprite sRope;
 
@@ -97,17 +107,21 @@ struct Game_Data
 
     // const char* level_current;
     Game_State state;
+    Draw_Mode draw_mode;
     Game_Entities entity;
     Vec2 camera_pos;
 };
 struct Game_Pointers //just all the fuckin data
 {
-    Game_Render_Buffer* render;
+    //initialized in platform layer
     Game_Memory*        memory;
+    Game_Render_Buffer* render;
     Game_Sound_Buffer*  sound;
     Game_Settings*      settings;
+    Game_Input_Map*     input;
 
+    //initialized in game layer (here)
     Game_Data* data; //populated in game init
-    Game_Entities* entity; //populated in game init
+    Game_Entities* entity;
     Player* player;
 };

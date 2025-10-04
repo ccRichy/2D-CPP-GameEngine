@@ -235,7 +235,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers.memory   = &game_memory;
                 game_pointers.render   = &game_render_buffer;
                 game_pointers.sound    = &game_sound_buffer;
-                //game_pointers.input //input gets passed by value
+                game_pointers.input    = &game_input_map;
 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
