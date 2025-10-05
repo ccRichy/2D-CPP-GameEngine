@@ -37,7 +37,7 @@ win32_get_tick_diff(int64 tick_prev)
 
 //function is based on this: https://blat-blatnik.github.io/computerBear/making-accurate-sleep-function/
 internal void
-sleep_well(double seconds, Win32_Sleep_Data* sleep_data)
+win32_sleep_well(double seconds, Win32_Sleep_Data* sleep_data)
 {
     if (seconds == 0) return; //NOTE: debug
 

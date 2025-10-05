@@ -214,29 +214,34 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
             Game_Input_Map game_input_map = {};
             Game_Input_Map game_input_map_prev = {};
-
             
             if (game_memory.permanent_storage && game_memory.transient_storage)
             {
+                Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
                 Game_Render_Buffer game_render_buffer = {};
                 Game_Sound_Buffer game_sound_buffer = {};
-                Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
-                Game_Settings settings;
+                Game_Performance game_performance = {};
+                Game_Settings settings; //REQUIRED: do not 0-initialize.
+                                        //default values are defined at declaration
                 Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
                 
-                Win32_Sleep_Data sleep_data;
+                Win32_Sleep_Data sleep_data = {};
                 sleep_data.estimate = 5e-3;
                 sleep_data.mean = 5e-3;
                 sleep_data.m2 = 0;
                 sleep_data.count = 1;
-                                    
+
                 Game_Pointers game_pointers = {};
-                game_pointers.settings = &settings;
                 game_pointers.memory   = &game_memory;
                 game_pointers.render   = &game_render_buffer;
                 game_pointers.sound    = &game_sound_buffer;
                 game_pointers.input    = &game_input_map;
-
+                game_pointers.settings = &settings;
+                game_pointers.performance = &game_performance;
+                game_pointers.data =     (Game_Data*)game_memory.permanent_storage;
+                game_pointers.entity = &game_pointers.data->entity;
+                game_pointers.player = &game_pointers.data->entity.player;
+                
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
                 int64 cycle_loop_start = __rdtsc() - cycle_program_start;
@@ -244,7 +249,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 while (Global_Running)
                 {
 #if MY_INTERNAL
-                    //reload game code
+                //RELOAD GAME CODE //TODO: debug the weirdness here (see "dll_flip" declaration)
                     FILETIME filetime = win32_file_get_write_time(dll_path);
                     if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
                     {
@@ -266,13 +271,14 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     game_render_buffer.height = Global_Render_Buffer.height;
                     game_render_buffer.pitch  = Global_Render_Buffer.pitch;
                     
-                    //input
+                //INPUT
                     game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
                     win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
                     win32_process_input(&game_input_map, &game_input_map_prev);
                     Game_Input_Map input = game_input_map;
-                    
+
+                //PLATFORM FUNCTIONALITY
                     //BGMODE
                     if (input.debug_bgmode){
                         OutputDebugStringA("(Win32)(BGMode): ");
@@ -299,31 +305,45 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
 
                     
-                    //GAME LOOP
+                //GAME LOOP
                     ZeroMemory(game_render_buffer.memory, Global_Render_Buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
                         game_code.update_and_draw(&game_pointers, game_input_map);
 
-                    //render
+                    int64 tick_game_update = win32_get_tick_diff(tick_loop_start);
+                    int64 cycle_game_update = __rdtsc() - cycle_loop_start;
+                    game_performance.ms_update = win32_tick_to_ms(tick_game_update);
+                    game_performance.megacycles_update = (float64)cycle_game_update / (1000 * 1000);
+                    // //log //TODO: enable with preprocessor define?
+                    // char buffer[256];
+                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
+
+
+                //RENDER
                     HDC device_context = GetDC(window);
                     Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
                     win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
                     ReleaseDC(window, device_context);
 
+                    int64 tick_game_render = win32_get_tick_diff(tick_loop_start);
+                    int64 cycle_game_render = __rdtsc() - cycle_loop_start;
+                    game_performance.ms_render = win32_tick_to_ms(tick_game_render);
+                    game_performance.megacycles_render = (float64)cycle_game_render / (1000 * 1000);
 
                     
-                    //sleep
+                //SLEEP
                     int64 tick_spent_in_frame = win32_get_tick_diff(tick_loop_start);
                     float64 sec_spent_in_frame = win32_tick_to_sec(tick_spent_in_frame);
                     int64 cycle_work = __rdtsc() - cycle_loop_start;
                     float64 megacycle_work = (float64)cycle_work / (1000 * 1000);
+                    game_performance.ms_frame = win32_tick_to_ms(tick_spent_in_frame);
+                    game_performance.megacycles_frame = (float64)cycle_work / (1000 * 1000);
 
                     if (sec_spent_in_frame < SEC_PER_FRAME_TARGET)
-                        sleep_well((SEC_PER_FRAME_TARGET) - sec_spent_in_frame, &sleep_data);
-
+                        win32_sleep_well((SEC_PER_FRAME_TARGET) - sec_spent_in_frame, &sleep_data);
                     
                     
-                    //perf
+                //PERFORMANCE
                     int64 tick_loop_end = win32_get_tick();
                     float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
                     tick_loop_start = tick_loop_end;
@@ -333,7 +353,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     char buffer[256];
                     sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
                     OutputDebugStringA(buffer);
-                    
                 }
             }
             else

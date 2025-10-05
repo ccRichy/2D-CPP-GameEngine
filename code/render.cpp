@@ -1,6 +1,11 @@
 // #include "game.h"
 #include "render.h"
 
+/*
+  TODO:
+  - find some way to facilitate skipping the function if we know it would attempt to draw outside the buffer
+  - !!optimize!!
+ */
 
 //helper
 inline float32

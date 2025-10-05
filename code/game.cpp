@@ -95,7 +95,7 @@ extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
 void
 game_initialize(Game_Pointers* game_pointers)
 {
-    Game_Data* data = (Game_Data*)game_pointers->memory->permanent_storage;
+    Game_Data* data = game_pointers->data;//(Game_Data*)game_pointers->memory->permanent_storage;
     Game_Entities* entity = &data->entity;
     Game_Settings* settings = game_pointers->settings;
     Game_Pointers* pointers = game_pointers;
@@ -107,9 +107,9 @@ game_initialize(Game_Pointers* game_pointers)
         
     data->state = GAME_STATE_DEFAULT;
     data->draw_mode = GAME_DRAW_MODE_DEFAULT;
-    game_pointers->entity = &data->entity;
-    game_pointers->player = &data->entity.player;
-    game_pointers->data = (Game_Data*)game_pointers->memory->permanent_storage;
+    // game_pointers->entity = &data->entity;
+    // game_pointers->player = &data->entity.player;
+    // game_pointers->data = (Game_Data*)game_pointers->memory->permanent_storage;
         
     game_pointers->data->camera_pos_offset_default = {
         BASE_W/2,
@@ -151,8 +151,6 @@ game_initialize(Game_Pointers* game_pointers)
     wall_create(pointers, {Tile(4), Tile(11)}, {Tile(18), Tile(1)});
     wall_create(pointers, {Tile(2), Tile(11)}, {Tile(1), Tile(10)});
     wall_create(pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
-    // enemy_create(pointers, {10, 10});
-    
 }
 
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
@@ -165,6 +163,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     
     //initialize
     if (!game_pointers->memory->is_initalized){
+        //TODO: zero out the necessary Game_Data members so we can use this to reset the game
         game_initialize(game_pointers);
     }
     //early update
@@ -259,21 +258,34 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     draw_rect(pointers, input.mouse_pos_gui, {1, 1}, LIME);
 
 //DEBUG TEXT
-    //draw cam data
-    char cam_string[256];
-    float32 zoom_scale = pointers->settings->zoom_scale;
-    sprintf_s(cam_string,
-              "cam_pos: X = %.2f | Y = %.2f\n"
-              "zoom: %.2f",
-              GAME_DATA->camera_pos.x, GAME_DATA->camera_pos.y, zoom_scale);
-    draw_text(pointers, cam_string, {8, 8}, {0.5f, 0.5f});
+    //draw performance
+    auto perf = pointers->performance;
+    char perf_string[256];
+    sprintf_s(perf_string,
+              "ms/f: %.2f" "\n"
+              "mc/f: %.2f" "\n"
+              ,perf->ms_frame
+              ,perf->megacycles_frame
+    );
+    draw_text(pointers, perf_string, {8, 8}, {0.5f, 0.5f});
+    
+    draw_text(pointers, "perf_string", {8, 24}, {0.5f, 10.5f});
 
-    //draw player data
-    char player_string[256];
-    sprintf_s(player_string,
-              "mouse_world: X = %.2f | Y = %.2f",
-              input.mouse_pos_world.x, input.mouse_pos_world.y);
-    draw_text(pointers, player_string, {8, 24}, {0.5f, 0.5f});
+    //draw cam data
+    // char cam_string[256];
+    // float32 zoom_scale = pointers->settings->zoom_scale;
+    // sprintf_s(cam_string,
+    //           "cam_pos: X = %.2f | Y = %.2f\n"
+    //           "zoom: %.2f",
+    //           GAME_DATA->camera_pos.x, GAME_DATA->camera_pos.y, zoom_scale);
+    // draw_text(pointers, cam_string, {8, 8}, {0.5f, 0.5f});
+
+    // //draw player data
+    // char player_string[256];
+    // sprintf_s(player_string,
+    //           "mouse_world: X = %.2f | Y = %.2f",
+    //           input.mouse_pos_world.x, input.mouse_pos_world.y);
+    // draw_text(pointers, player_string, {8, 24}, {0.5f, 0.5f});
 }
 
 

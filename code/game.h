@@ -19,24 +19,18 @@
 #define GAME_STATE_DEFAULT Game_State::play;
 #define GAME_DRAW_MODE_DEFAULT Draw_Mode::world;
 
-//convenience
+
+
+//convenience //TODO: DELETE THESE!!!
 #define GAME_POINTERS game_pointers->data
 #define GAME_MEMORY game_pointers->data
 #define GAME_DATA game_pointers->data
 #define GAME_ENTITY game_pointers->entity
 #define GAME_SETTINGS game_pointers->settings
 
-enum struct Game_State{
-    edit,
-    play
-};
-
-enum struct Draw_Mode{
-    world,
-    gui
-};
 
 
+/////STUFF//////
 #pragma pack(push, 1)
 struct BMP_File
 {
@@ -63,13 +57,18 @@ struct Sprite
 
 
 
-struct Game_Settings //REQUIRED: give members default value
-{
-    //TODO: move into game_data //it may not qualifty as game data once the progam is more complex,
-                                //but its DEFINITELY not a SETTING
-    float32 window_scale = 4.0f;
-    float32 zoom_scale = 1.0f;
+
+//////GAME//////
+enum struct Game_State{
+    edit,
+    play
 };
+
+enum struct Draw_Mode{
+    world,
+    gui
+};
+
 struct Game_Entities
 {
     Player player;
@@ -80,6 +79,19 @@ struct Game_Entities
 };
 struct Game_Data
 {
+    Game_Entities entity;
+    //TODO: Game_Camera
+    
+    Game_State state;
+    Draw_Mode draw_mode;
+    
+    Vec2 camera_pos;
+    float32 camera_yoffset_extra = 4;
+    Vec2 camera_pos_offset_default;
+    Vec2 camera_pos_offset;
+    bool32 camera_panning;
+
+    
   //Sprites
     //player
     Sprite sPlayer_air;
@@ -106,29 +118,39 @@ struct Game_Data
     BMP_File* sMan_anim;
     BMP_File* sFont_test;
     BMP_File* sFont_ASCII_lilliput;
-
-    // const char* level_current;
-    Game_State state;
-    Draw_Mode draw_mode;
-    Game_Entities entity;
-    
-    Vec2 camera_pos;
-    float32 camera_yoffset_extra = 4;
-    Vec2 camera_pos_offset_default;
-    Vec2 camera_pos_offset;
-    bool32 camera_panning;
 };
+
+struct Game_Settings //REQUIRED: give members default value
+{
+    //TODO: move into game_data //it may not qualifty as game data once the progam is more complex,
+                                //but its DEFINITELY not a SETTING
+    float32 window_scale = 4.0f;
+    float32 zoom_scale = 1.0f;
+};
+struct Game_Performance //TODO: averages
+{
+    float32 fps;
+    
+    float64 ms_frame;
+    float64 megacycles_frame;
+    
+    float64 ms_update;
+    float64 megacycles_update;
+
+    float64 ms_render;
+    float64 megacycles_render;
+};
+
+//NOTE: initialized in platform layer
 struct Game_Pointers //just all the fuckin data
 {
-    //initialized in platform layer
     Game_Memory*        memory;
     Game_Render_Buffer* render;
     Game_Sound_Buffer*  sound;
     Game_Settings*      settings;
     Game_Input_Map*     input;
-
-    //initialized in game layer (here)
-    Game_Data* data; //populated in game init
-    Game_Entities* entity;
-    Player* player;
+    Game_Performance*   performance;
+    Game_Data*          data;
+    Game_Entities*      entity;
+    Player*             player;
 };
