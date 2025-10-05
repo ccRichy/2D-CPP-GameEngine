@@ -96,7 +96,6 @@ abs_f32(float32 value)
     return value;
 }
 
-#include "math.h" //TODO: INTRINSICS
 inline int32
 round_i32(float32 value)
 {

@@ -65,6 +65,8 @@ struct Sprite
 
 struct Game_Settings //REQUIRED: give members default value
 {
+    //TODO: move into game_data //it may not qualifty as game data once the progam is more complex,
+                                //but its DEFINITELY not a SETTING
     float32 window_scale = 4.0f;
     float32 zoom_scale = 1.0f;
 };
@@ -109,7 +111,12 @@ struct Game_Data
     Game_State state;
     Draw_Mode draw_mode;
     Game_Entities entity;
+    
     Vec2 camera_pos;
+    float32 camera_yoffset_extra = 4;
+    Vec2 camera_pos_offset_default;
+    Vec2 camera_pos_offset;
+    bool32 camera_panning;
 };
 struct Game_Pointers //just all the fuckin data
 {

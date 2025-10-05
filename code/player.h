@@ -55,12 +55,14 @@ struct Player
     Sprite* sprite;
     float32 anim_index;
     float32 anim_speed_mult;
-    
-    // Player_State state;
+
+#if 0
+    Player_State state;
     State* state;
     State st_idle;
     State st_walk;
     State st_jump;
     State st_fall;
     State st_ledge;
+#endif
 };

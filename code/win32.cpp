@@ -583,8 +583,6 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             case WM_MOUSEWHEEL:{
                 int32 zDelta = GET_WHEEL_DELTA_WPARAM(message.wParam);
                 in->mouse_scroll = sign(zDelta);
-                // in->mouse_wheel_up.hold = (zDelta > 0);
-                // in->mouse_wheel_down.hold = (zDelta < 0);
             }break;
                 
             case WM_LBUTTONDOWN:
@@ -605,17 +603,18 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             }break;
             case WM_MOUSEMOVE:{
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
-                //NOTE: float
-                // in->mouse_pos = {
-                //     ((float32)mouse_points.x / (float32)Global_Settings->window_scale),
-                //     ((float32)mouse_points.y / (float32)Global_Settings->window_scale)
-                // };
-                
                 //NOTE: pixel aligned
-                in->mouse_pos = {
-                    (float32)(mouse_points.x / Global_Settings->window_scale),
-                    (float32)(mouse_points.y / Global_Settings->window_scale)
+                in->mouse_pos_world_prev = in->mouse_pos_world;
+                in->mouse_pos_gui = {
+                    round_f32(mouse_points.x / Global_Settings->window_scale),
+                    round_f32(mouse_points.y / Global_Settings->window_scale)
                 };
+                
+                // //NOTE: float
+                // in->mouse_pos = {
+                //     (float32)(mouse_points.x / Global_Settings->window_scale),
+                //     (float32)(mouse_points.y / Global_Settings->window_scale)
+                // };
             }break;
 
                 

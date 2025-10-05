@@ -25,7 +25,9 @@ struct Game_Input_Map
     Vec2 l_axes;
     Vec2 r_axes;
     
-    Vec2 mouse_pos;
+    Vec2 mouse_pos_world_prev;
+    Vec2 mouse_pos_world; //NOTE: redundant? 
+    Vec2 mouse_pos_gui;
     int32 mouse_scroll;
     
     union {

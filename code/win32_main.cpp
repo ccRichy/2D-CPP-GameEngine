@@ -243,6 +243,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 
                 while (Global_Running)
                 {
+#if MY_INTERNAL
                     //reload game code
                     FILETIME filetime = win32_file_get_write_time(dll_path);
                     if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
@@ -257,7 +258,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     else{
                         int cool = 1;
                     }
-
+#endif
+                    
                     //TODO: make Game_Render_Buffer variables into pointers so we only set once?
                     game_render_buffer.memory = Global_Render_Buffer.memory;
                     game_render_buffer.width  = Global_Render_Buffer.width;
@@ -328,9 +330,10 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     cycle_loop_start = __rdtsc();
 
                     //log //TODO: enable with preprocessor define?
-                    // char buffer[256];
-                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
-                    // OutputDebugStringA(buffer);
+                    char buffer[256];
+                    sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
+                    OutputDebugStringA(buffer);
+                    
                 }
             }
             else

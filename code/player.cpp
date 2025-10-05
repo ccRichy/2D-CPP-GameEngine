@@ -31,8 +31,7 @@ player_gravity(Player* plr)
 
 
 
-
-
+#if 0
 /////STATES
 void
 state_change(Game_Pointers* game_pointers, State** state_variable, State* target)
@@ -186,7 +185,7 @@ player_fall_step(Game_Pointers* game_pointers, Game_Input_Map input)
         state_change(game_pointers, &plr->state,
                      plr->spd.x != 0 ? &plr->st_walk : &plr->st_idle);
 };
-
+#endif
 
 
 
@@ -220,6 +219,7 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
     plr->scale = {1, 1};
     plr->color = GREEN;
 
+#if 0
     // plr->st_idle.Enter = player_idle_enter;
     // plr->st_idle.Step = player_idle_step;
     // plr->st_walk.Enter = player_walk_enter;
@@ -231,6 +231,7 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
     
     // plr->state = &plr->st_idle;
     // plr->state->Enter(game_pointers);
+#endif
 }
 
 void
