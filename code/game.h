@@ -15,7 +15,7 @@
 
 #define TILE_SIZE 8
 #define Tile(value) (value * TILE_SIZE)
-
+ 
 #define GAME_STATE_DEFAULT Game_State::play;
 #define GAME_DRAW_MODE_DEFAULT Draw_Mode::world;
 
@@ -46,6 +46,7 @@ struct BMP_File
     uint16 bits_per_pixel;
 };
 #pragma pack(pop)
+
 struct Sprite
 {
     BMP_File* bmp;
@@ -55,6 +56,20 @@ struct Sprite
     bool32 is_animation;
 };
 
+#define FONT_GLYPH_SIZE 8
+#define FONT_LENGTH 94
+#define FONT_ASCII_CHARACTER_START_OFFSET 32
+struct Glyph
+{
+    uint32 pixels[FONT_GLYPH_SIZE][FONT_GLYPH_SIZE];
+};
+struct Font
+{
+    BMP_File* image;
+    int32 glyph_width;
+    int32 glyph_height;
+    Glyph glyphs[FONT_LENGTH]; 
+};
 
 
 
@@ -118,6 +133,10 @@ struct Game_Data
     BMP_File* sMan_anim;
     BMP_File* sFont_test;
     BMP_File* sFont_ASCII_lilliput;
+    BMP_File* sFont_ASCII_lilliput_vert;
+
+  //Fonts
+    Font font_test;
 };
 
 struct Game_Settings //REQUIRED: give members default value

@@ -16,45 +16,29 @@
 #include "entity.cpp"
 
 
-
-
-//text drawing
-void draw_text(Game_Pointers* game_pointers, const char* text, Vec2 pos, Vec2 scale = {1, 1}, Vec2 spacing = {5, 8})
+inline Vec2 //TODO: decide wether or not to just store this value
+mouse_get_pos_gui(Game_Pointers* game_pointers)
 {
-    char ascii_character_start_offset = 32;
-
-    BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
-    int32 frame_size = font_image->height;
-    float32 drawx_offset = 0; //exists for us to handle the position simply
-    int32 loop_length = string_length(text);
-    for (int i = 0; i < loop_length; ++i)
-    {
-        char frame = text[i];
-        if (frame == '\n')
-        {
-            pos.y += (spacing.y * scale.y);
-            drawx_offset = 0;
-            continue;
-        }
-
-        char frame_offset = frame - ascii_character_start_offset;
-        draw_bmp_part(game_pointers, font_image,
-                      {pos.x + drawx_offset, pos.y}, //area_pos
-                      {scale.x, scale.y},            //overall scale
-                      frame_offset * frame_size, 0, //pos on image
-                      frame_size, frame_size);      //size to draw
-        
-        drawx_offset += (spacing.x * scale.x);
-    }    
+    Vec2 result = game_pointers->input->mouse_pos_gui;
+    return result;
+}
+inline Vec2
+mouse_get_pos_world(Game_Pointers* game_pointers)
+{
+    Vec2 result =
+        {game_pointers->input->mouse_pos_gui.x / GAME_SETTINGS->zoom_scale,
+        game_pointers->input->mouse_pos_gui.y / GAME_SETTINGS->zoom_scale};
+    result += GAME_DATA->camera_pos;
+    return result;
 }
 
 
-
-//file loading NOTE: move out of here?
 BMP_File*
 DEBUG_load_bmp(Game_Pointers* game_pointers, const char* filename)
 {
-    return (BMP_File*)game_pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
+    auto result = (BMP_File*)game_pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
+    Assert(result);
+    return result;
 };
 Sprite
 sprite_create(Game_Pointers* game_pointers, const char* bmp_filename, uint32 frame_num, float32 fps)
@@ -68,20 +52,113 @@ sprite_create(Game_Pointers* game_pointers, const char* bmp_filename, uint32 fra
     return sprite;
 }
 
-inline //NOTE: redundant? should we store the value and just set it then use it, or call this function...
-Vec2 mouse_get_pos_gui(Game_Pointers* game_pointers)
+
+
+
+Font
+font_create(Game_Pointers* game_pointers, BMP_File* image)
 {
-    Vec2 result = game_pointers->input->mouse_pos_gui;
+    Font result = {};
+
+    uint32 glyph_size = image->width; //NOTE: assumes vertically arranged source image
+    uint32 glyph_area = glyph_size * glyph_size;
+    uint32 image_area = image->width * image->height;
+    
+    int32 glyph_offset = FONT_LENGTH;
+    int32 glyph_size_bytes = glyph_area * (image->bits_per_pixel / 8);
+    uint32* image_pixels = (uint32*)((uint8*)image + image->offset);
+
+    //loop over the entire image & move image pixels into respective glyph pixels
+    uint32 glyph_ticker = 0;
+    for (uint32 image_pixel_index = 0; image_pixel_index < image_area; ++image_pixel_index)
+    {
+        uint32 image_pixel = image_pixels[image_pixel_index];
+        Color* DEBUG_color = (Color*)(&image_pixel);
+        Glyph* glyph = &game_pointers->data->font_test.glyphs[glyph_offset];
+        
+        int32 glyph_x = image_pixel_index % glyph_size;
+        int32 glyph_y = glyph_size-1 - floor_i32((float32)(image_pixel_index % glyph_area) / image->width);
+        
+        glyph->pixels[glyph_y][glyph_x] = image_pixel;
+
+        if (glyph_offset <= 0)
+            return result;
+        if (++glyph_ticker >= glyph_area)
+        {
+            glyph_offset--;
+            glyph_ticker = 0;
+        }
+    }
+    
     return result;
 }
-inline
-Vec2 mouse_get_pos_world(Game_Pointers* game_pointers)
+void
+draw_glyph(Game_Pointers* game_pointers, char text_character, Vec2 pos, Vec2 scale)
 {
-    Vec2 result =
-        {game_pointers->input->mouse_pos_gui.x / GAME_SETTINGS->zoom_scale,
-        game_pointers->input->mouse_pos_gui.y / GAME_SETTINGS->zoom_scale};
-    result += GAME_DATA->camera_pos;
-    return result;
+    auto render = game_pointers->render;
+    int32 glyph_size = 8;
+
+    float32 draw_scale = game_get_draw_scale(game_pointers);
+    float32 xscale_final = abs_f32(draw_scale * scale.x);
+    float32 yscale_final = abs_f32(draw_scale * scale.y);
+    pos               += game_get_draw_pos(game_pointers);
+
+
+    int32 x_left   = round_i32(pos.x * draw_scale);
+    int32 x_right  = round_i32(x_left + (glyph_size * xscale_final));
+    int32 y_top    = round_i32(pos.y * draw_scale);
+    int32 y_bottom = round_i32(y_top + (glyph_size * yscale_final));
+
+    if (x_left < 0)                 x_left = 0;
+    if (x_right > render->width)    x_right = render->width;
+    if (y_top < 0)                  y_top = 0;
+    if (y_bottom > render->height)  y_bottom = render->height;
+
+    float32 render_pos_yoffset = pos.y;
+    uint32* render_pixel = (uint32*)(render->memory);
+    render_pixel += (int32)(render_pos_yoffset * render->pitch);
+    Glyph* glyph = &game_pointers->data->font_test.glyphs[text_character - FONT_ASCII_CHARACTER_START_OFFSET];
+    //loop through all real coords
+    int32 image_pixel_x = 0;
+    int32 image_pixel_y = 0;
+    for (int32 Y_Index = y_top; Y_Index < y_bottom; ++Y_Index)
+    {
+        render_pixel = (uint32*)((uint8*)render->memory + (Y_Index * render->pitch));
+        
+        for (int X_Index = x_left; X_Index < x_right; ++X_Index)
+        {
+            image_pixel_x = (int32)((X_Index - x_left) / xscale_final);
+            image_pixel_y = (int32)((Y_Index - y_top) / yscale_final);
+
+            uint32 color_prev = render_pixel[X_Index];
+            uint32 color = glyph->pixels[image_pixel_y][image_pixel_x];
+
+            //send color to buffer
+            if (color > 0)
+                render_pixel[X_Index] = color;
+        }
+    }
+}
+void draw_text(Game_Pointers* game_pointers, const char* text, Vec2 pos, Vec2 scale, Vec2 spacing = {5, 8})
+{
+    Vec2 final_pos = pos;
+    int32 text_length = string_length(text);
+    int32 new_lines = 0;
+    for (int i = 0; i < text_length; ++i)
+    {
+        char char_to_draw = text[i];
+        if (char_to_draw == '\n')
+        {
+            new_lines++;
+            final_pos.x = pos.x;
+            final_pos.y += (spacing.y * scale.y);
+        }
+        else
+        {
+            draw_glyph(game_pointers, char_to_draw, final_pos, scale);
+            final_pos.x += (spacing.x * scale.x);
+        }
+    }
 }
 
 
@@ -92,9 +169,11 @@ extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
     input_map->game_input_device = input_device_current;
 }
 
-void
+void //TODO: CLEAN UP
 game_initialize(Game_Pointers* game_pointers)
 {
+    game_pointers->memory->is_initalized = true;
+    
     Game_Data* data = game_pointers->data;//(Game_Data*)game_pointers->memory->permanent_storage;
     Game_Entities* entity = &data->entity;
     Game_Settings* settings = game_pointers->settings;
@@ -107,19 +186,13 @@ game_initialize(Game_Pointers* game_pointers)
         
     data->state = GAME_STATE_DEFAULT;
     data->draw_mode = GAME_DRAW_MODE_DEFAULT;
-    // game_pointers->entity = &data->entity;
-    // game_pointers->player = &data->entity.player;
-    // game_pointers->data = (Game_Data*)game_pointers->memory->permanent_storage;
-        
+    
     game_pointers->data->camera_pos_offset_default = {
         BASE_W/2,
         BASE_H/2 + game_pointers->data->camera_yoffset_extra};
-    game_pointers->data->camera_pos_offset = game_pointers->data->camera_pos_offset_default;
-        
-    game_pointers->memory->is_initalized = true;
-    //TODO: remove this vv later cuz this shit below is not stayin
-
-    //images
+    game_pointers->data->camera_pos_offset = game_pointers->data->camera_pos_offset_default;    
+    
+  //IMAGES
     data->sPlayer_air         = sprite_create(pointers, "sPlayer_air2.bmp", 7, 15);
     data->sPlayer_air_reach   = sprite_create(pointers, "sPlayer_air_reach.bmp", 2, 0);  
     data->sPlayer_idle        = sprite_create(pointers, "sPlayer_idle.bmp", 2, 0);               
@@ -143,8 +216,13 @@ game_initialize(Game_Pointers* game_pointers)
     BMP_LOAD(sMan_anim);
     BMP_LOAD(sFont_test);
     BMP_LOAD(sFont_ASCII_lilliput);
+    BMP_LOAD(sFont_ASCII_lilliput_vert);
 
-    //LEVEL TEMP
+    // data->font_test = font_create(game_pointers, data->sFont_ASCII_lilliput, FONT_GLYPH_SIZE, FONT_GLYPH_SIZE);
+    font_create(game_pointers, data->sFont_ASCII_lilliput_vert);
+
+    
+  //LEVEL TEMP
     player_create(pointers, {BASE_W/2, BASE_H/2 - 20});
     wall_create(pointers, {Tile(3), Tile(20)}, {Tile(18), Tile(1)});
     wall_create(pointers, {Tile(17), Tile(20)}, {Tile(50), Tile(1)});
@@ -153,6 +231,7 @@ game_initialize(Game_Pointers* game_pointers)
     wall_create(pointers, {Tile(32), Tile(11)}, {Tile(1), Tile(10)});
 }
 
+//UPDATE
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 {
     Game_Data* data = (Game_Data*)game_pointers->memory->permanent_storage;
@@ -173,7 +252,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     //TODO: if we put the common logic in a function we can have different zoom modes
     if (input.mouse_scroll > 0){
         Vec2 mouse_prev = mouse_get_pos_world(game_pointers);
-        GAME_SETTINGS->zoom_scale *= (float32)(sqrt(sqrt(2)));
+
+        if (input.shift.hold) GAME_SETTINGS->zoom_scale *= (float32)(sqrt(2));
+        else GAME_SETTINGS->zoom_scale *= (float32)(sqrt(sqrt(2)));
+        
         Vec2 mouse_new = mouse_get_pos_world(game_pointers);
         Vec2 camera_pos_current = GAME_DATA->camera_pos;
         GAME_DATA->camera_pos =
@@ -182,7 +264,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
     else if (input.mouse_scroll < 0){
         Vec2 mouse_prev = mouse_get_pos_world(game_pointers);
+
+        if (input.shift.hold) GAME_SETTINGS->zoom_scale /= (float32)(sqrt(2));
         GAME_SETTINGS->zoom_scale /= (float32)(sqrt(sqrt(2)));
+        
         Vec2 mouse_new = mouse_get_pos_world(game_pointers);
         Vec2 camera_pos_current = GAME_DATA->camera_pos;
         GAME_DATA->camera_pos =
@@ -218,8 +303,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         
         //draw coords
         GAME_DATA->draw_mode = Draw_Mode::world;
-        draw_line(game_pointers, {}, {BASE_W, 0}, PURPLE);
-        draw_line(game_pointers, {}, {0, BASE_H}, PURPLE);
+        float32 static_size = game_get_static_size(pointers, 0.5);
+        draw_rect(game_pointers, {0, 0}, {static_size, 999999.f}, WHITE);
+        draw_rect(game_pointers, {0, 0}, {999999.f, static_size}, WHITE);
+        // draw_line(game_pointers, {}, {BASE_W, 0}, PURPLE);
+        // draw_line(game_pointers, {}, {0, BASE_H}, PURPLE);
     }
     else if (data->state == Game_State::play)
     {
@@ -239,24 +327,15 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         enemy_update(pointers);        
     }
 
-    
-    //DEBUG
-    if (input.reset){  //NOTE: temp RESET
-        GAME_DATA->camera_pos = {};
-        player->pos = {BASE_W/2, BASE_H/2 - 20.f};
-        player->spd = {};
-    }
-
+    //game draw
     GAME_DATA->draw_mode = Draw_Mode::world;
     wall_draw(pointers);
     enemy_draw(pointers);
     player_draw(player, pointers);
+
+
     
     GAME_DATA->draw_mode = Draw_Mode::gui;
-    //draw mouse
-    draw_rect(pointers, input.mouse_pos_gui + Vec2{1, 1}, {2, 2}, MAGENTA);
-    draw_rect(pointers, input.mouse_pos_gui, {1, 1}, LIME);
-
 //DEBUG TEXT
     //draw performance
     auto perf = pointers->performance;
@@ -267,38 +346,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
               ,perf->ms_frame
               ,perf->megacycles_frame
     );
-    draw_text(pointers, perf_string, {8, 8}, {0.5f, 0.5f});
+    draw_text(pointers, perf_string, {0, 0}, {0.5f, 0.5f}, {7, 8});
     
-    draw_text(pointers, "perf_string", {8, 24}, {0.5f, 10.5f});
+    //draw mouse
+    draw_rect(pointers, input.mouse_pos_gui + Vec2{1, 1}, {2, 2}, MAGENTA);
+    draw_rect(pointers, input.mouse_pos_gui, {1, 1}, LIME);
 
-    //draw cam data
-    // char cam_string[256];
-    // float32 zoom_scale = pointers->settings->zoom_scale;
-    // sprintf_s(cam_string,
-    //           "cam_pos: X = %.2f | Y = %.2f\n"
-    //           "zoom: %.2f",
-    //           GAME_DATA->camera_pos.x, GAME_DATA->camera_pos.y, zoom_scale);
-    // draw_text(pointers, cam_string, {8, 8}, {0.5f, 0.5f});
-
-    // //draw player data
-    // char player_string[256];
-    // sprintf_s(player_string,
-    //           "mouse_world: X = %.2f | Y = %.2f",
-    //           input.mouse_pos_world.x, input.mouse_pos_world.y);
-    // draw_text(pointers, player_string, {8, 24}, {0.5f, 0.5f});
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -334,6 +388,40 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 //         row += buffer->pitch;
 //     }
 // }
+
+
+
+
+
+
+// void
+// draw_text(Game_Pointers* game_pointers, const char* text, Vec2 pos, Vec2 scale = {1, 1}, Vec2 spacing = {5, 8})
+// {
+//     BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
+//     int32 frame_size = font_image->height;
+//     float32 drawx_offset = 0; //exists for us to handle the position simply
+//     int32 loop_length = string_length(text);
+//     for (int i = 0; i < loop_length; ++i)
+//     {
+//         char frame = text[i];
+//         if (frame == '\n')
+//         {
+//             pos.y += (spacing.y * scale.y);
+//             drawx_offset = 0;
+//             continue;
+//         }
+
+//         char frame_offset = frame - FONT_ASCII_CHARACTER_START_OFFSET;
+//         draw_bmp_part(game_pointers, font_image,
+//                       {pos.x + drawx_offset, pos.y}, //area_pos
+//                       {scale.x, scale.y},            //overall scale
+//                       frame_offset * frame_size, 0, //pos on image
+//                       frame_size, frame_size);      //size to draw
+        
+//         drawx_offset += (spacing.x * scale.x);
+//     }    
+// }
+
 
 
 // #if MY_WIN32

@@ -220,17 +220,17 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
     plr->color = GREEN;
 
 #if 0
-    // plr->st_idle.Enter = player_idle_enter;
-    // plr->st_idle.Step = player_idle_step;
-    // plr->st_walk.Enter = player_walk_enter;
-    // plr->st_walk.Step = player_walk_step;
-    // plr->st_jump.Enter = player_jump_enter;
-    // plr->st_jump.Step = player_jump_step;
-    // plr->st_fall.Enter = player_fall_enter;
-    // plr->st_fall.Step = player_fall_step;
+    plr->st_idle.Enter = player_idle_enter;
+    plr->st_idle.Step = player_idle_step;
+    plr->st_walk.Enter = player_walk_enter;
+    plr->st_walk.Step = player_walk_step;
+    plr->st_jump.Enter = player_jump_enter;
+    plr->st_jump.Step = player_jump_step;
+    plr->st_fall.Enter = player_fall_enter;
+    plr->st_fall.Step = player_fall_step;
     
-    // plr->state = &plr->st_idle;
-    // plr->state->Enter(game_pointers);
+    plr->state = &plr->st_idle;
+    plr->state->Enter(game_pointers);
 #endif
 }
 
@@ -242,9 +242,12 @@ player_update(Game_Pointers* game_pointers, Game_Input_Map input)
     plr->move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
 
-    plr->pos += plr->move_input;
+    plr->pos.x += plr->move_input.x;
     
-    // plr->state->Step(game_pointers, input);
+    plr->spd.y += plr->grav;
+    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    if (input.jump) plr->spd.y = -4;
+    
     if (plr->spd.y > plr->terminal_velocity) plr->spd.y = plr->terminal_velocity;
 }
 

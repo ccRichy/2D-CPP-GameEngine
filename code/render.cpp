@@ -8,6 +8,12 @@
  */
 
 //helper
+inline float32 //NOTE: used to scale things in the world agnostic with the zoom
+game_get_static_size(Game_Pointers* game_pointers, float32 value)
+{
+    float32 result = value / game_pointers->settings->zoom_scale;
+    return result;
+}
 inline float32
 game_get_draw_scale(Game_Pointers* game_pointers)
 {
@@ -319,6 +325,7 @@ draw_bmp_part(Game_Pointers* game_pointers, BMP_File* bmp, Vec2 pos, Vec2 scale_
     int32 y_offscreen_amt = 0;
     if (x_left < 0)              x_left = 0;
     if (x_right > render->width) x_right = render->width;
+    //TODO: THIS IS WRONG vv fix and test later
     if (y_bottom < 0)            y_bottom = 0;
     if (y_top > render->height){
         y_offscreen_amt = y_top - render->height;
@@ -339,12 +346,12 @@ draw_bmp_part(Game_Pointers* game_pointers, BMP_File* bmp, Vec2 pos, Vec2 scale_
         for (int32 X = x_left; X < x_right; ++X)
         {            
             if (sign(scale_overall.x) == 1)
-                 bmp_x = bmp_drawx + int32((X - (pos.x * draw_scale)) / xscale_final);
-            else bmp_x = bmp->width-1 + bmp_drawx - int32(((X) - (pos.x * draw_scale)) / xscale_final);
+                 bmp_x = bmp_drawx + (int32)((X - (pos.x * draw_scale)) / xscale_final);
+            else bmp_x = bmp->width-1 + bmp_drawx - (int32)(((X) - (pos.x * draw_scale)) / xscale_final);
                 
             if (sign(scale_overall.y) == 1)
-                 bmp_y = bmp_drawy + int32((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
-            else bmp_y = bmp_drawy + bmp->height - int32((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
+                 bmp_y = bmp_drawy + (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
+            else bmp_y = bmp_drawy + bmp->height - (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
 
             if (bmp_x >= bmp_drawx + bmp_draw_width)
                 continue;
@@ -363,9 +370,7 @@ draw_bmp_part(Game_Pointers* game_pointers, BMP_File* bmp, Vec2 pos, Vec2 scale_
                     color_channel_get_transparent((color_prev & 0xFF),       (color_new & 0xFF),       alpha)
                 );
 
-                int32 drawx = X;
-                // if (sign(scale.x) == -1) drawx = X - (int32)((bmp->width - bmp_draw_width) * draw_scale);
-                buffer_pixel[drawx] = target_color;
+                buffer_pixel[X] = target_color;
             }
         }
         bmp_y--;

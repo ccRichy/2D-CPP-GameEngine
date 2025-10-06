@@ -347,12 +347,11 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     int64 tick_loop_end = win32_get_tick();
                     float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
                     tick_loop_start = tick_loop_end;
-                    cycle_loop_start = __rdtsc();
-
-                    //log //TODO: enable with preprocessor define?
-                    char buffer[256];
-                    sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
-                    OutputDebugStringA(buffer);
+                    cycle_loop_start = __rdtsc(); //TODO: enable with preprocessor define?
+                    // char buffer[256];
+                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
+                    // OutputDebugStringA(buffer);
+                    
                 }
             }
             else
