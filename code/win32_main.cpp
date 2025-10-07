@@ -231,16 +231,16 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 sleep_data.m2 = 0;
                 sleep_data.count = 1;
 
-                Game_Pointers game_pointers = {};
-                game_pointers.memory   = &game_memory;
-                game_pointers.render   = &game_render_buffer;
-                game_pointers.sound    = &game_sound_buffer;
-                game_pointers.input    = &game_input_map;
-                game_pointers.settings = &settings;
-                game_pointers.performance = &game_performance;
-                game_pointers.data =     (Game_Data*)game_memory.permanent_storage;
-                game_pointers.entity = &game_pointers.data->entity;
-                game_pointers.player = &game_pointers.data->entity.player;
+                Game_Pointers game_pointers_value = {};
+                game_pointers_value.memory   = &game_memory;
+                game_pointers_value.render   = &game_render_buffer;
+                game_pointers_value.sound    = &game_sound_buffer;
+                game_pointers_value.input    = &game_input_map;
+                game_pointers_value.settings = &settings;
+                game_pointers_value.performance = &game_performance;
+                game_pointers_value.data =     (Game_Data*)game_memory.permanent_storage;
+                game_pointers_value.entity = &game_pointers_value.data->entity;
+                game_pointers_value.player = &game_pointers_value.data->entity.player;
                 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
@@ -308,7 +308,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 //GAME LOOP
                     ZeroMemory(game_render_buffer.memory, Global_Render_Buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
-                        game_code.update_and_draw(&game_pointers, game_input_map);
+                        game_code.update_and_draw(&game_pointers_value, game_input_map);
 
                     int64 tick_game_update = win32_get_tick_diff(tick_loop_start);
                     int64 cycle_game_update = __rdtsc() - cycle_loop_start;

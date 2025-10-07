@@ -30,7 +30,7 @@
 
 #define IF_DEBUG if (GAME_DATA->debug_mode_enabled)
 
-//globalvar Game_Pointers* game_pointers;
+static Game_Pointers* game_pointers;
 
 /////STUFF//////
 #pragma pack(push, 1)
@@ -89,9 +89,16 @@ enum struct Draw_Mode{
 struct Game_Entities
 {
     Player player;
-    Entity walls[WALL_MAX];
+
+    union {
+        Entity array[ENT_MAX];
+        struct {
+            Entity walls[WALL_MAX];
+            Entity enemys[ENEMY_MAX];
+        };
+    };
+
     int32  wall_num;
-    Entity enemys[ENEMY_MAX];
     int32  enemy_num;
 };
 struct Game_Data
@@ -108,7 +115,7 @@ struct Game_Data
     Vec2 camera_pos_offset_default;
     Vec2 camera_pos_offset;
     
-  //Sprites
+  //Sprites //TODO: Move out into their own struct, and append Game_Pointers
     //player
     Sprite sPlayer_air;
     Sprite sPlayer_air_reach;

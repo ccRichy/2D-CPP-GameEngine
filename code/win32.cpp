@@ -639,7 +639,7 @@ window_set_trans(HWND window, bool32 enabled)
 {
     if (enabled)
     {
-        BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 150, LWA_ALPHA);        
+        BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, BGMODE_TRANSPARENCY_AMT, LWA_ALPHA);        
     }
     else
     {

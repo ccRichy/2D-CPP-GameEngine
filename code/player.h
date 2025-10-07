@@ -16,8 +16,8 @@ enum struct Player_State
 };
 struct State
 {
-    void (*Enter)(Game_Pointers* game_pointers);
-    void (*Step)(Game_Pointers* game_pointers, Game_Input_Map input);
+    void (*Enter)();
+    void (*Step)(Game_Input_Map input);
 };
 struct Physics
 {

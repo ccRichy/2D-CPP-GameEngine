@@ -2,6 +2,10 @@
 
 
 
+#define BGMODE_TRANSPARENCY_AMT 100
+
+
+
 //XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
 typedef X_INPUT_GET_STATE(x_input_get_state);

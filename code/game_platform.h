@@ -94,7 +94,7 @@ struct Game_Sound_Buffer
 
 
 struct Game_Pointers;
-#define GAME_UPDATE_AND_DRAW(name) void name(Game_Pointers* game_pointers, Game_Input_Map input)
+#define GAME_UPDATE_AND_DRAW(name) void name(Game_Pointers* __game_pointers, Game_Input_Map input)
 typedef GAME_UPDATE_AND_DRAW(Game_Update_And_Draw);
 GAME_UPDATE_AND_DRAW(Game_Update_And_Draw_Stub) {}
 

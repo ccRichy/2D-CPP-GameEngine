@@ -34,10 +34,10 @@ player_gravity(Player* plr)
 #if 0
 /////STATES
 void
-state_change(Game_Pointers* game_pointers, State** state_variable, State* target)
+state_change(State** state_variable, State* target)
 {
     *state_variable = target;
-    target->Enter(game_pointers);
+    target->Enter();
 }
 void state_enter_default(Player* plr, Sprite* sprite, float32 anim_index = 0, float32 anim_speed_mult = 1)
 {
@@ -48,14 +48,14 @@ void state_enter_default(Player* plr, Sprite* sprite, float32 anim_index = 0, fl
 
 
 //IDLE
-void player_idle_enter(Game_Pointers* game_pointers)
+void player_idle_enter()
 {
     Player* plr = game_pointers->player;
     state_enter_default(plr, &game_pointers->data->sPlayer_idle, 0, 0);
     plr->physics = plr->ground_physics;
 }
 void
-player_idle_step(Game_Pointers* game_pointers, Game_Input_Map input)
+player_idle_step(Game_Input_Map input)
 {
     Player* plr = game_pointers->player;
     //anim
@@ -63,32 +63,32 @@ player_idle_step(Game_Pointers* game_pointers, Game_Input_Map input)
     //speed
     player_gravity(plr);
     player_spd_hori(plr, false);
-    move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    move_collide_wall(&plr->pos, &plr->spd, plr->size);
         
     if (input.jump)
-        state_change(game_pointers, &plr->state, &plr->st_jump);
+        state_change(&plr->state, &plr->st_jump);
     else if (plr->spd.y != 0)
-        state_change(game_pointers, &plr->state, &plr->st_fall);
+        state_change(&plr->state, &plr->st_fall);
     else if (plr->move_input.x != 0 && plr->spd.x != 0)
-        state_change(game_pointers, &plr->state, &plr->st_walk);
+        state_change(&plr->state, &plr->st_walk);
 }
     
 //WALK
 void
-player_walk_enter(Game_Pointers* game_pointers)
+player_walk_enter()
 {
     Player* plr = game_pointers->player;
     state_enter_default(plr, &game_pointers->data->sPlayer_walk);
     plr->physics = plr->ground_physics;
 }
 void
-player_walk_step(Game_Pointers* game_pointers, Game_Input_Map input)
+player_walk_step(Game_Input_Map input)
 {
     Player* plr = game_pointers->player;
 
     plr->spd.y += plr->physics.grav;
     player_spd_hori(plr, false);
-    move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    move_collide_wall(&plr->pos, &plr->spd, plr->size);
 
     //anim
     if (sign(plr->move_input.x) != sign(plr->spd.x) && plr->move_input.x != 0)
@@ -104,16 +104,16 @@ player_walk_step(Game_Pointers* game_pointers, Game_Input_Map input)
 
     //state
     if (input.jump)
-        state_change(game_pointers, &plr->state, &plr->st_jump);
+        state_change(&plr->state, &plr->st_jump);
     else if (plr->spd.y != 0)
-        state_change(game_pointers, &plr->state, &plr->st_fall);
+        state_change(&plr->state, &plr->st_fall);
     else if (plr->spd.x == 0)
-        state_change(game_pointers, &plr->state, &plr->st_idle);
+        state_change(&plr->state, &plr->st_idle);
 }
 
 //JUMP
 void
-player_jump_enter(Game_Pointers* game_pointers)
+player_jump_enter()
 {
     Player* plr = game_pointers->player;
     state_enter_default(plr, &game_pointers->data->sPlayer_air, 0, 0);
@@ -123,7 +123,7 @@ player_jump_enter(Game_Pointers* game_pointers)
     // plr->grav = plr->grav_low;
 }
 void
-player_jump_step(Game_Pointers* game_pointers, Game_Input_Map input)
+player_jump_step(Game_Input_Map input)
 {
     Player* plr = game_pointers->player;
 
@@ -144,16 +144,16 @@ player_jump_step(Game_Pointers* game_pointers, Game_Input_Map input)
     player_gravity(plr);
     player_spd_hori(plr, true);
     if (!input.jump.hold) plr->spd.y *= 0.9f;
-    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
 
     //state
     if (plr->spd.y > 0)
-        state_change(game_pointers, &plr->state, &plr->st_fall);
+        state_change(&plr->state, &plr->st_fall);
 }
     
 //FALL
 void
-player_fall_enter(Game_Pointers* game_pointers)
+player_fall_enter()
 {
     Player* plr = game_pointers->player;
     Sprite* spr = game_pointers->input->up.hold ? &game_pointers->data->sPlayer_air_reach : &game_pointers->data->sPlayer_air;
@@ -163,7 +163,7 @@ player_fall_enter(Game_Pointers* game_pointers)
     plr->physics = plr->fall_physics;
 }
 void
-player_fall_step(Game_Pointers* game_pointers, Game_Input_Map input)
+player_fall_step(Game_Input_Map input)
 {
     Player* plr = game_pointers->player;
 
@@ -179,10 +179,10 @@ player_fall_step(Game_Pointers* game_pointers, Game_Input_Map input)
         
     player_spd_hori(plr, true);
     player_gravity(plr);
-    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
         
     if (coll.ydir == 1)
-        state_change(game_pointers, &plr->state,
+        state_change(&plr->state,
                      plr->spd.x != 0 ? &plr->st_walk : &plr->st_idle);
 };
 #endif
@@ -193,11 +193,18 @@ player_fall_step(Game_Pointers* game_pointers, Game_Input_Map input)
 
 
 void
-player_create(Game_Pointers* game_pointers, Vec2 _pos)
+player_create(Vec2 _pos)
 {
     Player* plr = &game_pointers->entity->player;
     plr->sprite = &game_pointers->data->sPlayer_idle;
 
+    //
+    plr->pos   = _pos;
+    plr->anim_speed_mult = 1;
+    plr->size  = {4, Tile(1)-1};
+    plr->scale = {1, 1};
+    plr->color = GREEN;
+    
     //
     plr->ground_speed_max = 1.f;
     plr->jump_spd = 1.2f;
@@ -212,12 +219,6 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
     plr->grav = plr->grav_default;
     plr->terminal_velocity = 4.f;
 
-    //
-    plr->pos   = _pos;
-    plr->anim_speed_mult = 1;
-    plr->size  = {4, Tile(1)-1};
-    plr->scale = {1, 1};
-    plr->color = GREEN;
 
 #if 0
     plr->st_idle.Enter = player_idle_enter;
@@ -230,14 +231,14 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
     plr->st_fall.Step = player_fall_step;
     
     plr->state = &plr->st_idle;
-    plr->state->Enter(game_pointers);
+    plr->state->Enter();
 #endif
 }
 
 #define sprite_change(__entity, __sprite) __entity->sprite = &game_pointers->data->##__sprite
 
 void
-player_update(Game_Pointers* game_pointers, Game_Input_Map input)
+player_update(Game_Input_Map input)
 {
     Player* plr = &game_pointers->entity->player;
     plr->move_input = {(float32)(input.right.hold - input.left.hold),
@@ -246,7 +247,7 @@ player_update(Game_Pointers* game_pointers, Game_Input_Map input)
 
     plr->spd.y += plr->grav;
     if (input.jump) plr->spd.y = -4;
-    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
 
     if (input.shift.hold) plr->ground_speed_max = 2;
     else plr->ground_speed_max = 1;
@@ -276,7 +277,7 @@ player_update(Game_Pointers* game_pointers, Game_Input_Map input)
 }
 
 void
-player_draw(Player* plr, Game_Pointers* game_pointers)
+player_draw(Player* plr)
 {
     Sprite* spr = plr->sprite;
     int32 frame_size = (int32)(spr->bmp->width / spr->frame_num);
@@ -286,12 +287,12 @@ player_draw(Player* plr, Game_Pointers* game_pointers)
     int32 frame = floor_i32(plr->anim_index);
     
     Vec2 sprite_offset = {-6.f, -5.f};
-    draw_bmp_part(game_pointers, plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
+    draw_bmp_part(plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
                   frame * frame_size, 0, //pos
                   16, 16);//size
 
     //DRAW ORIGIN
-    // draw_pixel(game_pointers, plr->pos, WHITE);
+    // draw_pixel(plr->pos, WHITE);
 }
 
 
@@ -300,10 +301,10 @@ player_draw(Player* plr, Game_Pointers* game_pointers)
 /* DRAW SMILEY FACE
   
     float32 smile_size = 4;
-    draw_rect(game_pointers, {pos.x, pos.y}, {smile_size, smile_size * 5}, blue);
-    draw_rect(game_pointers, {pos.x - smile_size, pos.y-smile_size}, {smile_size, smile_size}, red);
-    draw_rect(game_pointers, {pos.x + smile_size*5, pos.y-smile_size}, {smile_size, smile_size}, red);
-    draw_rect(game_pointers, {pos.x, pos.y - (smile_size*3)}, {smile_size, smile_size}, red);
-    draw_rect(game_pointers, {pos.x + (smile_size*4), (pos.y-smile_size*3)}, {smile_size, smile_size}, red);
+    draw_rect({pos.x, pos.y}, {smile_size, smile_size * 5}, blue);
+    draw_rect({pos.x - smile_size, pos.y-smile_size}, {smile_size, smile_size}, red);
+    draw_rect({pos.x + smile_size*5, pos.y-smile_size}, {smile_size, smile_size}, red);
+    draw_rect({pos.x, pos.y - (smile_size*3)}, {smile_size, smile_size}, red);
+    draw_rect({pos.x + (smile_size*4), (pos.y-smile_size*3)}, {smile_size, smile_size}, red);
 
  */
