@@ -9,7 +9,7 @@
 
 
 void
-player_spd_hori(Player* plr, bool32 is_airborne)
+player_move_hori(Player* plr, bool32 is_airborne)
 {
     float32 spd_target = plr->move_input.x * plr->ground_speed_max;
     if (!is_airborne)
@@ -234,19 +234,43 @@ player_create(Game_Pointers* game_pointers, Vec2 _pos)
 #endif
 }
 
+#define sprite_change(__entity, __sprite) __entity->sprite = &game_pointers->data->##__sprite
+
 void
 player_update(Game_Pointers* game_pointers, Game_Input_Map input)
 {
     Player* plr = &game_pointers->entity->player;
-    
     plr->move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
 
-    plr->pos.x += plr->move_input.x;
-    
+
     plr->spd.y += plr->grav;
-    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
     if (input.jump) plr->spd.y = -4;
+    Collide_Data coll = move_collide_wall(game_pointers, &plr->pos, &plr->spd, plr->size);
+
+    if (input.shift.hold) plr->ground_speed_max = 2;
+    else plr->ground_speed_max = 1;
+    
+    if (plr->spd.y != 0){
+        sprite_change(plr, sPlayer_air);
+        player_move_hori(plr, true);
+        if (!input.jump.hold){
+            if (plr->spd.y < 0)
+                plr->spd.y /= 4;
+        }
+    }else if (plr->spd.x != 0) {
+        sprite_change(plr, sPlayer_walk);
+        player_move_hori(plr, false);
+        if (plr->move_input.x != 0) plr->scale.x = (float32)sign(plr->move_input.x);
+        plr->anim_speed_mult = abs_f32(plr->spd.x);
+    }
+    else{
+        sprite_change(plr, sPlayer_idle);
+        plr->anim_index = (float32)input.up.hold;
+        player_move_hori(plr, false);
+    }
+    
+
     
     if (plr->spd.y > plr->terminal_velocity) plr->spd.y = plr->terminal_velocity;
 }

@@ -70,72 +70,80 @@ struct Rect
 inline int32
 sign(int32 value)
 {
-    if (value > 0) return 1;
-    if (value < 0) return -1;
-    return 0;
+    int32 result = 0;
+    if (value > 0) result =  1;
+    if (value < 0) result = -1;
+    return result;
 }
 inline int32
 sign(float32 value)
 {
-    if (value > 0) return 1;
-    if (value < 0) return -1;
-    return 0;
+    int32 result = 0;
+    if (value > 0) result =  1;
+    if (value < 0) result = -1;
+    return result;
 }
 
 
 inline int32
 abs_i32(int32 value)
 {
-    if (value < 0) return value * -1;
-    return value;
+    int32 result = value;
+    if (value < 0) result = value * -1;
+    return result;
 }
 inline float32
 abs_f32(float32 value)
 {
-    if (value < 0) return value * -1.0f;
-    return value;
+    float32 result = value;
+    if (value < 0) result = value * -1;
+    return result;
 }
 
 inline int32
 round_i32(float32 value)
 {
-    return (int32)roundf(value);
+    int32 result = (int32)roundf(value);
+    return result;
 }
 inline float32
 round_f32(float32 value)
 {
-    return roundf(value);
+    float32 result = roundf(value);
+    return result;
 }
 
 inline int32
 floor_i32(float32 value)
 {
-    return (int32)floorf(value);
+    int32 result = (int32)floorf(value);
+    return result;
 }
 inline float32
 floor_f32(float32 value)
 {
-    return floorf(value);
+    float32 result = floorf(value);
+    return result;
 }
 inline int32
 ceil_i32(float32 value)
 {
-    return (int32)floorf(value + 1);
+    int32 result = (int32)floorf(value + 1);
+    return result;
 }
 inline float32
 ceil_f32(float32 value)
 {
-    return floorf(value + 1);
+    float32 result = floorf(value + 1);
+    return result;
 }
 
 
 inline float
 clamp(float value, float min, float max)
 {
-    float result = (value < min)? min : value;
-
+    float result = (value < min ? min : value);
     if (result > max) result = max;
-
     return result;
 }
 inline float32

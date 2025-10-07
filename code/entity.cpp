@@ -4,6 +4,7 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
+
 #include "entity.h"
 #include "render.h"
 

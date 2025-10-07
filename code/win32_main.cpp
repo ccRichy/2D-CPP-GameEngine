@@ -280,7 +280,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
                 //PLATFORM FUNCTIONALITY
                     //BGMODE
-                    if (input.debug_bgmode){
+                    if (input.debug_bgmode_toggle){
                         OutputDebugStringA("(Win32)(BGMode): ");
                         if (input.ctrl.hold){
                             if (Global_BGMode_Enabled){

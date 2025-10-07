@@ -5,14 +5,36 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-#include "collide.h"
+struct Collide_Data
+{
+    bool32 hori;
+    bool32 vert;
+    int32 xdir;
+    int32 ydir;
+    Vec2 spd;
+};
+
 
 //NOTE: pos_offset - useful for easily passing in a sprite's origin point
 
 
 //GENERIC
 bool32
-collide(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2)
+collide_pixel_rect(Vec2 pixel_pos, Vec2 rect_pos, Vec2 rect_size)
+{
+	float rect_left = rect_pos.x;
+	float rect_right = rect_left + rect_size.x;
+	float rect_top = rect_pos.y;
+	float rect_bottom = rect_top + rect_size.y;
+
+    bool hori = pixel_pos.x >= rect_left && pixel_pos.x < rect_right;
+	bool vert = pixel_pos.y >= rect_top && pixel_pos.y < rect_bottom;
+
+	return (vert && hori);
+}
+
+bool32
+collide_rects(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2)
 {
     float x1 = pos1.x;
 	float y1 = pos1.y;
@@ -52,7 +74,7 @@ collide_ent_pointer(Vec2 pos, Vec2 size, Entity* entity_array, int32 entity_num)
     for (int i = 0; i < entity_num; ++i)
     {
         Entity* ent = &entity_array[i];
-        if (collide(pos, size, ent->pos, ent->size))
+        if (collide_rects(pos, size, ent->pos, ent->size))
             return ent;
     }
     return nullptr;

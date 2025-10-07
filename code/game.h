@@ -28,7 +28,9 @@
 #define GAME_ENTITY game_pointers->entity
 #define GAME_SETTINGS game_pointers->settings
 
+#define IF_DEBUG if (GAME_DATA->debug_mode_enabled)
 
+//globalvar Game_Pointers* game_pointers;
 
 /////STUFF//////
 #pragma pack(push, 1)
@@ -94,18 +96,17 @@ struct Game_Entities
 };
 struct Game_Data
 {
-    Game_Entities entity;
     //TODO: Game_Camera
-    
     Game_State state;
     Draw_Mode draw_mode;
+    Game_Entities entity;
+
+    bool32 debug_mode_enabled;
     
     Vec2 camera_pos;
-    float32 camera_yoffset_extra = 4;
+    float32 camera_yoffset_extra;
     Vec2 camera_pos_offset_default;
     Vec2 camera_pos_offset;
-    bool32 camera_panning;
-
     
   //Sprites
     //player

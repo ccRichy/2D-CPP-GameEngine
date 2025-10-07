@@ -3,12 +3,12 @@
 #include "game.h"
 
 
-
 enum class Ent_Type
 {
     player,
     wall,
     enemy,
+    num,
     null
 };
 

@@ -543,8 +543,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
 
                     //debug
                     win32_key_check('R', in->reset,                     key_data);
-                    win32_key_check(VK_F1, in->debug_toggle,            key_data);
-                    win32_key_check(VK_F8, in->debug_bgmode,            key_data);
+                    win32_key_check(VK_F1, in->debug_mode_toggle,       key_data);
+                    win32_key_check(VK_F8, in->debug_bgmode_toggle,     key_data);
                     win32_key_check(VK_OEM_PLUS, in->debug_win_plus,    key_data);
                     win32_key_check(VK_OEM_MINUS, in->debug_win_minus,  key_data);
 
@@ -604,7 +604,6 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             case WM_MOUSEMOVE:{
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
                 //NOTE: pixel aligned
-                in->mouse_pos_world_prev = in->mouse_pos_world;
                 in->mouse_pos_gui = {
                     round_f32(mouse_points.x / Global_Settings->window_scale),
                     round_f32(mouse_points.y / Global_Settings->window_scale)

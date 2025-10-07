@@ -25,8 +25,6 @@ struct Game_Input_Map
     Vec2 l_axes;
     Vec2 r_axes;
     
-    Vec2 mouse_pos_world_prev;
-    Vec2 mouse_pos_world; //NOTE: redundant? 
     Vec2 mouse_pos_gui;
     int32 mouse_scroll;
     
@@ -48,8 +46,8 @@ struct Game_Input_Map
             
             //DEBUG
             Game_Input_Button reset;
-            Game_Input_Button debug_toggle;
-            Game_Input_Button debug_bgmode;
+            Game_Input_Button debug_mode_toggle;
+            Game_Input_Button debug_bgmode_toggle;
             Game_Input_Button debug_win_plus;
             Game_Input_Button debug_win_minus;
 
