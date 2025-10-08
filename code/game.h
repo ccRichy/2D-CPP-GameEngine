@@ -3,7 +3,7 @@
 #include "game_platform.h"
 #include "player.h"
 #include "entity.h"
-
+#include "render.h"
 
 #define LEVEL_FIRST "test.lvl"
 #define FPS_TARGET 60
@@ -20,38 +20,23 @@
 #define GAME_DRAW_MODE_DEFAULT Draw_Mode::world;
 
 
+//NOTE: global variables without default values will be 0'd upon recompilation
 
 //convenience //TODO: DELETE THESE!!!
-#define GAME_POINTERS game_pointers->data
-#define GAME_MEMORY game_pointers->data
-#define GAME_DATA game_pointers->data
-#define GAME_ENTITY game_pointers->entity
-#define GAME_SETTINGS game_pointers->settings
+#define GAME_POINTERS pointers->data
+#define GAME_MEMORY pointers->data
+#define GAME_DATA pointers->data
+#define GAME_ENTITY pointers->entity
+#define GAME_SETTINGS pointers->settings
 
 #define IF_DEBUG if (GAME_DATA->debug_mode_enabled)
 
-static Game_Pointers* game_pointers;
+static Game_Pointers* pointers;
 
-/////STUFF//////
-#pragma pack(push, 1)
-struct BMP_File
-{
-    uint16 type;
-    uint32 size;
-    uint16 reserved1;
-    uint16 reserved2;
-    uint32 offset;
-    uint32 info_size;
-    int32  width;
-    int32  height;
-    uint16 planes;
-    uint16 bits_per_pixel;
-};
-#pragma pack(pop)
 
 struct Sprite
 {
-    BMP_File* bmp;
+    BMP_Data bmp;
 	Vec2 origin;
     float32 fps;
     uint32 frame_num;
@@ -67,7 +52,7 @@ struct Glyph
 };
 struct Font
 {
-    BMP_File* image;
+    BMP_Data* image;
     int32 glyph_width;
     int32 glyph_height;
     Glyph glyphs[FONT_LENGTH]; 
@@ -91,15 +76,17 @@ struct Game_Entities
     Player player;
 
     union {
-        Entity array[ENT_MAX];
+        Entity array[ENT_MAX + 1];
         struct {
             Entity walls[WALL_MAX];
             Entity enemys[ENEMY_MAX];
+            
+            Entity bottom_entity; //REQUIRED: to validate union sizes match
         };
     };
 
-    int32  wall_num;
-    int32  enemy_num;
+    int32 nums[Ent_Type::num];
+    const char* names[Ent_Type::num];
 };
 struct Game_Data
 {
@@ -135,13 +122,13 @@ struct Game_Data
     Sprite sRope;
 
     //misc
-    BMP_File* sTest;
-    BMP_File* sTest_wide;
-    BMP_File* sMan;
-    BMP_File* sMan_anim;
-    BMP_File* sFont_test;
-    BMP_File* sFont_ASCII_lilliput;
-    BMP_File* sFont_ASCII_lilliput_vert;
+    BMP_Data sTest;
+    BMP_Data sTest_wide;
+    BMP_Data sMan;
+    BMP_Data sMan_anim;
+    BMP_Data sFont_test;
+    BMP_Data sFont_ASCII_lilliput;
+    BMP_Data sFont_ASCII_lilliput_vert;
 
   //Fonts
     Font font_test;

@@ -85,7 +85,7 @@ Entity*
 collide_pixel_get_any_entity(Vec2 pixel_pos)
 {
     Entity* result = nullptr;
-    Entity* entity_array = game_pointers->entity->array;
+    Entity* entity_array = pointers->entity->array;
     for (int i = 0; i < ENT_MAX; ++i)
     {
         Entity* ent = &entity_array[i];
@@ -130,7 +130,7 @@ move_collide_wall(Vec2* pos, Vec2* spd, Vec2 size)
 	pos->y += spd->y;
     caller_bbox_top = pos->y;
     caller_bbox_bottom = caller_bbox_top + size.y;
-    Entity* wall = collide_rect_get_entity(*pos, size, game_pointers->entity->walls, game_pointers->entity->wall_num);
+    Entity* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, pointers->entity->nums[(int32)Ent_Type::wall]);
     if (wall)
     {
         wall_bbox_top = wall->pos.y;
@@ -152,7 +152,7 @@ move_collide_wall(Vec2* pos, Vec2* spd, Vec2 size)
 	pos->x += spd->x;
     caller_bbox_left = pos->x;
     caller_bbox_right = caller_bbox_left + size.x;
-    wall = collide_rect_get_entity(*pos, size, game_pointers->entity->walls, game_pointers->entity->wall_num);
+    wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, pointers->entity->nums[(int32)Ent_Type::wall]);
     if (wall)
     {
         wall_bbox_left = wall->pos.x;

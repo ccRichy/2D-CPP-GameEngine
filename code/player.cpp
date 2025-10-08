@@ -50,14 +50,14 @@ void state_enter_default(Player* plr, Sprite* sprite, float32 anim_index = 0, fl
 //IDLE
 void player_idle_enter()
 {
-    Player* plr = game_pointers->player;
-    state_enter_default(plr, &game_pointers->data->sPlayer_idle, 0, 0);
+    Player* plr = pointers->player;
+    state_enter_default(plr, &pointers->data->sPlayer_idle, 0, 0);
     plr->physics = plr->ground_physics;
 }
 void
 player_idle_step(Game_Input_Map input)
 {
-    Player* plr = game_pointers->player;
+    Player* plr = pointers->player;
     //anim
     plr->anim_index = (float32)input.up.hold;
     //speed
@@ -77,14 +77,14 @@ player_idle_step(Game_Input_Map input)
 void
 player_walk_enter()
 {
-    Player* plr = game_pointers->player;
-    state_enter_default(plr, &game_pointers->data->sPlayer_walk);
+    Player* plr = pointers->player;
+    state_enter_default(plr, &pointers->data->sPlayer_walk);
     plr->physics = plr->ground_physics;
 }
 void
 player_walk_step(Game_Input_Map input)
 {
-    Player* plr = game_pointers->player;
+    Player* plr = pointers->player;
 
     plr->spd.y += plr->physics.grav;
     player_spd_hori(plr, false);
@@ -92,11 +92,11 @@ player_walk_step(Game_Input_Map input)
 
     //anim
     if (sign(plr->move_input.x) != sign(plr->spd.x) && plr->move_input.x != 0)
-        plr->sprite = &game_pointers->data->sPlayer_turn;
+        plr->sprite = &pointers->data->sPlayer_turn;
     else if (input.up.hold)
-        plr->sprite = plr->sprite = &game_pointers->data->sPlayer_walk_reach;
+        plr->sprite = plr->sprite = &pointers->data->sPlayer_walk_reach;
     else
-        plr->sprite = plr->sprite = &game_pointers->data->sPlayer_walk;
+        plr->sprite = plr->sprite = &pointers->data->sPlayer_walk;
 
     if (plr->move_input.x != 0)
         plr->scale.x = (float32)sign(plr->move_input.x);
@@ -115,8 +115,8 @@ player_walk_step(Game_Input_Map input)
 void
 player_jump_enter()
 {
-    Player* plr = game_pointers->player;
-    state_enter_default(plr, &game_pointers->data->sPlayer_air, 0, 0);
+    Player* plr = pointers->player;
+    state_enter_default(plr, &pointers->data->sPlayer_air, 0, 0);
 
     plr->physics = plr->jump_physics;
     plr->spd.y = -plr->jump_spd;
@@ -125,16 +125,16 @@ player_jump_enter()
 void
 player_jump_step(Game_Input_Map input)
 {
-    Player* plr = game_pointers->player;
+    Player* plr = pointers->player;
 
     //anim
     float32 yspd_threshold = 0.4f;
     if (abs_f32(plr->spd.y) > yspd_threshold){
         if (input.up.hold){
-            plr->sprite = &game_pointers->data->sPlayer_air_reach;
+            plr->sprite = &pointers->data->sPlayer_air_reach;
             plr->anim_index = (plr->move_input.x != 0 && plr->move_input.x != plr->scale.x);
         }else{
-            plr->sprite = &game_pointers->data->sPlayer_air;
+            plr->sprite = &pointers->data->sPlayer_air;
         }
     }else{
         plr->anim_speed_mult = abs_f32(plr->spd.y) * 1.6f;
@@ -155,9 +155,9 @@ player_jump_step(Game_Input_Map input)
 void
 player_fall_enter()
 {
-    Player* plr = game_pointers->player;
-    Sprite* spr = game_pointers->input->up.hold ? &game_pointers->data->sPlayer_air_reach : &game_pointers->data->sPlayer_air;
-    float32 index = game_pointers->input->up.hold ? plr->anim_index : 0;
+    Player* plr = pointers->player;
+    Sprite* spr = pointers->input->up.hold ? &pointers->data->sPlayer_air_reach : &pointers->data->sPlayer_air;
+    float32 index = pointers->input->up.hold ? plr->anim_index : 0;
     state_enter_default(plr, spr, index, 0);
         
     plr->physics = plr->fall_physics;
@@ -165,14 +165,14 @@ player_fall_enter()
 void
 player_fall_step(Game_Input_Map input)
 {
-    Player* plr = game_pointers->player;
+    Player* plr = pointers->player;
 
     //anim
     if (input.up.hold){
-        plr->sprite = &game_pointers->data->sPlayer_air_reach;
+        plr->sprite = &pointers->data->sPlayer_air_reach;
         plr->anim_index = (plr->move_input.x != 0 && plr->move_input.x != plr->scale.x);
     }else{
-        plr->sprite = &game_pointers->data->sPlayer_air;
+        plr->sprite = &pointers->data->sPlayer_air;
     }
     plr->anim_speed_mult = abs_f32(plr->spd.y) * 0.8f;
 
@@ -195,8 +195,8 @@ player_fall_step(Game_Input_Map input)
 void
 player_create(Vec2 _pos)
 {
-    Player* plr = &game_pointers->entity->player;
-    plr->sprite = &game_pointers->data->sPlayer_idle;
+    Player* plr = &pointers->entity->player;
+    plr->sprite = &pointers->data->sPlayer_idle;
 
     //
     plr->pos   = _pos;
@@ -235,12 +235,12 @@ player_create(Vec2 _pos)
 #endif
 }
 
-#define sprite_change(__entity, __sprite) __entity->sprite = &game_pointers->data->##__sprite
+#define sprite_change(__entity, __sprite) __entity->sprite = &pointers->data->##__sprite
 
 void
 player_update(Game_Input_Map input)
 {
-    Player* plr = &game_pointers->entity->player;
+    Player* plr = &pointers->entity->player;
     plr->move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
 
@@ -280,14 +280,14 @@ void
 player_draw(Player* plr)
 {
     Sprite* spr = plr->sprite;
-    int32 frame_size = (int32)(spr->bmp->width / spr->frame_num);
+    int32 frame_size = (int32)(spr->bmp.width / spr->frame_num);
 
     plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed_mult;
     if (plr->anim_index >= spr->frame_num) plr->anim_index = 0;
     int32 frame = floor_i32(plr->anim_index);
     
     Vec2 sprite_offset = {-6.f, -5.f};
-    draw_bmp_part(plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
+    draw_bmp_part(&plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
                   frame * frame_size, 0, //pos
                   16, 16);//size
 

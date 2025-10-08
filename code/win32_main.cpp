@@ -219,11 +219,14 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             {
                 Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
                 Game_Render_Buffer game_render_buffer = {};
-                Game_Sound_Buffer game_sound_buffer = {};
                 Game_Performance game_performance = {};
-                Game_Settings settings; //REQUIRED: do not 0-initialize.
-                                        //default values are defined at declaration
+                Game_Settings settings; //REQUIRED: do NOT 0-init
                 Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
+
+                Game_Sound_Buffer game_sound_buffer = {};
+                game_sound_buffer.channels = SND_CHANNELS;
+                game_sound_buffer.sample_rate = SND_SAMPLE_RATE;
+                // game_sound_buffer.memory = ;
                 
                 Win32_Sleep_Data sleep_data = {};
                 sleep_data.estimate = 5e-3;
