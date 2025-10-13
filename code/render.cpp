@@ -1,11 +1,37 @@
-// #include "game.h"
 #include "render.h"
 
-/*
-  TODO:
-  - find some way to facilitate skipping the function if we know it would attempt to draw outside the buffer
-  - !!optimize!!
- */
+
+//TODO: optimize!!
+BMP_Data
+DEBUG_load_bmp(const char* filename)
+{
+    auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
+    BMP_Data result = {};
+    result.size_bytes = file->size;
+    result.width = file->width;
+    result.height = file->height;
+    result.pixels = (uint32*)((uint8*)file + file->offset);
+    result.bits_per_pixel = file->bits_per_pixel;
+        
+    Assert(result.size_bytes > 0);
+    return result;
+};
+
+
+Sprite
+sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f origin)
+{
+    Sprite result = {};
+    result.bmp = DEBUG_load_bmp(bmp_filename);
+    result.origin = origin;
+    result.fps = fps;
+    result.frame_num = frame_num;
+    result.is_animation = (frame_num > 0 && fps != 0);
+    result.width = (int32)(result.bmp.width / result.frame_num);
+    result.height = result.bmp.height;
+    return result;
+}
+
 
 
 //helper
@@ -21,22 +47,22 @@ game_get_draw_scale()
     auto draw_mode = pointers->data->draw_mode;
     float32 result = -1.0f;
     
-    if (draw_mode == Draw_Mode::world)
+    if (draw_mode == Draw_Mode::World)
         result = pointers->settings->window_scale * pointers->settings->zoom_scale;
-    else if (draw_mode == Draw_Mode::gui)
+    else if (draw_mode == Draw_Mode::Gui)
         result = pointers->settings->window_scale;
     
     return result;
 }
-inline Vec2
+inline Vec2f
 game_get_draw_pos()
 {
     auto draw_mode = pointers->data->draw_mode;
-    Vec2 result = {};
+    Vec2f result = {};
 
-    if (draw_mode == Draw_Mode::world)
-        result = pointers->data->camera_pos * Vec2{-1, -1};
-    else if (draw_mode == Draw_Mode::gui)
+    if (draw_mode == Draw_Mode::World)
+        result = pointers->data->camera_pos * Vec2f{-1, -1};
+    else if (draw_mode == Draw_Mode::Gui)
         result = {};
     
     return result;
@@ -47,7 +73,7 @@ game_get_draw_pos()
 
 //PRIMITIVES
 void
-draw_pixel(Vec2 pos, Color color)
+draw_pixel(Vec2f pos, Color color)
 {
     Game_Render_Buffer* render = pointers->render;
     
@@ -73,7 +99,7 @@ draw_pixel(Vec2 pos, Color color)
         {
             if (color.a == 255)
             {
-                *pixel++ = color_struct_to_uint32(color);
+                *pixel++ = color.decimal;//color_struct_to_uint32(color);
             }
             // else if (color.a == 0) //TODO: OPTIMIZATION: test performance
             // {
@@ -81,10 +107,8 @@ draw_pixel(Vec2 pos, Color color)
             // }
             else
             {
-                Color* __color_prev = (Color*)pixel;
-                Color color_prev = {__color_prev->b, __color_prev->g, __color_prev->r, 0};
-                
-                *pixel++ = color_struct_to_uint32( color_get_transparent(color_prev, color) );
+                Color color_new = color_get_transparent(*(Color*)pixel, (Color)color);
+                *pixel++ = color_new.decimal;
             }
         }
         row += render->pitch;
@@ -92,7 +116,7 @@ draw_pixel(Vec2 pos, Color color)
 }
 
 void
-draw_rect(Vec2 pos, Vec2 size, Color color)
+draw_rect(Vec2f pos, Vec2f size, Color color)
 {
     Game_Render_Buffer* render = pointers->render;
     
@@ -112,7 +136,7 @@ draw_rect(Vec2 pos, Vec2 size, Color color)
     //color test
     // color = ;
 
-    
+
     uint8* row = (uint8*)render->memory + (y_start * render->pitch);
     for (int Y = y_start; Y < y_end; ++Y)
     {
@@ -121,22 +145,27 @@ draw_rect(Vec2 pos, Vec2 size, Color color)
         {
             if (color.a == 255)
             {
-                *pixel++ = color_struct_to_uint32(color);
+                *pixel++ = color.decimal;//color_struct_to_uint32(color);
             }
             else
             {
-                Color* __color_prev = (Color*)pixel;
-                Color color_prev = {__color_prev->b, __color_prev->g, __color_prev->r, 0};
-                
-                *pixel++ = color_struct_to_uint32( color_get_transparent(color_prev, color) );
+                Color color_new = color_get_transparent(*(Color*)pixel, (Color)color);
+                *pixel++ = color_new.decimal;
             }
         }
         row += render->pitch;
     }
 }
+void
+draw_rect(Rectangle rect, Color color)
+{
+    draw_rect(rect.pos, rect.size, color);
+}
+
+
 
 void
-draw_line_hori(Vec2 pos_start, Vec2 pos_end, Color color)
+draw_line_hori(Vec2f pos_start, Vec2f pos_end, Color color)
 {
     auto pos_s = pos_start;
     auto pos_e = pos_end;
@@ -158,7 +187,7 @@ draw_line_hori(Vec2 pos_start, Vec2 pos_end, Color color)
         auto p = 2*dy - dx;
         for (int i = 0; i < dx+1; ++i)
         {
-            Vec2 draw_pos = { pos_s.x + i, _y };
+            Vec2f draw_pos = { pos_s.x + i, _y };
             draw_pixel(draw_pos, color);
             if (p >= 0)
             {
@@ -170,7 +199,7 @@ draw_line_hori(Vec2 pos_start, Vec2 pos_end, Color color)
     }
 }
 void
-draw_line_vert(Vec2 pos_start, Vec2 pos_end, Color color)
+draw_line_vert(Vec2f pos_start, Vec2f pos_end, Color color)
 {
     auto pos_s = pos_start;
     auto pos_e = pos_end;
@@ -192,7 +221,7 @@ draw_line_vert(Vec2 pos_start, Vec2 pos_end, Color color)
         auto p = 2*dx - dy;
         for (int i = 0; i < dy+1; ++i)
         {
-            Vec2 draw_pos = { _x, pos_s.y + i };
+            Vec2f draw_pos = { _x, pos_s.y + i };
             draw_pixel(draw_pos, color);
             if (p >= 0)
             {
@@ -204,7 +233,7 @@ draw_line_vert(Vec2 pos_start, Vec2 pos_end, Color color)
     }
 }
 void
-draw_line(Vec2 pos_start, Vec2 pos_end, Color color)
+draw_line(Vec2f pos_start, Vec2f pos_end, Color color)
 {
     if ( abs_f32(pos_end.x - pos_start.x) > abs_f32(pos_end.y - pos_start.y) )
         draw_line_hori(pos_start, pos_end, color);
@@ -213,7 +242,7 @@ draw_line(Vec2 pos_start, Vec2 pos_end, Color color)
 }
 //less efficent but simpler? NOTE: benchmark performance
 void
-draw_line_old(Vec2 pos_start, Vec2 pos_end)
+draw_line_old(Vec2f pos_start, Vec2f pos_end)
 {
     int32 scale = (int32)pointers->settings->window_scale;
 
@@ -228,7 +257,7 @@ draw_line_old(Vec2 pos_start, Vec2 pos_end)
 
         for (int i = 0; i < (int32)max_delta+1; ++i)
         {
-            Vec2 draw_pos = {round_f32(pos_start.x + (i * stepX)), round_f32(pos_start.y + (i * stepY))};
+            Vec2f draw_pos = {round_f32(pos_start.x + (i * stepX)), round_f32(pos_start.y + (i * stepY))};
             draw_rect(draw_pos, {1, 1}, WHITE);
         }
     }
@@ -240,7 +269,7 @@ draw_line_old(Vec2 pos_start, Vec2 pos_end)
 
 //IMAGES
 void
-draw_bmp(BMP_Data* bmp, Vec2 pos, Vec2 scale)
+draw_bmp(BMP_Data* bmp, Vec2f pos, Vec2f scale)
 {
     //NOTE: this code was partially generated by ai
     Game_Render_Buffer* render = pointers->render;
@@ -306,9 +335,83 @@ draw_bmp(BMP_Data* bmp, Vec2 pos, Vec2 scale)
 }
 
 
-//TODO: change origin point to top-left? currently its bottom-left (thanks bmp)
+
 void
-draw_bmp_part(BMP_Data* bmp, Vec2 pos, Vec2 scale_overall, int32 bmp_drawx, int32 bmp_drawy, int32 bmp_draw_width, int32 bmp_draw_height)
+draw_bmp_part_old(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, int32 bmp_drawy, int32 bmp_draw_width, int32 bmp_draw_height)
+{
+    //NOTE: this code was partially generated by ai
+    Game_Render_Buffer* render = pointers->render;
+    float32 draw_scale = game_get_draw_scale();
+    float32 xscale_final = abs_f32(draw_scale * scale_overall.x);
+    float32 yscale_final = abs_f32(draw_scale * scale_overall.y);
+    pos                 += game_get_draw_pos();
+
+
+    pos.y += bmp->height * scale_overall.y;
+    if (sign(scale_overall.x) == -1)
+        pos.x -= bmp->width - bmp_draw_width;
+
+    int32 x_left = round_i32(pos.x * draw_scale);
+    int32 x_right   = round_i32(x_left + (bmp->width * xscale_final));
+    int32 y_top = round_i32(pos.y * draw_scale);
+    int32 y_bottom   = round_i32(y_top - (bmp->height * yscale_final));
+
+    int32 y_offscreen_amt = 0;
+    if (x_left < 0)              x_left = 0;
+    if (x_right > render->width) x_right = render->width;
+    //TODO: THIS IS WRONG vv fix and test later
+    if (y_bottom < 0)            y_bottom = 0;
+    if (y_top > render->height){
+        y_offscreen_amt = y_top - render->height;
+        y_top = render->height;
+    }
+        
+
+    uint32* bmp_pixels = bmp->pixels;
+    int32 bmp_x = bmp_drawx; //pos on bmp from which to draw drawing
+    int32 bmp_y = bmp_drawy;
+    for (int32 Y = y_bottom; Y < y_top; ++Y)
+    {
+        if (Y >= render->height) continue;
+
+        uint32* buffer_pixel = (uint32*)((uint8*)render->memory + (Y * render->pitch));
+        bmp_x = bmp_drawx;
+        
+        for (int32 X = x_left; X < x_right; ++X)
+        {            
+            if (sign(scale_overall.x) == 1)
+                 bmp_x = bmp_drawx + (int32)((X - (pos.x * draw_scale)) / xscale_final);
+            else bmp_x = bmp->width-1 + bmp_drawx - (int32)(((X) - (pos.x * draw_scale)) / xscale_final);
+                
+            if (sign(scale_overall.y) == 1)
+                 bmp_y = bmp_drawy + (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
+            else bmp_y = bmp_drawy + bmp->height - (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
+
+            if (bmp_x >= bmp_drawx + bmp_draw_width)
+                continue;
+            if (bmp_y < bmp->height - bmp_draw_height)
+                continue;
+            
+            uint32 color_new = bmp_pixels[bmp_y * bmp->width + bmp_x];
+            float32 alpha = (float32)((color_new >> 24) & 0xFF) / 255.f;
+
+            if (alpha > 0.0f)
+            {
+                uint32 color_prev = buffer_pixel[X];
+                uint32 target_color = (
+                    color_channel_get_transparent((color_prev >> 16) & 0xFF, (color_new >> 16) & 0xFF, alpha) << 16 |
+                    color_channel_get_transparent((color_prev >> 8) & 0xFF,  (color_new >> 8) & 0xFF,  alpha) << 8 |
+                    color_channel_get_transparent((color_prev & 0xFF),       (color_new & 0xFF),       alpha)
+                );
+
+                buffer_pixel[X] = target_color;
+            }
+        }
+        bmp_y--;
+    }
+}
+void
+draw_bmp_part(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, int32 bmp_drawy, int32 bmp_draw_width, int32 bmp_draw_height)
 {
     //NOTE: this code was partially generated by ai
     Game_Render_Buffer* render = pointers->render;
@@ -387,7 +490,7 @@ draw_bmp_part(BMP_Data* bmp, Vec2 pos, Vec2 scale_overall, int32 bmp_drawx, int3
 
 
 void
-draw_bmp_1sttry(BMP_Data* bmp, Vec2 pos)
+draw_bmp_1sttry(BMP_Data* bmp, Vec2f pos)
 {
     Game_Render_Buffer* render = pointers->render;
     int32 scale = (int32)pointers->settings->window_scale;
@@ -459,23 +562,50 @@ draw_bmp_1sttry(BMP_Data* bmp, Vec2 pos)
     }
 }
 
-void
-draw_bmp_pixels(BMP_Data* bmp, Vec2 pos)
+
+
+
+inline void
+draw_sprite(Sprite* sprite, Vec2f pos, Vec2f scale)
 {
-    pos.y += bmp->height;
-    uint32* bitmap_pixel = bmp->pixels;
-    
-    for (int pixel_index = 0; pixel_index < bmp->width * bmp->height; ++pixel_index)
-    {
-        Color color_cast = *(Color*)bitmap_pixel;
-        Color color_converted = {color_cast.b, color_cast.g, color_cast.r, color_cast.a};
-
-        int32 xoffset = pixel_index % bmp->width;
-        float32 draw_x = pos.x + xoffset;
-        draw_pixel({draw_x, pos.y}, color_converted);
-
-        if (xoffset >= bmp->width-1)
-            pos.y -= 1;
-        bitmap_pixel++;
-    }
+    draw_bmp(&sprite->bmp, pos - sprite->origin, scale);
 }
+inline void
+draw_sprite_part(Sprite* sprite, Vec2f pos, Vec2f scale_overall, Vec2i img_drawpos, Vec2i img_drawsize)
+{
+    draw_bmp_part(&sprite->bmp, pos - sprite->origin, scale_overall, img_drawpos.x, img_drawpos.y, img_drawsize.x, img_drawsize.y);
+}
+inline void
+draw_sprite_anim(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 1})
+{
+    int32 frame_size = (int32)(spr->bmp.width / spr->frame_num);
+    int32 frame = floor_i32(anim_index);
+
+    draw_sprite_part(spr, pos, scale,
+                     {frame * frame_size, 0}, //pos
+                     {spr->width, spr->height });//size
+}
+
+
+
+
+// void
+// draw_bmp_pixels(BMP_Data* bmp, Vec2f pos)
+// {
+//     pos.y += bmp->height;
+//     uint32* bitmap_pixel = bmp->pixels;
+    
+//     for (int pixel_index = 0; pixel_index < bmp->width * bmp->height; ++pixel_index)
+//     {
+//         Color color_cast = *(Color*)bitmap_pixel;
+//         Color color_converted = {color_cast.b, color_cast.g, color_cast.r, color_cast.a};
+
+//         int32 xoffset = pixel_index % bmp->width;
+//         float32 draw_x = pos.x + xoffset;
+//         draw_pixel({draw_x, pos.y}, color_converted);
+
+//         if (xoffset >= bmp->width-1)
+//             pos.y -= 1;
+//         bitmap_pixel++;
+//     }
+// }

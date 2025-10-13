@@ -1,9 +1,8 @@
 #pragma once
 
-#include "input.h"
-struct Game_Pointers;
+// #include 
+#include "my_color.h"
 struct Sprite;
-
 
 
 enum struct Player_State
@@ -29,12 +28,12 @@ struct Physics
 
 struct Player
 {
-    Vec2     pos;
-    Vec2     move_input;
-    Vec2     spd;
-    Vec2     size;
-    Vec2     scale;
-    Color    color;
+    Vec2f     pos;
+    Vec2f     move_input;
+    Vec2f     spd;
+    Vec2f     size;
+    Vec2f     scale;
+    Color     color;
 
     //numbas
     Physics physics;

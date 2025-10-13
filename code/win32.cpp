@@ -184,6 +184,7 @@ win32_load_game_code(char* dll_path, char* dll_temp_path)
 
     return result;
 }
+
 internal void
 win32_unload_game_code(Win32_Game_Code* game_code)
 {
@@ -414,19 +415,19 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
             SHORT deadzone_r = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
                             
             //input device state
-            if ((game_input_map->game_input_device != Game_Input_Device::controller) &&
+            if ((game_input_map->game_input_device != Game_Input_Device::Controller) &&
                 (pad->wButtons ||
                  abs_i32(pad->sThumbLX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
                  abs_i32(pad->sThumbRX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
                  l_trig > 100 || r_trig > 100))
             {
                 if (game_code->input_change_device)
-                    game_code->input_change_device(Game_Input_Device::controller, game_input_map);
+                    game_code->input_change_device(Game_Input_Device::Controller, game_input_map);
             }
 
             //send out inputs
             //TODO: abstration layer for rebinding
-            if (game_input_map->game_input_device == Game_Input_Device::controller)
+            if (game_input_map->game_input_device == Game_Input_Device::Controller)
             {
                 Game_Input_Map* _in = game_input_map;
 
@@ -512,9 +513,9 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             case WM_KEYDOWN:
             case WM_KEYUP:{
                 //device switch
-                if (game_input_map->game_input_device != Game_Input_Device::keyboard_mouse)
+                if (game_input_map->game_input_device != Game_Input_Device::Keyboard_Mouse)
                     if (game_code->input_change_device)
-                        game_code->input_change_device(Game_Input_Device::keyboard_mouse, game_input_map);
+                        game_code->input_change_device(Game_Input_Device::Keyboard_Mouse, game_input_map);
 
                 uint32 vk_code = (uint32)message.wParam;
 
@@ -635,6 +636,63 @@ internal Win32_Client_Dimensions win32_get_client_dimensions(HWND window)
 }
 
 internal void
+win32_get_monitor_resolution(HWND window, int* width, int* height)
+{
+    HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX info = {};
+    info.cbSize = sizeof(MONITORINFOEX);
+    BOOL info_result = GetMonitorInfo(monitor, &info);
+    DEVMODE devmode = {};
+    devmode.dmSize = sizeof(DEVMODE);
+    BOOL disp_settings_result = EnumDisplaySettings(info.szDevice, ENUM_CURRENT_SETTINGS, &devmode);
+    *width = devmode.dmPelsWidth;
+    *height = devmode.dmPelsHeight;
+}
+
+
+
+
+internal void
+win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
+{
+    //bm
+    if (buffer->memory)
+        VirtualFree(buffer->memory, 0, MEM_RELEASE);
+
+    int bytes_per_pixel = 4;
+    buffer->width = width;
+    buffer->height = height;
+    buffer->bytes_per_pixel = bytes_per_pixel;
+    buffer->memory_size_bytes = width * height * bytes_per_pixel;
+    buffer->pitch = buffer->width * bytes_per_pixel; //bytes per row
+    
+    buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
+    buffer->info.bmiHeader.biWidth = buffer->width;
+    buffer->info.bmiHeader.biHeight = -buffer->height;
+    buffer->info.bmiHeader.biPlanes = 1;
+    buffer->info.bmiHeader.biBitCount = 32;
+    buffer->info.bmiHeader.biCompression = BI_RGB;
+
+    //Draw Pixels loop
+    //int bytesPerPixel = 4; //to store RGB + pad //0xRRGGBBxx //global now
+    buffer->memory = VirtualAlloc(0, buffer->memory_size_bytes, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+}
+
+
+internal void
+win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
+                               int window_width, int window_height)
+{
+    StretchDIBits(device_context,
+                  0, 0, buffer->width, buffer->height,
+                  0, 0, buffer->width, buffer->height,
+                  buffer->memory,
+                  &buffer->info,
+                  DIB_RGB_COLORS, SRCCOPY
+    );
+}
+
+internal void
 window_set_trans(HWND window, bool32 enabled)
 {
     if (enabled)
@@ -663,61 +721,9 @@ window_set_topmost(HWND window, bool32 enabled)
     );
 }
 
-internal void
-win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
-{
-    //bm
-    if (buffer->memory)
-        VirtualFree(buffer->memory, 0, MEM_RELEASE);
-
-    int bytes_per_pixel = 4;
-    buffer->width = width;
-    buffer->height = height;
-    buffer->bytes_per_pixel = bytes_per_pixel;
-    buffer->memory_size_bytes = width * height * bytes_per_pixel;
-    buffer->pitch = buffer->width * bytes_per_pixel; //bytes per row
-    
-    buffer->info.bmiHeader.biSize = sizeof(buffer->info.bmiHeader);
-    buffer->info.bmiHeader.biWidth = buffer->width;
-    buffer->info.bmiHeader.biHeight = -buffer->height;
-    buffer->info.bmiHeader.biPlanes = 1;
-    buffer->info.bmiHeader.biBitCount = 32;
-    buffer->info.bmiHeader.biCompression = BI_RGB;
-
-    //Draw Pixels loop
-    //int bytesPerPixel = 4; //to store RGB + pad //0xRRGGBBxx //global now
-    buffer->memory = VirtualAlloc(0, buffer->memory_size_bytes, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-}
 
 internal void
-win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
-                               int window_width, int window_height)
-{
-    StretchDIBits(device_context,
-                  0, 0, buffer->width, buffer->height,
-                  0, 0, buffer->width, buffer->height,
-                  buffer->memory,
-                  &buffer->info,
-                  DIB_RGB_COLORS, SRCCOPY
-    );
-}
-
-internal void
-win32_get_monitor_resolution(HWND window, int* width, int* height)
-{
-    HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-    MONITORINFOEX info = {};
-    info.cbSize = sizeof(MONITORINFOEX);
-    BOOL info_result = GetMonitorInfo(monitor, &info);
-    DEVMODE devmode = {};
-    devmode.dmSize = sizeof(DEVMODE);
-    BOOL disp_settings_result = EnumDisplaySettings(info.szDevice, ENUM_CURRENT_SETTINGS, &devmode);
-    *width = devmode.dmPelsWidth;
-    *height = devmode.dmPelsHeight;
-}
-
-internal void
-win32_set_window_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
+window_set_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
 {
     //get target size
     RECT new_client_rect = {0, 0, (int32)(BASE_W * scale), (int32)(BASE_H * scale)};

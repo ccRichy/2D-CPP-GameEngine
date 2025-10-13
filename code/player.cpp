@@ -193,10 +193,10 @@ player_fall_step(Game_Input_Map input)
 
 
 void
-player_create(Vec2 _pos)
+player_create(Vec2f _pos)
 {
     Player* plr = &pointers->entity->player;
-    plr->sprite = &pointers->data->sPlayer_idle;
+    plr->sprite = &GAME_SPRITE->sPlayer_idle;
 
     //
     plr->pos   = _pos;
@@ -235,7 +235,7 @@ player_create(Vec2 _pos)
 #endif
 }
 
-#define sprite_change(__entity, __sprite) __entity->sprite = &pointers->data->##__sprite
+#define sprite_change(__entity, __sprite) __entity->sprite = &GAME_SPRITE->##__sprite
 
 void
 player_update(Game_Input_Map input)
@@ -243,7 +243,6 @@ player_update(Game_Input_Map input)
     Player* plr = &pointers->entity->player;
     plr->move_input = {(float32)(input.right.hold - input.left.hold),
                        (float32)(input.down.hold - input.up.hold)};
-
 
     plr->spd.y += plr->grav;
     if (input.jump) plr->spd.y = -4;
@@ -270,9 +269,7 @@ player_update(Game_Input_Map input)
         plr->anim_index = (float32)input.up.hold;
         player_move_hori(plr, false);
     }
-    
 
-    
     if (plr->spd.y > plr->terminal_velocity) plr->spd.y = plr->terminal_velocity;
 }
 
@@ -280,19 +277,22 @@ void
 player_draw(Player* plr)
 {
     Sprite* spr = plr->sprite;
-    int32 frame_size = (int32)(spr->bmp.width / spr->frame_num);
-
     plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed_mult;
     if (plr->anim_index >= spr->frame_num) plr->anim_index = 0;
-    int32 frame = floor_i32(plr->anim_index);
-    
-    Vec2 sprite_offset = {-6.f, -5.f};
-    draw_bmp_part(&plr->sprite->bmp, plr->pos + sprite_offset, plr->scale,
-                  frame * frame_size, 0, //pos
-                  16, 16);//size
 
+    draw_sprite_anim(plr->sprite, plr->pos, plr->anim_index, plr->scale);
+
+    // draw_sprite_part(plr->sprite, plr->pos, plr->scale,
+    //               {frame * frame_size, 0}, //pos
+    //               {16, 16});//size
+
+    //DRAW BBOX
+    Color col = RED;
+    col.alpha = 150;
+    draw_rect(plr->pos, plr->size, col);
+    
     //DRAW ORIGIN
-    // draw_pixel(plr->pos, WHITE);
+    draw_pixel(plr->pos, WHITE);
 }
 
 

@@ -10,21 +10,54 @@
 
 
 
-int32 entity_get_num(Ent_Type type)
+inline int32
+entity_get_num(Ent_Type type)
 {
-    return pointers->entity->nums[(int32)type];
+    int32 result = pointers->entity->nums[(int32)type];
+    return result;
+}
+inline const char*
+entity_get_name(Ent_Type type)
+{
+    const char* result = pointers->entity->names[(int32)type];
+    return result;
+}
+void entity_clear_all()
+{
+    Entity* array = pointers->entity->array;
+    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
+    {
+        array[ent_index] = {};
+    }
+    for (i32 ent_num_index = 0; ent_num_index < (i32)Ent_Type::Num; ++ent_num_index)
+    {
+        pointers->entity->nums[ent_num_index] = 0;
+    }
+}
+
+//
+inline void
+entity_draw_anim(Entity* entity)
+{
+    draw_sprite_anim(
+        entity->sprite,
+        entity->pos,
+        entity->anim_index,
+        entity->scale
+    );
 }
 
 
-void entity_destroy(Entity* entity)
+void
+entity_destroy(Entity* entity)
 {
     entity->is_alive = false;
     pointers->entity->nums[(int32)entity->type] -= 1;
 }
 
-Entity* entity_init(Entity* array, int32 array_max, Ent_Type type, Vec2 pos)
+Entity* entity_init(Entity* array, int32 array_max, Ent_Type type, Vec2f pos)
 {
-    auto num_of_alive = pointers->entity->nums[(int32)type];
+    auto num_of_alive = entity_get_num(type);//pointers->entity->nums[(int32)type];
     if (num_of_alive >= array_max) return nullptr;
     
     Entity* result = nullptr;
@@ -47,11 +80,11 @@ Entity* entity_init(Entity* array, int32 array_max, Ent_Type type, Vec2 pos)
 
 //
 Entity*
-wall_create(Vec2 pos, Vec2 size)
+wall_create(Vec2f pos, Vec2f size)
 {
     Entity* ent = entity_init(
         pointers->entity->walls, WALL_MAX,
-        Ent_Type::wall, pos
+        Ent_Type::Wall, pos
     );
     if (ent){
         ent->size = size;
@@ -73,11 +106,11 @@ wall_draw()
 
 //
 Entity*
-enemy_create(Vec2 pos)
+enemy_create(Vec2f pos)
 {
     Entity* ent = entity_init(
         pointers->entity->enemys, ENEMY_MAX,
-        Ent_Type::enemy, pos
+        Ent_Type::Enemy, pos
     );    
     if (ent){
         ent->size = {Tile(1), Tile(2)};

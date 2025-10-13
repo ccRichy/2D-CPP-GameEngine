@@ -4,6 +4,10 @@
 #include "player.h"
 #include "entity.h"
 #include "render.h"
+#include "text.h"
+
+
+
 
 #define LEVEL_FIRST "test.lvl"
 #define FPS_TARGET 60
@@ -14,61 +18,57 @@
 #define WINDOW_SCALE_DEFAULT 4
 
 #define TILE_SIZE 8
-#define Tile(value) (value * TILE_SIZE)
  
-#define GAME_STATE_DEFAULT Game_State::play;
-#define GAME_DRAW_MODE_DEFAULT Draw_Mode::world;
+#define GAME_STATE_DEFAULT Game_State::Edit
+#define GAME_DRAW_MODE_DEFAULT Draw_Mode::World
+
+#define Tile(value) (value * TILE_SIZE)
 
 
-//NOTE: global variables without default values will be 0'd upon recompilation
+#define IF_DEBUG if (pointers->data->debug_mode_enabled)
+#define DEBUG_MESSAGE_MAX 10                    //debug messages at top op screen
+#define DEBUG_MESSAGE_LIFETIME_DEFAULT 160      //
+#define DEBUG_MESSAGE_POS_DEFAULT {BASE_W/2, 0} //
 
-//convenience //TODO: DELETE THESE!!!
-#define GAME_POINTERS pointers->data
-#define GAME_MEMORY pointers->data
-#define GAME_DATA pointers->data
-#define GAME_ENTITY pointers->entity
-#define GAME_SETTINGS pointers->settings
 
-#define IF_DEBUG if (GAME_DATA->debug_mode_enabled)
+struct Debug_Message
+{
+    char text[BUFF_LEN];
+    int32 lifetime;
+    int32 alpha;
+};
+struct Debug_Message_Queue
+{
+    bool32 is_active;
+    Vec2f gui_pos;
+    Debug_Message current_message;
+};
 
+
+
+
+//WARNING: global variables without default values will be 0'd upon recompilation
 static Game_Pointers* pointers;
+//convenience 
+//
+#define GAME_MEMORY pointers->memory      //
+#define GAME_DATA pointers->data          //
+#define GAME_ENTITY pointers->entity      //WARNING: deprecated
+#define GAME_SETTINGS pointers->settings  //
+#define GAME_SPRITE pointers->sprite      //
 
-
-struct Sprite
-{
-    BMP_Data bmp;
-	Vec2 origin;
-    float32 fps;
-    uint32 frame_num;
-    bool32 is_animation;
-};
-
-#define FONT_GLYPH_SIZE 8
-#define FONT_LENGTH 94
-#define FONT_ASCII_CHARACTER_START_OFFSET 32
-struct Glyph
-{
-    uint32 pixels[FONT_GLYPH_SIZE][FONT_GLYPH_SIZE];
-};
-struct Font
-{
-    BMP_Data* image;
-    int32 glyph_width;
-    int32 glyph_height;
-    Glyph glyphs[FONT_LENGTH]; 
-};
 
 
 
 //////GAME//////
 enum struct Game_State{
-    edit,
-    play
+    Edit,
+    Play
 };
 
 enum struct Draw_Mode{
-    world,
-    gui
+    World,
+    Gui
 };
 
 struct Game_Entities
@@ -85,24 +85,12 @@ struct Game_Entities
         };
     };
 
-    int32 nums[Ent_Type::num];
-    const char* names[Ent_Type::num];
+    int32 nums[Ent_Type::Num];
+    const char* names[Ent_Type::Num];
 };
-struct Game_Data
+struct Game_Sprites
 {
-    //TODO: Game_Camera
-    Game_State state;
-    Draw_Mode draw_mode;
-    Game_Entities entity;
-
-    bool32 debug_mode_enabled;
-    
-    Vec2 camera_pos;
-    float32 camera_yoffset_extra;
-    Vec2 camera_pos_offset_default;
-    Vec2 camera_pos_offset;
-    
-  //Sprites //TODO: Move out into their own struct, and append Game_Pointers
+  //Characters
     //player
     Sprite sPlayer_air;
     Sprite sPlayer_air_reach;
@@ -118,9 +106,33 @@ struct Game_Data
     Sprite sPlayer_walk_reach;
     Sprite sPlayer_wire_idle;
     Sprite sPlayer_wire_walk;
+
+  //Meta
+    Sprite sMouse_cursors;
+    
+    
+  //Items
     //rope
     Sprite sRope;
+};
+struct Game_Data
+{
+    //TODO: Game_Camera
+    Game_State state;
+    Draw_Mode draw_mode;
+    Game_Entities entity;
 
+    Debug_Message_Queue debug_msg;
+
+    bool32 debug_mode_enabled;
+    
+    Vec2f camera_pos;
+    float32 camera_yoffset_extra;
+    Vec2f camera_pos_offset_default;
+    Vec2f camera_pos_offset;
+
+    Game_Sprites sprites;
+    
     //misc
     BMP_Data sTest;
     BMP_Data sTest_wide;
@@ -166,5 +178,6 @@ struct Game_Pointers //just all the fuckin data
     Game_Performance*   performance;
     Game_Data*          data;
     Game_Entities*      entity;
+    Game_Sprites*       sprite;
     Player*             player;
 };

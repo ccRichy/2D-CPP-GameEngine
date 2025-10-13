@@ -1,9 +1,14 @@
 #pragma once
 
+
+
+
 #include "input.h"
 
 
 
+
+//TODO: move to a debug file?
 #if MY_DEBUG
 #define Assert(condition) if (!(condition)) {*(int*)0 = 0;}
 #else
@@ -22,10 +27,6 @@
 
 
 
-/*
-  TODO: PLATFORM -> GAME
-*/
-
 inline uint32 //TODO: where the fuck do we put this
 safe_truncate_uint64(uint64 value)
 {
@@ -34,6 +35,9 @@ safe_truncate_uint64(uint64 value)
 }
 
 
+
+
+//NOTE: Platform -> Game
 #if MY_INTERNAL
 struct DEBUG_File
 {
@@ -54,12 +58,7 @@ typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
 
 
 
-
-
-
-/*
-  NOTE: GAME -> PLATFORM
-*/
+//NOTE: GAME -> PLATFORM
 struct Game_Memory
 {
     bool32 is_initalized;
@@ -74,6 +73,8 @@ struct Game_Memory
     DEBUG_Platform_File_Free_Memory*  DEBUG_platform_file_free_memory;
     DEBUG_Platform_File_Read_Entire*  DEBUG_platform_file_read_entire;
     DEBUG_Platform_File_Write_Entire* DEBUG_platform_file_write_entire;
+    // DEBUG_Platform_File_Open* DEBUG_platform_file_open;
+    // DEBUG_Platform_File_Close* DEBUG_platform_file_close;
 #endif
 };
 
@@ -91,6 +92,8 @@ struct Game_Sound_Buffer
     int32  sample_rate;
     int16* memory;
 };
+
+
 
 
 struct Game_Pointers;

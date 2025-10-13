@@ -4,69 +4,132 @@
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
 
-//TODO: 64-bit versions of functions where appropriate
 
+
+//TODO: 64-bit versions of functions where appropriate
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
 
-struct Vec2
-{
-    float32 x;
-    float32 y;
 
-    Vec2& operator+=(const Vec2& other) {
+
+//types
+struct Vec2i
+{
+    int32 x;
+    int32 y;
+
+    Vec2i& operator+=(const Vec2i& other) {
         x += other.x;
         y += other.y;
-        return *this; // return the modified object
+        return *this; 
     }
-    Vec2 operator+(const Vec2& other) const {
-        Vec2 result = *this;
+    Vec2i operator+(const Vec2i& other) const {
+        Vec2i result = *this;
         result += other;
         return result;
     }
     
-    Vec2& operator-=(const Vec2& other) {
+    Vec2i& operator-=(const Vec2i& other) {
         x -= other.x;
         y -= other.y;
-        return *this; // return the modified object
+        return *this; 
     }
-    Vec2 operator-(const Vec2& other) const {
-        Vec2 result = *this;
+    Vec2i operator-(const Vec2i& other) const {
+        Vec2i result = *this;
         result -= other;
         return result;
     }
 
-    Vec2& operator*=(const Vec2& other) {
+    Vec2i& operator*=(const Vec2i& other) {
         x *= other.x;
         y *= other.y;
-        return *this; // return the modified object
+        return *this; 
     }
-    Vec2 operator*(const Vec2& other) const {
-        Vec2 result = *this;
+    Vec2i operator*(const Vec2i& other) const {
+        Vec2i result = *this;
         result *= other;
         return result;
     }
-    Vec2& operator/=(const Vec2& other) {
+    Vec2i& operator/=(const Vec2i& other) {
         x /= other.x;
         y /= other.y;
-        return *this; // return the modified object
+        return *this; 
     }
-    Vec2 operator/(const Vec2& other) const {
-        Vec2 result = *this;
+    Vec2i operator/(const Vec2i& other) const {
+        Vec2i result = *this;
+        result /= other;
+        return result;
+    }
+};
+struct Vec2f
+{
+    float32 x;
+    float32 y;
+
+    Vec2f& operator+=(const Vec2f& other) {
+        x += other.x;
+        y += other.y;
+        return *this; 
+    }
+    Vec2f operator+(const Vec2f& other) const {
+        Vec2f result = *this;
+        result += other;
+        return result;
+    }
+    
+    Vec2f& operator-=(const Vec2f& other) {
+        x -= other.x;
+        y -= other.y;
+        return *this; 
+    }
+    Vec2f operator-(const Vec2f& other) const {
+        Vec2f result = *this;
+        result -= other;
+        return result;
+    }
+
+    Vec2f& operator*=(const Vec2f& other) {
+        x *= other.x;
+        y *= other.y;
+        return *this; 
+    }
+    Vec2f operator*(const Vec2f& other) const {
+        Vec2f result = *this;
+        result *= other;
+        return result;
+    }
+    Vec2f& operator/=(const Vec2f& other) {
+        x /= other.x;
+        y /= other.y;
+        return *this; 
+    }
+    Vec2f operator/(const Vec2f& other) const {
+        Vec2f result = *this;
         result /= other;
         return result;
     }
 };
 
-struct Rect
+struct Rectangle
 {
-    Vec2 pos;
-    Vec2 size;
+    Vec2f pos;
+    Vec2f size;
 };
 
+//Alternate Names
+typedef Vec2f V2f;
+typedef Vec2f Vec2f;
+typedef Vec2f Vector2f;
+typedef Vec2i V2i;
+typedef Vec2i Vec2i;
+typedef Vec2i Vector2i;
+typedef Rectangle Rect;
 
 
+
+
+//funcs
 inline int32
 sign(int32 value)
 {
@@ -112,6 +175,19 @@ round_f32(float32 value)
     float32 result = roundf(value);
     return result;
 }
+// inline float64
+// round_arbitrary(float64 input, float64 round_point)
+// {
+//     float64 result = input;
+//     float64 remainder = fmod(input, round_point);
+//     result -= remainder;
+
+//     bool32 should_round_up = (remainder > round_point / 2);
+//     if (should_round_up) result += round_point;
+
+//     return result;
+// }
+
 
 inline int32
 floor_i32(float32 value)
@@ -147,7 +223,7 @@ clamp(float value, float min, float max)
     return result;
 }
 inline float32
-map_value(float32 value, Vec2 range_input, Vec2 range_output)
+map_value(float32 value, Vec2f range_input, Vec2f range_output)
 {
     float32 result = range_output.x + ((range_output.y - range_output.x) / (range_input.y - range_input.x)) * (value - range_input.x);
     return result;

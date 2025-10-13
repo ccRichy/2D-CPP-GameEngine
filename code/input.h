@@ -3,8 +3,8 @@
 
 enum struct Game_Input_Device
 {
-    keyboard_mouse,
-    controller
+    Keyboard_Mouse,
+    Controller
 };
 
 struct Game_Input_Button
@@ -13,6 +13,7 @@ struct Game_Input_Button
     bool32 hold;
     bool32 release;
 
+    //TODO: remove this? the ambiguity upon calling has lead to confusion
     explicit operator bool() const noexcept {
         return press;
     }
@@ -22,10 +23,10 @@ struct Game_Input_Map
 {
     Game_Input_Device game_input_device;
     
-    Vec2 l_axes;
-    Vec2 r_axes;
+    Vec2f l_axes;
+    Vec2f r_axes;
     
-    Vec2 mouse_pos_gui;
+    Vec2f mouse_pos_gui;
     int32 mouse_scroll;
     
     union {

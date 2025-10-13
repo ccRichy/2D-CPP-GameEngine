@@ -5,10 +5,8 @@
 #include "array_functions.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
-#include "render.h"
 #include "game.h"
 
-#include <stdio.h>
 #include <windows.h>
 #include <xinput.h>
 #include <xaudio2.h>
@@ -209,7 +207,6 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             
             uint64 game_memory_size_total = game_memory.permanent_storage_space + game_memory.transient_storage_space;
             game_memory.permanent_storage = VirtualAlloc(game_memory_address, game_memory_size_total, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-
             game_memory.transient_storage = (uint8*)game_memory.permanent_storage + game_memory.permanent_storage_space;
 
             Game_Input_Map game_input_map = {};
@@ -243,6 +240,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers_value.performance = &game_performance;
                 game_pointers_value.data =     (Game_Data*)game_memory.permanent_storage;
                 game_pointers_value.entity = &game_pointers_value.data->entity;
+                game_pointers_value.sprite = &game_pointers_value.data->sprites;
                 game_pointers_value.player = &game_pointers_value.data->entity.player;
                 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
@@ -273,7 +271,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     game_render_buffer.width  = Global_Render_Buffer.width;
                     game_render_buffer.height = Global_Render_Buffer.height;
                     game_render_buffer.pitch  = Global_Render_Buffer.pitch;
-                    
+
                 //INPUT
                     game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
@@ -301,10 +299,10 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     }
                     
                     if (input.debug_win_plus)
-                        win32_set_window_scale(++Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                        window_set_scale(++Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
                     
                     if (input.debug_win_minus)
-                        win32_set_window_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                        window_set_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
 
 
                     

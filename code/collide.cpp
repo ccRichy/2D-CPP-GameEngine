@@ -11,14 +11,14 @@ struct Collide_Data
     bool32 vert;
     int32 xdir;
     int32 ydir;
-    Vec2 spd;
+    Vec2f spd;
 };
 
 
 
 //GENERIC
 bool32
-collide_pixel_rect(Vec2 pixel_pos, Vec2 rect_pos, Vec2 rect_size)
+collide_pixel_rect(Vec2f pixel_pos, Vec2f rect_pos, Vec2f rect_size)
 {
 	float rect_left = rect_pos.x;
 	float rect_right = rect_left + rect_size.x;
@@ -32,7 +32,7 @@ collide_pixel_rect(Vec2 pixel_pos, Vec2 rect_pos, Vec2 rect_size)
 }
 
 bool32
-collide_rects(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2)
+collide_rects(Vec2f pos1, Vec2f size1, Vec2f pos2, Vec2f size2)
 {
     float x1 = pos1.x;
 	float y1 = pos1.y;
@@ -55,7 +55,7 @@ collide_rects(Vec2 pos1, Vec2 size1, Vec2 pos2, Vec2 size2)
 }
 //MISC
 bool32
-on_screen(Vec2 pos, Vec2 padding)
+on_screen(Vec2f pos, Vec2f padding)
 {
     return (
         pos.x + padding.x <= BASE_W ||
@@ -66,9 +66,10 @@ on_screen(Vec2 pos, Vec2 padding)
 }
 
 
-// ENTITY
+
+// ENTITY //TODO: move to enitity file?
 Entity*
-collide_pixel_get_entity(Vec2 pixel_pos, Vec2 size, Entity* entity_array, int32 entity_num)
+collide_pixel_get_entity(Vec2f pixel_pos, Vec2f size, Entity* entity_array, int32 entity_num)
 {
     Entity* result = nullptr;
     for (int i = 0; i < entity_num; ++i)
@@ -82,7 +83,7 @@ collide_pixel_get_entity(Vec2 pixel_pos, Vec2 size, Entity* entity_array, int32 
     return result;
 }
 Entity*
-collide_pixel_get_any_entity(Vec2 pixel_pos)
+collide_pixel_get_any_entity(Vec2f pixel_pos)
 {
     Entity* result = nullptr;
     Entity* entity_array = pointers->entity->array;
@@ -100,7 +101,7 @@ collide_pixel_get_any_entity(Vec2 pixel_pos)
 
 
 Entity*
-collide_rect_get_entity(Vec2 pos, Vec2 size, Entity* entity_array, int32 entity_num)
+collide_rect_get_entity(Vec2f pos, Vec2f size, Entity* entity_array, int32 entity_num)
 {
     for (int i = 0; i < entity_num; ++i)
     {
@@ -112,7 +113,7 @@ collide_rect_get_entity(Vec2 pos, Vec2 size, Entity* entity_array, int32 entity_
 }
 
 Collide_Data
-move_collide_wall(Vec2* pos, Vec2* spd, Vec2 size)
+move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size)
 {
     Collide_Data coll_data = {};
 
@@ -130,12 +131,12 @@ move_collide_wall(Vec2* pos, Vec2* spd, Vec2 size)
 	pos->y += spd->y;
     caller_bbox_top = pos->y;
     caller_bbox_bottom = caller_bbox_top + size.y;
-    Entity* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, pointers->entity->nums[(int32)Ent_Type::wall]);
+    Entity* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, WALL_MAX);
     if (wall)
     {
         wall_bbox_top = wall->pos.y;
         wall_bbox_bottom = wall_bbox_top + wall->size.y;
-        
+
         float32 y_res = pos->y;
         if (spd->y > 0)
             y_res = MIN(y_res, wall_bbox_top - size.y);
@@ -147,17 +148,17 @@ move_collide_wall(Vec2* pos, Vec2* spd, Vec2 size)
         pos->y = y_res;
         spd->y = 0;
     }
-    
+
     //
 	pos->x += spd->x;
     caller_bbox_left = pos->x;
     caller_bbox_right = caller_bbox_left + size.x;
-    wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, pointers->entity->nums[(int32)Ent_Type::wall]);
+    wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, WALL_MAX);
     if (wall)
     {
         wall_bbox_left = wall->pos.x;
         wall_bbox_right = wall_bbox_left + wall->size.x;
-        
+
         float32 x_res = pos->x;
         if (spd->x > 0)
             x_res = MIN(x_res, wall_bbox_left - size.x);

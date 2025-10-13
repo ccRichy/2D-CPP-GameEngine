@@ -2,7 +2,10 @@
 
 
 
-#define BGMODE_TRANSPARENCY_AMT 100
+
+// #define _CRT_SECURE_NO_WARNINGS
+#define BGMODE_TRANSPARENCY_AMT 140
+
 
 
 
@@ -64,7 +67,7 @@ struct Win32_Game_Code
     HMODULE game_dll;
     FILETIME game_dll_last_write_time;
 
-    //functions | REQUIRED: 0 when stubbed, always check != 0 when calling
+    //functions | REQUIRED: 0 when stubbed, always check that function pointers are truthy before calling
     Game_Update_And_Draw* update_and_draw;
     Game_Input_Change_Device* input_change_device;
 
@@ -98,18 +101,4 @@ struct Win32_Data_Pointers
 // {
 //     bool32 is_bgmode_enabled;
 //     bool32 is_bgmode_transparent_out_of_focus;
-// };
-
-
-
-//EXTRA
-
-// struct PNG_Data
-// {
-//     int32 width;
-//     int32 height;
-//     int32 bit_depth;
-//     int32 color_type;
-//     int32 filter_method;
-//     int32 interlace_method;
 // };

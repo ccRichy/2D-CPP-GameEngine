@@ -1,11 +1,13 @@
-//TODO: FACTOR OUT C STANDARD LIBRARY
-#include "math.h"  //TODO: INTRINSICS
-#include "stdio.h" //using sprintf
+//TODO: factor out c standard library
+#include <math.h>  //TODO: intrinsics
+#include <stdio.h> //using sprintf
+#include <stdarg.h>
+
 
 #include "my_types_constants.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
-#include "my_color.h"
+#include "my_color.cpp"
 #include "array_functions.h"
 
 #include "game.h"
@@ -14,226 +16,64 @@
 #include "collide.cpp"
 #include "player.cpp"
 #include "entity.cpp"
+#include "text.cpp"
 
 
-//static Game_Pointers* pointers;
+
+//TODO: move to debug file?
+void debug_message_send(const char* fmt, ...)
+{
+    Debug_Message msg = {};
+    int32 lifetime = DEBUG_MESSAGE_LIFETIME_DEFAULT;
+    msg.lifetime = lifetime;
+
+    char text_buffer[BUFF_LEN];
+    va_list args;
+    va_start(args, fmt);
+    vsprintf(text_buffer, fmt, args);
+    va_end(args);
+
+    // msg.text = text_buffer;
+    string_append(msg.text, text_buffer);
+    
+    pointers->data->debug_msg.current_message = msg;
+    pointers->data->debug_msg.is_active = true;
+}
+void debug_message_update()
+{
+    Debug_Message_Queue* queue = &pointers->data->debug_msg;
+    if (queue->is_active)
+    {
+        Debug_Message* msg = &queue->current_message;
+        if (msg->lifetime-- <= 0)
+        {
+            queue->is_active = false;
+        }
+
+        draw_text(msg->text, queue->gui_pos);
+    }
+}
 
 
-inline Vec2
+
+
+
+inline Vec2f
 mouse_get_pos_gui()
 {
-    Vec2 result = pointers->input->mouse_pos_gui;
+    Vec2f result = pointers->input->mouse_pos_gui;
     return result;
 }
-inline Vec2
+inline Vec2f
 mouse_get_pos_world()
 {
-    Vec2 result =
+    Vec2f result =
         {pointers->input->mouse_pos_gui.x / GAME_SETTINGS->zoom_scale,
-        pointers->input->mouse_pos_gui.y / GAME_SETTINGS->zoom_scale};
-    
+         pointers->input->mouse_pos_gui.y / GAME_SETTINGS->zoom_scale};
     result += GAME_DATA->camera_pos;
-    return result;
-}
-
-
-BMP_Data
-DEBUG_load_bmp(const char* filename)
-{
-    auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
-    BMP_Data result = {};
-    result.size_bytes = file->size;
-    result.width = file->width;
-    result.height = file->height;
-    result.pixels = (uint32*)((uint8*)file + file->offset);
-    result.bits_per_pixel = file->bits_per_pixel;
-        
-    Assert(result.size_bytes > 0);
-    return result;
-};
-Sprite
-sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps)
-{
-    Sprite sprite = {};   
-    sprite.bmp = DEBUG_load_bmp(bmp_filename);
-    sprite.origin = {};
-    sprite.fps = fps;
-    sprite.frame_num = frame_num;
-    sprite.is_animation = (frame_num > 0 && fps != 0);
-    return sprite;
-}
-
-
-
-/*
-  NOTE:
-  Font assumes a !vertical image! so we can crawl linearly over the source data
- */
-Font
-font_create(BMP_Data* image, uint32 glyph_size)
-{
-    Font result = {};
-
-    uint32 glyph_area = glyph_size * glyph_size;
-    uint32 image_area = image->width * image->height;
-    
-    int32 glyph_offset = FONT_LENGTH;
-    int32 glyph_size_bytes = glyph_area * (image->bits_per_pixel / 8);
-    uint32* image_pixels = image->pixels;
-
-    //loop over the entire image & move image pixels into respective glyph pixels
-    uint32 glyph_ticker = 0;
-    for (uint32 image_pixel_index = 0; image_pixel_index < image_area; ++image_pixel_index)
-    {
-        uint32 image_pixel = image_pixels[image_pixel_index];
-        Color* DEBUG_color = (Color*)(&image_pixel);
-        Glyph* glyph = &pointers->data->font_test.glyphs[glyph_offset];
-        
-        int32 glyph_x = image_pixel_index % glyph_size;
-        //reverse vertical pixel arrangement
-        int32 glyph_y = glyph_size-1 - floor_i32((float32)(image_pixel_index % glyph_area) / image->width);
-        
-        glyph->pixels[glyph_y][glyph_x] = image_pixel;
-
-        if (glyph_offset <= 0)
-            return result;
-        if (++glyph_ticker >= glyph_area){
-            glyph_offset--;
-            glyph_ticker = 0;
-        }
-    }
     
     return result;
 }
-void
-draw_glyph(char text_character, Vec2 pos, Vec2 scale)
-{
-    auto render = pointers->render;
-    int32 glyph_size = 8;
-
-    float32 draw_scale = game_get_draw_scale();
-    float32 xscale_final = abs_f32(draw_scale * scale.x);
-    float32 yscale_final = abs_f32(draw_scale * scale.y);
-    pos               += game_get_draw_pos();
-
-
-    int32 x_left   = round_i32(pos.x * draw_scale);
-    int32 x_right  = round_i32(x_left + (glyph_size * xscale_final));
-    int32 y_top    = round_i32(pos.y * draw_scale);
-    int32 y_bottom = round_i32(y_top + (glyph_size * yscale_final));
-
-    if (x_left < 0)                 x_left = 0;
-    if (x_right > render->width)    x_right = render->width;
-    if (y_top < 0)                  y_top = 0;
-    if (y_bottom > render->height)  y_bottom = render->height;
-
-    float32 render_pos_yoffset = pos.y;
-    uint32* render_pixel = (uint32*)(render->memory);
-    render_pixel += (int32)(render_pos_yoffset * render->pitch);
-    Glyph* glyph = &pointers->data->font_test.glyphs[text_character - FONT_ASCII_CHARACTER_START_OFFSET];
-    //loop through all real coords
-    int32 image_pixel_x = 0;
-    int32 image_pixel_y = 0;
-    for (int32 Y_Index = y_top; Y_Index < y_bottom; ++Y_Index)
-    {
-        render_pixel = (uint32*)((uint8*)render->memory + (Y_Index * render->pitch));
-        
-        for (int X_Index = x_left; X_Index < x_right; ++X_Index)
-        {
-            image_pixel_x = (int32)((X_Index - x_left) / xscale_final);
-            image_pixel_y = (int32)((Y_Index - y_top) / yscale_final);
-
-            uint32 color_prev = render_pixel[X_Index];
-            uint32 color = glyph->pixels[image_pixel_y][image_pixel_x];
-
-            //send color to buffer
-            if (color > 0)
-                render_pixel[X_Index] = color;
-        }
-    }
-}
-void draw_text(const char* text, Vec2 pos, Vec2 scale = {1, 1}, Vec2 spacing = {5, 8})
-{
-    Vec2 final_pos = pos;
-    int32 text_length = string_length(text);
-    int32 new_lines = 0;
-    for (int i = 0; i < text_length; ++i)
-    {
-        char char_to_draw = text[i];
-        if (char_to_draw == '\n')
-        {
-            new_lines++;
-            final_pos.x = pos.x;
-            final_pos.y += (spacing.y * scale.y);
-        }
-        else
-        {
-            draw_glyph(char_to_draw, final_pos, scale);
-            final_pos.x += (spacing.x * scale.x);
-        }
-    }
-}
-
-
-
-////////UI STUFF/////////
-//im_gui
-globalvar int32 global_imgui_hot;
-globalvar int32 global_imgui_active;
-//editor
-globalvar Ent_Type global_editor_entity_to_spawn;
-
-bool32 im_button(Vec2 button_pos, Vec2 button_size, int32 id)
-{
-    if (true) return false;
-    bool32 result = false;
-    
-    auto input = pointers->input;
-    auto data = pointers->data;
-
-    //mouse
-    Vec2 mouse_pos = {};
-    if (data->draw_mode == Draw_Mode::gui)        mouse_pos = mouse_get_pos_gui();
-    else if (data->draw_mode == Draw_Mode::world) mouse_pos = mouse_get_pos_world();
-
-    //button logic
-    Color color = MAGENTA;
-    if (collide_pixel_rect(mouse_pos, button_pos, button_size)){
-        global_imgui_hot = id;
-        color = WHITE;
-    }
-
-    if (global_imgui_hot == id){
-        if (input->mouse_left.press)
-            global_imgui_active = id;
-    }
-    if (global_imgui_active == id){
-        if (input->mouse_left.release)
-            result = true;
-    }
-        
-
-    draw_rect(button_pos, button_size, color);
-    
-    return result;
-}
-
-Entity*
-editor_spawn_entity(Ent_Type type)
-{
-    Entity* result = nullptr;
-    Vec2 mouse_pos = mouse_get_pos_world();
-    Vec2 pos = {round_f32(mouse_pos.x), round_f32(mouse_pos.y)};
-    
-    if      (type == Ent_Type::player) player_create(pos);
-    else if (type == Ent_Type::enemy)  result = enemy_create(pos);
-    else if (type == Ent_Type::wall)   result = wall_create(pos, {Tile(1), Tile(1)});
-
-    return result;
-}
-
-
-
 void
 camera_zoom()
 {
@@ -241,24 +81,24 @@ camera_zoom()
     
     if (input.mouse_scroll > 0)
     {
-        Vec2 mouse_prev = mouse_get_pos_world();
+        Vec2f mouse_prev = mouse_get_pos_world();
 
         if (input.shift.hold) GAME_SETTINGS->zoom_scale *= (float32)(sqrt(2));
         else GAME_SETTINGS->zoom_scale *= (float32)(sqrt(sqrt(2)));        
-        Vec2 mouse_new = mouse_get_pos_world();
-        Vec2 camera_pos_current = GAME_DATA->camera_pos;
+        Vec2f mouse_new = mouse_get_pos_world();
+        Vec2f camera_pos_current = GAME_DATA->camera_pos;
         GAME_DATA->camera_pos =
             {camera_pos_current.x + mouse_prev.x - mouse_new.x,
              camera_pos_current.y + mouse_prev.y - mouse_new.y};
     }
     else if (input.mouse_scroll < 0)
     {
-        Vec2 mouse_prev = mouse_get_pos_world();
+        Vec2f mouse_prev = mouse_get_pos_world();
 
         if (input.shift.hold) GAME_SETTINGS->zoom_scale /= (float32)(sqrt(2));
         else GAME_SETTINGS->zoom_scale /= (float32)(sqrt(sqrt(2)));
-        Vec2 mouse_new = mouse_get_pos_world();
-        Vec2 camera_pos_current = GAME_DATA->camera_pos;
+        Vec2f mouse_new = mouse_get_pos_world();
+        Vec2f camera_pos_current = GAME_DATA->camera_pos;
         GAME_DATA->camera_pos =
             {camera_pos_current.x + mouse_prev.x - mouse_new.x,
              camera_pos_current.y + mouse_prev.y - mouse_new.y};
@@ -266,15 +106,223 @@ camera_zoom()
     }
     else if (input.mouse_front)
     {
-        Vec2 mouse_prev = mouse_get_pos_world();
+        Vec2f mouse_prev = mouse_get_pos_world();
         GAME_SETTINGS->zoom_scale = 1;
-        Vec2 mouse_new = mouse_get_pos_world();
-        Vec2 camera_pos_current = GAME_DATA->camera_pos;
+        Vec2f mouse_new = mouse_get_pos_world();
+        Vec2f camera_pos_current = GAME_DATA->camera_pos;
         GAME_DATA->camera_pos =
             {camera_pos_current.x + mouse_prev.x - mouse_new.x,
              camera_pos_current.y + mouse_prev.y - mouse_new.y};
     }    
 }
+
+
+
+////////UI STUFF/////////
+//im_gui
+globalvar int32 global_imgui_hot = -1;
+globalvar int32 global_imgui_active = -1;
+globalvar int32 global_imgui_num = 0;
+void im_begin()
+{
+    global_imgui_hot = -1;
+    global_imgui_num = 0;
+}
+void im_end()
+{
+    //TODO:
+}
+bool32 im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
+{
+    bool32 result = false;
+    
+    int32 id = global_imgui_num++;
+    auto input = pointers->input;
+    auto data = pointers->data;
+
+    //mouse
+    Vec2f mouse_pos = mouse_get_pos_gui();
+
+    Color color = MAGENTA;
+    bool32 is_hovered = collide_pixel_rect(mouse_pos, button_pos, button_size);
+    bool32 is_hot = (global_imgui_hot == id);
+    bool32 is_active = (global_imgui_active == id);
+    
+    //button logic
+    if (is_hovered){
+        global_imgui_hot = id;
+        color = GRAY;
+
+        if (input->mouse_left.press){
+            global_imgui_active = id;
+        }
+    }
+    if (is_active){
+        color = RED;
+        if (input->mouse_left.release){
+            if (is_hovered) result = true;
+            global_imgui_active = -1;
+        }
+    }
+    
+    draw_rect(button_pos, button_size, color);
+    
+    return result;
+}
+
+
+
+
+//Editor
+globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
+globalvar Entity* global_editor_selected_entity = nullptr;
+
+Entity*
+entity_spawn(Ent_Type type, Vec2f pos)
+{
+    Entity* result = nullptr;
+
+    switch (type)
+    {
+        case Ent_Type::Player:         player_create(pos); break;
+        case Ent_Type::Enemy: result = enemy_create(pos); break;
+        case Ent_Type::Wall:  result = wall_create(pos, {Tile(1), Tile(1)}); break;
+    }
+
+    return result;
+}
+
+
+Entity* editor_select_entity()
+{
+    Entity* result = nullptr;
+    Entity* array = pointers->entity->array;
+    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
+    {
+        Entity* ent = &array[ent_index];
+        V2f pos = mouse_get_pos_world();
+        if (collide_pixel_rect(pos, ent->pos, ent->size))
+            result = ent;
+    }
+    return result;
+}
+void editor_draw_selected()
+{
+    Entity* ent_hl = global_editor_selected_entity;
+    if (!ent_hl) return;
+    
+    int32 alpha = 60;
+    
+    Color color = PINK;
+    color.a = (u8)alpha;
+    Rect rect = {
+        ent_hl->pos,
+        ent_hl->size
+    };
+    draw_rect(rect, color);
+}
+
+void
+editor_save_scene(const char* filename)
+{
+    debug_message_send("Level Saved: \"%s\"", filename);
+        
+    char buffer[256];
+    
+    Entity* array = pointers->entity->array;
+    for (int entity_index = 0; entity_index < ENT_MAX; ++entity_index)
+    {
+        Entity* entity = &array[entity_index];
+        if (entity->is_alive){
+            char ent_string[128];
+            sprintf(ent_string, "e%i x%i y%i w%i h%i \n",
+                    (int32)entity->type,
+                    (int32)entity->pos.x,
+                    (int32)entity->pos.y,
+                    (int32)entity->size.x,
+                    (int32)entity->size.y
+            );
+            
+            //append
+            string_cat(buffer, buffer, ent_string);
+            
+        }
+    }
+
+    string_append(buffer, "!");
+    
+    pointers->memory->DEBUG_platform_file_write_entire(filename, string_length(buffer), &buffer);
+}
+void editor_load_scene(const char* filename)
+{
+    debug_message_send("Level Loaded: \"%s\"", filename);
+    
+    //clear entities
+    // *pointers->entity = {};
+    entity_clear_all();
+    // pointers->entity->nums;
+        
+    player_create({40, 40}); //HACKS:
+    // pointers->entity->names = global_ent_names; //TODO: reset or avoid clearning names
+    
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    char* file_mem = (char*)file.memory;
+    
+    Ent_Type type = Ent_Type::Null;
+    Vec2f pos = {};
+    Vec2f size = {};
+    char value_string[64];
+
+    uint32 beginning_of_statement_index = 0;
+    uint32 end_of_statement_index = 0;
+    for (uint32 char_index = 0; char_index < LOOP_MAX; ++char_index)
+    {
+        char c = file_mem[char_index];
+
+        if (c == ' ') //end of statement
+        {
+            end_of_statement_index = char_index;
+            
+            //get value
+            u32 value_length = end_of_statement_index - beginning_of_statement_index;
+            for (u32 statement_index = 0;
+                 statement_index < value_length;
+                 ++statement_index)
+            {
+                char cs = file_mem[statement_index + beginning_of_statement_index];
+                value_string[statement_index] = cs;
+            }
+            value_string[value_length] = 0; //null terminate string 
+            i32 value = string_get_i32(value_string);
+            
+            //get which value it is
+            auto var = file_mem[beginning_of_statement_index];
+            switch (var)
+            {
+                case 'e': type   = (Ent_Type)value; break;
+                case 'x': pos.x  = (f32)value; break;
+                case 'y': pos.y  = (f32)value; break;
+                case 'w': size.x = (f32)value; break;
+                case 'h': size.y = (f32)value; break;
+            }            
+            
+            beginning_of_statement_index = char_index+1;
+
+        }        
+        else if (c == '\n') //end of line
+        {
+            Entity* entity_spawned = entity_spawn(type, pos);
+            entity_spawned->size = size;
+        }
+        else if (c == '!') //end of file
+        {
+            break;
+        }
+    }
+    //post-loop
+}
+
 
 
 
@@ -285,6 +333,9 @@ extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
     input_map->game_input_device = input_device_current;
 }
 
+
+
+
 void //TODO: CLEAN UP
 game_initialize(Game_Pointers* _game_pointers)
 {
@@ -293,6 +344,7 @@ game_initialize(Game_Pointers* _game_pointers)
     
     Game_Data*      data     = pointers->data;
     Game_Entities*  entity   = &data->entity;
+    Game_Sprites*   sprite   = &data->sprites;
     Player*         player   = &entity->player;
     Game_Settings*  settings = pointers->settings;
     Game_Input_Map* input    = pointers->input;
@@ -307,6 +359,8 @@ game_initialize(Game_Pointers* _game_pointers)
     Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space );
     Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) );
 
+    data->debug_msg.gui_pos = DEBUG_MESSAGE_POS_DEFAULT;
+
     data->state = GAME_STATE_DEFAULT;
     data->draw_mode = GAME_DRAW_MODE_DEFAULT;
     
@@ -314,23 +368,27 @@ game_initialize(Game_Pointers* _game_pointers)
     data->camera_pos_offset_default = {
         BASE_W/2,
         BASE_H/2 + pointers->data->camera_yoffset_extra};
-    data->camera_pos_offset = pointers->data->camera_pos_offset_default;    
-    
+    data->camera_pos_offset = pointers->data->camera_pos_offset_default;
+
+#define PLR_SPR_ORIGIN {6.f, 5.f}
   //IMAGES
-    data->sPlayer_air         = sprite_create("sPlayer_air2.bmp", 7, 15);
-    data->sPlayer_air_reach   = sprite_create("sPlayer_air_reach.bmp", 2, 0);  
-    data->sPlayer_idle        = sprite_create("sPlayer_idle.bmp", 2, 0);               
-    data->sPlayer_ledge       = sprite_create("sPlayer_ledge.bmp", 4, 10);      
-    data->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach.bmp", 3, 0);
-    data->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb.bmp", 2, 10); 
-    data->sPlayer_rope_slide  = sprite_create("sPlayer_rope_slide.bmp", 2, 10); 
-    data->sPlayer_splat_slow  = sprite_create("sPlayer_splat_slow.bmp", 5, 7); 
-    data->sPlayer_splat_swift = sprite_create("sPlayer_splat_swift.bmp", 6, 10);
-    data->sPlayer_turn        = sprite_create("sPlayer_turn.bmp", 1, 6);       
-    data->sPlayer_walk        = sprite_create("sPlayer_walk.bmp", 4, 10);       
-    data->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach.bmp", 4, 10); 
-    data->sPlayer_wire_idle   = sprite_create("sPlayer_idle.bmp", 5, 6);  
-    data->sPlayer_wire_walk   = sprite_create("sPlayer_walk.bmp", 4, 6);  
+    sprite->sPlayer_air         = sprite_create("sPlayer_air2.bmp", 7, 15, PLR_SPR_ORIGIN);
+    sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach.bmp", 2, 0, PLR_SPR_ORIGIN);  
+    sprite->sPlayer_idle        = sprite_create("sPlayer_idle.bmp", 2, 0, PLR_SPR_ORIGIN);               
+    sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge.bmp", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach.bmp", 3, 0, PLR_SPR_ORIGIN);
+    sprite->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb.bmp", 2, 10, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_rope_slide  = sprite_create("sPlayer_rope_slide.bmp", 2, 10, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_splat_slow  = sprite_create("sPlayer_splat_slow.bmp", 5, 7, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_splat_swift = sprite_create("sPlayer_splat_swift.bmp", 6, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_turn        = sprite_create("sPlayer_turn.bmp", 1, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_walk        = sprite_create("sPlayer_walk.bmp", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach.bmp", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_idle.bmp", 5, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_walk.bmp", 4, 6, PLR_SPR_ORIGIN);
+
+    
+    sprite->sMouse_cursors   = sprite_create("sMouse_cursors2.bmp", 4, 0, {2, 2});
 
         
 #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name ".bmp")
@@ -353,22 +411,25 @@ game_initialize(Game_Pointers* _game_pointers)
     wall_create({Tile(32), Tile(11)}, {Tile(1), Tile(10)});
 }
 
+
+
+
 //UPDATE
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 {
     pointers = __game_pointers;
-        
+
     if (!pointers->memory->is_initalized){
-        //TODO: zero out the necessary data before calling game_initialize so we can use this to reset the game
+        //TODO: zero out the necessary data before calling game_initialize so we can reset the game by setting "is_initialized" to false
         game_initialize(pointers);
     }
 
-    Game_Data* data = pointers->data;
-    Game_Entities* entity = &data->entity;
     Game_Settings* settings = pointers->settings;
-    Player* player = &entity->player;
-    
-    
+    Game_Data*     data     = pointers->data;
+    Game_Sprites*  sprite   = &data->sprites;
+    Game_Entities* entity   = &data->entity;
+    Player*        player   = &entity->player;
+
     //UPDATE (early)
     camera_zoom();
     if (input.reset)
@@ -377,15 +438,27 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         data->debug_mode_enabled = !data->debug_mode_enabled;
 
     
+
+    
     //STATE UPDATE
-    if (data->state == Game_State::edit)
+    if (data->state == Game_State::Edit)
     {
+        if (input.mouse_left)
+            global_editor_selected_entity = editor_select_entity();
         if (input.editor_toggle)
-            data->state = Game_State::play;
+            data->state = Game_State::Play;
+        if (input.ctrl.hold && input.editor_save_level)
+            editor_save_scene("testy_too.lvl");
+        if (input.ctrl.hold && input.editor_load_level)
+            editor_load_scene("testy_too.lvl");
 
       //Entities
         if (input.mouse_right.release)
-            editor_spawn_entity(global_editor_entity_to_spawn);
+        {
+            Vec2f mouse_pos_world = mouse_get_pos_world();
+            Vec2f pos_spawn = {round_f32(mouse_pos_world.x), round_f32(mouse_pos_world.y)};
+            entity_spawn(global_editor_entity_to_spawn, pos_spawn);
+        }
 
         Entity* entity_under_mouse = collide_pixel_get_any_entity(mouse_get_pos_world());
         if (entity_under_mouse)
@@ -397,13 +470,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
       //Camera
         float32 cam_speed = (input.shift.hold ? 4.f : 2.f);
-        Vec2 move_input =
+        Vec2f move_input =
             {(float32)(input.right.hold - input.left.hold) / GAME_SETTINGS->zoom_scale,
              (float32)(input.down.hold - input.up.hold) / GAME_SETTINGS->zoom_scale};
-        data->camera_pos += move_input * Vec2{cam_speed, cam_speed};
+        data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
         
       //Draw coords
-        data->draw_mode = Draw_Mode::world;
+        data->draw_mode = Draw_Mode::World;
         float32 static_size = game_get_static_size(0.5);
         draw_rect({0, 0}, {static_size, 999999.f}, WHITE);
         draw_rect({0, 0}, {999999.f, static_size}, WHITE);
@@ -424,11 +497,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         }
         
     }
-    else if (data->state == Game_State::play)
+    else if (data->state == Game_State::Play)
     {
         //controls
         if (input.editor_toggle){
-            data->state = Game_State::edit;
+            data->state = Game_State::Edit;
         }
 
         //entity update
@@ -437,53 +510,65 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
         //camera update
         float32 cam_yoffset_extra = 4;
-        Vec2 vec2_zoom = {GAME_SETTINGS->zoom_scale, GAME_SETTINGS->zoom_scale};
+        Vec2f vec2_zoom = {GAME_SETTINGS->zoom_scale, GAME_SETTINGS->zoom_scale};
         data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
         data->camera_pos = player->pos - data->camera_pos_offset;
     }
 
-    data->draw_mode = Draw_Mode::world;
-    wall_draw();
-    enemy_draw();
-    player_draw(player);
-    
-    data->draw_mode = Draw_Mode::gui;
-  //immediate mode ui
-    Vec2 button_pos = {10, 40};
-    Vec2 button_size = {16, 6};
-    char buffer[256];
-    sprintf_s(buffer, "selected: %s", global_ent_names[(int32)global_editor_entity_to_spawn]);
-    draw_text(buffer, {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f});
-    for (int ent_index = 0; ent_index < (int32)Ent_Type::num; ++ent_index)
+    data->draw_mode = Draw_Mode::World;
     {
-        Vec2 final_pos = {button_pos.x, button_pos.y + ((button_size.y + 1) * ent_index)};
-        if (im_button(final_pos, button_size, ent_index))
+        wall_draw();
+        enemy_draw();
+        player_draw(player);
+        
+        editor_draw_selected();
+    }
+    
+    data->draw_mode = Draw_Mode::Gui;
+    {
+        im_begin();
         {
-            global_editor_entity_to_spawn = (Ent_Type)ent_index;
+            Vec2f button_pos = {10, 40};
+            Vec2f button_size = {16, 6};
+            draw_text_buffer(
+                {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f}, {5, 8},
+                "selected:%s", entity_get_name(global_editor_entity_to_spawn)
+            );
+
+            for (int ent_index = 0; ent_index < (int32)Ent_Type::Num; ++ent_index)
+            {
+                Vec2f final_pos = {button_pos.x, button_pos.y + ((button_size.y + 1) * ent_index)};
+                if (im_button(final_pos, button_size))
+                    global_editor_entity_to_spawn = (Ent_Type)ent_index;
+                draw_text(global_ent_names[ent_index], final_pos, {0.5, 0.5});
+            }
         }
-        draw_text(global_ent_names[ent_index], final_pos, {0.5, 0.5});
-    }
-
-  //debug
-    IF_DEBUG
-    {
-        //draw performance
-        auto perf = pointers->performance;
-        char perf_string[256];
-        sprintf_s(perf_string,
-                  "ms/f: %.2f" "\n"
-                  "mc/f: %.2f" "\n"
-                  ,perf->ms_frame
-                  ,perf->megacycles_frame
-        );
-        draw_text(perf_string, {0, 0}, {0.5f, 0.5f}, {7, 8});
+        im_end();
     
-    }
-    
-  //draw mouse
-    draw_rect(input.mouse_pos_gui + Vec2{1, 1}, {2, 2}, MAGENTA);
-    draw_rect(input.mouse_pos_gui, {1, 1}, LIME);
 
+        //debug
+        debug_message_update();
+        IF_DEBUG
+        {
+            //draw performance
+            auto perf = pointers->performance;
+            char perf_string[256];
+            sprintf_s(perf_string,
+                      "ms/f: %.2f" "\n"
+                      "mc/f: %.2f" "\n"
+                      ,perf->ms_frame
+                      ,perf->megacycles_frame
+            );
+            draw_text(perf_string, {0, 0}, {0.5f, 0.5f}, {7, 8});
+    
+        }
+    
+        //draw mouse
+        sprite->sMouse_cursors.origin = {2, 2};
+        draw_sprite_anim(&sprite->sMouse_cursors, input.mouse_pos_gui, 0);
+        // draw_rect(input.mouse_pos_gui + Vec2f{1, 1}, {2, 2}, MAGENTA);
+        // draw_rect(input.mouse_pos_gui, {1, 1}, LIME);
+    }
 }
 
 
@@ -523,7 +608,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
 
 // void
-// draw_text_old(const char* text, Vec2 pos, Vec2 scale = {1, 1}, Vec2 spacing = {5, 8})
+// draw_text_old(const char* text, Vec2f pos, Vec2f scale = {1, 1}, Vec2 spacing = {5, 8})
 // {
 //     BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
 //     int32 frame_size = font_image->height;

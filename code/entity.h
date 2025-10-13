@@ -1,17 +1,30 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 #pragma once
+
+
+
 
 #include "game.h"
 
+
+
+
 enum class Ent_Type
 {
-    player,
-    wall,
-    enemy,
+    Null = -1,
     
-    num,
-    null
+    Player,
+    Wall,
+    Enemy,
+    
+    Num,
 };
-globalvar const char* global_ent_names[Ent_Type::num] =
+globalvar const char* global_ent_names[Ent_Type::Num] =
 {
     "player",
     "wall",
@@ -30,24 +43,16 @@ struct Entity
     //base
     Ent_Type type;
     bool32 is_alive;
+
+    Sprite* sprite;
+    float32 anim_index;
+    Vec2f   scale;
     
-    Vec2 pos;
-    Vec2 size;
-    Vec2 spd;
+    Vec2f pos;
+    Vec2f size;
+    Vec2f spd;
     Color color;
 
     //combat
     float32 hp;
 };
-
-// struct Entity_Data
-// {
-//     Entity* array_pointers[Ent_Type::num];
-//     const char* names[Ent_Type::num];
-//     int32 nums[Ent_Type::num];
-
-//     int32 Num(Ent_Type type)
-//     {
-//         return nums[(int32)type];
-//     }
-// };
