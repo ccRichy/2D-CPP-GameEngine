@@ -22,7 +22,8 @@ entity_get_name(Ent_Type type)
     const char* result = pointers->entity->names[(int32)type];
     return result;
 }
-void entity_clear_all()
+void
+entity_clear_all()
 {
     Entity* array = pointers->entity->array;
     for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
@@ -39,7 +40,7 @@ void entity_clear_all()
 inline void
 entity_draw_anim(Entity* entity)
 {
-    draw_sprite_anim(
+    draw_sprite_frame(
         entity->sprite,
         entity->pos,
         entity->anim_index,
@@ -51,8 +52,11 @@ entity_draw_anim(Entity* entity)
 void
 entity_destroy(Entity* entity)
 {
-    entity->is_alive = false;
-    pointers->entity->nums[(int32)entity->type] -= 1;
+    if (entity)
+    {
+        entity->is_alive = false;
+        pointers->entity->nums[(int32)entity->type] -= 1;
+    }
 }
 
 Entity* entity_init(Entity* array, int32 array_max, Ent_Type type, Vec2f pos)

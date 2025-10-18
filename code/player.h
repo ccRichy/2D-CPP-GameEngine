@@ -28,12 +28,12 @@ struct Physics
 
 struct Player
 {
-    Vec2f     pos;
-    Vec2f     move_input;
-    Vec2f     spd;
-    Vec2f     size;
-    Vec2f     scale;
-    Color     color;
+    Vec2f pos;
+    Vec2f move_input;
+    Vec2f spd;
+    Vec2f size;
+    Vec2f scale;
+    Color color;
 
     //numbas
     Physics physics;

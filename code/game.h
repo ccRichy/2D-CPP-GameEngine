@@ -16,21 +16,17 @@
 #define BASE_W 320
 #define BASE_H 180
 #define WINDOW_SCALE_DEFAULT 4
-
-#define TILE_SIZE 8
  
 #define GAME_STATE_DEFAULT Game_State::Edit
 #define GAME_DRAW_MODE_DEFAULT Draw_Mode::World
-
-#define Tile(value) (value * TILE_SIZE)
+#define GAME_EDITOR_MODE_DEFAULT Editor_Mode::Entity
 
 
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
 #define DEBUG_MESSAGE_MAX 10                    //debug messages at top op screen
 #define DEBUG_MESSAGE_LIFETIME_DEFAULT 160      //
 #define DEBUG_MESSAGE_POS_DEFAULT {BASE_W/2, 0} //
-
-
+#define DEBUG_MESSAGE_SCALE_DEFAULT {0.5f, 0.5f} //
 struct Debug_Message
 {
     char text[BUFF_LEN];
@@ -40,22 +36,50 @@ struct Debug_Message
 struct Debug_Message_Queue
 {
     bool32 is_active;
-    Vec2f gui_pos;
+    Vec2f pos;
+    Vec2f scale;
     Debug_Message current_message;
 };
+
+
+enum struct Editor_Mode
+{
+    Entity,
+    Tile,
+    Num
+};
+
+
+//tile
+#define TILE_SIZE 8
+#define Tile(value) (value * TILE_SIZE)
+
+#define TILEMAP_W 32
+#define TILEMAP_H 32
+
+struct Tilemap
+{
+    Vec2f pos;
+    int32 grid_w;
+    int32 grid_h;
+    int32 tile_w;
+    int32 tile_h;
+    int32 grid[TILEMAP_H][TILEMAP_W];
+};
+
+
 
 
 
 
 //WARNING: global variables without default values will be 0'd upon recompilation
 static Game_Pointers* pointers;
-//convenience 
-//
-#define GAME_MEMORY pointers->memory      //
-#define GAME_DATA pointers->data          //
-#define GAME_ENTITY pointers->entity      //WARNING: deprecated
-#define GAME_SETTINGS pointers->settings  //
-#define GAME_SPRITE pointers->sprite      //
+//convenience //NOTE: these may be a horrible idea
+#define GAME_MEMORY pointers->memory
+#define GAME_DATA pointers->data
+#define GAME_ENTITY pointers->entity
+#define GAME_SETTINGS pointers->settings
+#define GAME_SPRITE pointers->sprite
 
 
 
@@ -120,20 +144,21 @@ struct Game_Data
     //TODO: Game_Camera
     Game_State state;
     Draw_Mode draw_mode;
-    Game_Entities entity;
-
+    Editor_Mode editor_mode;
     Debug_Message_Queue debug_msg;
-
-    bool32 debug_mode_enabled;
     
+    Game_Sprites sprites;
+    Game_Entities entity;
+    Tilemap tilemap;
+
+    //random data
+    bool32 debug_mode_enabled;
     Vec2f camera_pos;
     float32 camera_yoffset_extra;
     Vec2f camera_pos_offset_default;
     Vec2f camera_pos_offset;
-
-    Game_Sprites sprites;
     
-    //misc
+    //misc //TODO: move these
     BMP_Data sTest;
     BMP_Data sTest_wide;
     BMP_Data sMan;

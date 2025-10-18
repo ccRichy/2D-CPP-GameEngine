@@ -7,6 +7,7 @@
 
 
 //TODO: 64-bit versions of functions where appropriate
+#define in_range(value, min, max) (value >= min && value <= max)
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
@@ -245,5 +246,21 @@ inline float32
 lerp(float32 value, float32 dest, float32 spd)
 {
     float32 result = value * (1.0f - spd) + (dest * spd);
+    return result;
+}
+
+
+
+//vector functions
+inline Vec2i
+v2f_to_v2i(Vec2f vector)
+{
+    Vec2i result = {(i32)vector.x, (i32)vector.y};
+    return result;
+}
+inline Vec2f
+v2i_to_v2f(Vec2i vector)
+{
+    Vec2f result = {(f32)vector.x, (f32)vector.y};
     return result;
 }

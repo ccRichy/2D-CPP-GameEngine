@@ -5,24 +5,24 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-//NOTE: this is per the windows little endian standard, maybe move this or rename?
 #pragma once
 
 
 
 
+//NOTE: this is per the windows little endian standard (BGRA/BGRX), maybe move this or rename?
 struct Color
 {
     union {
         struct { uint8 b, g, r, a; };
-        struct { uint8 red, green, blue, alpha; };
+        struct { uint8 blue, green, red, alpha; };
         uint32 decimal;
     };
 };
 
 
 
-
+//bgra
 #define LIGHTGRAY  Color{ 200, 200, 200, 255 }
 #define GRAY       Color{ 130, 130, 130, 255 }
 #define DARKGRAY   Color{ 80, 80, 80, 255 }   

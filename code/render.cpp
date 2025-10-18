@@ -76,10 +76,10 @@ void
 draw_pixel(Vec2f pos, Color color)
 {
     Game_Render_Buffer* render = pointers->render;
-    
+
     float32 scale = game_get_draw_scale();
     pos          += game_get_draw_pos();
-        
+
     //TODO: properly handle pixel truncation/rounding
     int32 x_start = round_i32(pos.x * scale); //NOTE: (int32)pos.x * scale  | pixel rendering (floor)
     int32 y_start = round_i32(pos.y * scale); //      (int32)(pos.x * scale)| sub-pixel rendering
@@ -123,25 +123,21 @@ draw_rect(Vec2f pos, Vec2f size, Color color)
     float32 scale = game_get_draw_scale();
     pos          += game_get_draw_pos();
 
-    int32 x_start = round_i32(pos.x * scale);
-    int32 x_end =   round_i32(x_start + (size.x * scale));
-    int32 y_start = round_i32(pos.y * scale);
-    int32 y_end =   round_i32(y_start + (size.y * scale));
+    int32 x_left =   round_i32(pos.x * scale);
+    int32 x_right =  round_i32(x_left + (size.x * scale));
+    int32 y_top =    round_i32(pos.y * scale);
+    int32 y_bottom = round_i32(y_top + (size.y * scale));
 
-    if (x_start < 0) x_start = 0;
-    if (y_start < 0) y_start = 0;
-    if (x_end > render->width)  x_end = render->width;
-    if (y_end > render->height) y_end = render->height;
+    if (x_left < 0) x_left = 0;
+    if (x_right > render->width)  x_right = render->width;
+    if (y_top < 0) y_top = 0;
+    if (y_bottom > render->height) y_bottom = render->height;
 
-    //color test
-    // color = ;
-
-
-    uint8* row = (uint8*)render->memory + (y_start * render->pitch);
-    for (int Y = y_start; Y < y_end; ++Y)
+    uint8* row = (uint8*)render->memory + (y_top * render->pitch);
+    for (int Y = y_top; Y < y_bottom; ++Y)
     {
-        uint32* pixel = ((uint32*)row + x_start);
-        for (int X = x_start; X < x_end; ++X)
+        uint32* pixel = ((uint32*)row + x_left);
+        for (int X = x_left; X < x_right; ++X)
         {
             if (color.a == 255)
             {
@@ -576,13 +572,11 @@ draw_sprite_part(Sprite* sprite, Vec2f pos, Vec2f scale_overall, Vec2i img_drawp
     draw_bmp_part(&sprite->bmp, pos - sprite->origin, scale_overall, img_drawpos.x, img_drawpos.y, img_drawsize.x, img_drawsize.y);
 }
 inline void
-draw_sprite_anim(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 1})
+draw_sprite_frame(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 1})
 {
-    int32 frame_size = (int32)(spr->bmp.width / spr->frame_num);
     int32 frame = floor_i32(anim_index);
-
     draw_sprite_part(spr, pos, scale,
-                     {frame * frame_size, 0}, //pos
+                     {frame * spr->width, 0}, //pos
                      {spr->width, spr->height });//size
 }
 

@@ -7,6 +7,8 @@
 #define Pi32 3.14159265359f
 
 //NOTE: Just use the long name when its most IMPORTANT: please ;)
+//NOTE: maybe multiple names just isnt a good idea
+
 typedef int32_t b32;
 typedef int32_t bool32;
 typedef int8_t  i8;

@@ -30,7 +30,6 @@ collide_pixel_rect(Vec2f pixel_pos, Vec2f rect_pos, Vec2f rect_size)
 
 	return (vert && hori);
 }
-
 bool32
 collide_rects(Vec2f pos1, Vec2f size1, Vec2f pos2, Vec2f size2)
 {
@@ -53,6 +52,18 @@ collide_rects(Vec2f pos1, Vec2f size1, Vec2f pos2, Vec2f size2)
 
 	return (vert && hori);
 }
+
+inline bool32
+collide_pixel_rect(Vec2f pos, Rectangle rect)
+{
+    return collide_pixel_rect(pos, rect.pos, rect.size);
+}
+inline bool32
+collide_rects(Rectangle rect1, Rectangle rect2)
+{
+    return collide_rects(rect1.pos, rect1.size, rect2.pos, rect2.size);
+}
+
 //MISC
 bool32
 on_screen(Vec2f pos, Vec2f padding)

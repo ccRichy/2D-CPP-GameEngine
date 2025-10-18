@@ -235,7 +235,11 @@ player_create(Vec2f _pos)
 #endif
 }
 
+
+//TODO: move this bs
 #define sprite_change(__entity, __sprite) __entity->sprite = &GAME_SPRITE->##__sprite
+Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size);
+
 
 void
 player_update(Game_Input_Map input)
@@ -246,7 +250,8 @@ player_update(Game_Input_Map input)
 
     plr->spd.y += plr->grav;
     if (input.jump) plr->spd.y = -4;
-    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
+    // Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
+    Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &plr->pos, &plr->spd, plr->size);
 
     if (input.shift.hold) plr->ground_speed_max = 2;
     else plr->ground_speed_max = 1;
@@ -280,19 +285,11 @@ player_draw(Player* plr)
     plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed_mult;
     if (plr->anim_index >= spr->frame_num) plr->anim_index = 0;
 
-    draw_sprite_anim(plr->sprite, plr->pos, plr->anim_index, plr->scale);
+    draw_sprite_frame(plr->sprite, plr->pos, plr->anim_index, plr->scale);
 
-    // draw_sprite_part(plr->sprite, plr->pos, plr->scale,
-    //               {frame * frame_size, 0}, //pos
-    //               {16, 16});//size
-
-    //DRAW BBOX
-    Color col = RED;
-    col.alpha = 150;
-    draw_rect(plr->pos, plr->size, col);
-    
-    //DRAW ORIGIN
-    draw_pixel(plr->pos, WHITE);
+    //DRAW bbox & origin
+    // draw_rect(plr->pos, plr->size, RED);    
+    // draw_pixel(plr->pos, WHITE);
 }
 
 

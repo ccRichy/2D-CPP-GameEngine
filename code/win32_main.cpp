@@ -1,5 +1,6 @@
 //
 #include <math.h>
+#include <stdio.h>
 
 #include "my_types_constants.h"
 #include "array_functions.h"
@@ -35,10 +36,6 @@ globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
 
 
 
-//NOTE: KEYBOARD TPYING TEST
-globalvar char global_typing_buffer[256];
-globalvar int32 global_typing_index;
-
 
 
 LRESULT CALLBACK
@@ -48,16 +45,10 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
     
     switch (message)
     {
-        case WM_CHAR:{
-            bool32 is_down = ((lparam & (1 << 31)) == 0);
-            bool32 was_down = ((lparam & (1 << 30)) != 0);
-            global_typing_buffer[global_typing_index] = (char)wparam;
-            global_typing_index++;
-        }break;
-        
         case WM_ACTIVATEAPP:{
             if (!wparam) //out of focus
             {
+                ShowCursor(TRUE);
                 //BGMODE
                 if (Global_BGMode_Enabled)
                 {
@@ -71,8 +62,9 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 
                 OutputDebugStringA("(Win32)(WM_ACTIVATEAPP): lost focus\n");
             }
-            else
+            else //back in focus
             {
+                ShowCursor(FALSE);
                 //BGMODE
                 if (Global_BGMode_Enabled)
                 {
@@ -119,9 +111,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
-{    
-    ShowCursor(FALSE);
-    
+{
     //performance query
     LARGE_INTEGER __perf_frequency_result;
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);

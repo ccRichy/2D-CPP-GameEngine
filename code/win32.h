@@ -24,7 +24,7 @@ globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
 
 
 
-
+//NOTE: unused
 enum struct Win32_Init_Error
 {
     SUCCESS_NO_ERROR,

@@ -1,5 +1,4 @@
 #pragma once
-// #include "my_color.h"
 
 
 /////STUFF//////
@@ -57,4 +56,4 @@ void draw_bmp_1sttry(BMP_Data* bmp, Vec2f pos);
 void draw_bmp_pixels(BMP_Data* bmp, Vec2f pos);
 
 inline void draw_sprite(Sprite* sprite, Vec2f pos, Vec2f scale = {1, 1});
-inline void draw_sprite_part(Sprite* sprite, Vec2f pos, Vec2f scale_overall, Vec2i img_drawpos, Vec2i img_drawsize);
+inline void draw_sprite_frame(Sprite* sprite, Vec2f pos, Vec2f scale_overall, Vec2i img_drawpos, Vec2i img_drawsize);

@@ -30,9 +30,9 @@ struct Game_Input_Map
     int32 mouse_scroll;
     
     union {
-        Game_Input_Button buttons[37 + 1];
+        Game_Input_Button buttons[38 + 1];
         struct {
-            //GAME
+            //gameplay
             Game_Input_Button up;
             Game_Input_Button down;
             Game_Input_Button left;
@@ -41,11 +41,12 @@ struct Game_Input_Map
             Game_Input_Button shoot;
 
             //editor
-            Game_Input_Button editor_toggle;
-            Game_Input_Button editor_save_level;
-            Game_Input_Button editor_load_level;
+            Game_Input_Button edit_toggle;
+            Game_Input_Button edit_level_save;
+            Game_Input_Button edit_level_load;
+            Game_Input_Button edit_delete;
             
-            //DEBUG
+            //debug
             Game_Input_Button reset;
             Game_Input_Button debug_mode_toggle;
             Game_Input_Button debug_bgmode_toggle;
@@ -56,7 +57,7 @@ struct Game_Input_Map
             Game_Input_Button debug_hotkey2;
             Game_Input_Button debug_hotkey3;
 
-            //misc            
+            //misc           
             Game_Input_Button shift;
             Game_Input_Button ctrl;
             Game_Input_Button space;
@@ -78,8 +79,7 @@ struct Game_Input_Map
             Game_Input_Button num6;
             Game_Input_Button num7;
             Game_Input_Button num8;
-            Game_Input_Button num9;
-            
+            Game_Input_Button num9;            
             
             //REQUIRED: bottom of this struct for assert check
             Game_Input_Button bottom_button;

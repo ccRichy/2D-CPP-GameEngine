@@ -16,7 +16,7 @@ inline uint8 color_channel_get_transparent(uint8 channel_prev, uint8 channel_new
     return (uint8)(((channel_new) * alpha) + (alphasub * (channel_prev)));
 }
 
-inline Color
+inline Color //TODO: OPTIMIZE THIS or transparency handling in general
 color_get_transparent(Color color_prev, Color color_new)
 {
     float32 alpha = (float32)color_new.a / 255;
