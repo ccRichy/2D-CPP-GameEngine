@@ -57,3 +57,9 @@ void draw_bmp_pixels(BMP_Data* bmp, Vec2f pos);
 
 inline void draw_sprite(Sprite* sprite, Vec2f pos, Vec2f scale = {1, 1});
 inline void draw_sprite_frame(Sprite* sprite, Vec2f pos, Vec2f scale_overall, Vec2i img_drawpos, Vec2i img_drawsize);
+
+
+
+
+
+// internal void render_weird_gradient(Game_Render_Buffer* buffer, int blue_offset, int green_offset)

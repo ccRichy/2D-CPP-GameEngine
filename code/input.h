@@ -1,11 +1,32 @@
 #pragma once
 
 
+
+
 enum struct Game_Input_Device
 {
     Keyboard_Mouse,
     Controller
 };
+
+enum struct Input_Mode
+{
+    Play,
+    Type
+};
+
+
+
+
+#define TYPING_BUFFER_SIZE 64
+struct Typing_Buffer
+{
+    char items[TYPING_BUFFER_SIZE];
+    int32 max_length;
+    int32 length;
+};
+
+
 
 struct Game_Input_Button
 {
@@ -21,7 +42,8 @@ struct Game_Input_Button
 
 struct Game_Input_Map
 {
-    Game_Input_Device game_input_device;
+    Game_Input_Device input_device;
+    Input_Mode input_mode;
     
     Vec2f l_axes;
     Vec2f r_axes;
@@ -30,7 +52,7 @@ struct Game_Input_Map
     int32 mouse_scroll;
     
     union {
-        Game_Input_Button buttons[38 + 1];
+        Game_Input_Button buttons[40 + 1];
         struct {
             //gameplay
             Game_Input_Button up;
@@ -52,14 +74,16 @@ struct Game_Input_Map
             Game_Input_Button debug_bgmode_toggle;
             Game_Input_Button debug_win_plus;
             Game_Input_Button debug_win_minus;
+            Game_Input_Button console;
 
             Game_Input_Button debug_hotkey1;
             Game_Input_Button debug_hotkey2;
             Game_Input_Button debug_hotkey3;
 
             //misc           
-            Game_Input_Button shift;
             Game_Input_Button ctrl;
+            Game_Input_Button alt;
+            Game_Input_Button shift;
             Game_Input_Button space;
             Game_Input_Button enter;
             Game_Input_Button escape;
@@ -86,3 +110,25 @@ struct Game_Input_Map
         };
     };
 };
+
+
+void
+input_map_clear_all(Game_Input_Map* map)
+{
+    map->l_axes = {};
+    map->r_axes = {};
+    map->mouse_scroll = 0;
+
+    i32 length = array_length(map->buttons);
+    for (int i = 0; i < length; ++i)
+    {
+        map->buttons[i] = {};
+    }
+}
+
+void
+input_set_mode(Game_Input_Map* map, Input_Mode mode)
+{
+    map->input_mode = mode;
+    input_map_clear_all(map);
+} 

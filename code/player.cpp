@@ -242,24 +242,24 @@ Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size
 
 
 void
-player_update(Game_Input_Map input)
+player_update(Game_Input_Map* input)
 {
     Player* plr = &pointers->entity->player;
-    plr->move_input = {(float32)(input.right.hold - input.left.hold),
-                       (float32)(input.down.hold - input.up.hold)};
+    plr->move_input = {(float32)(input->right.hold - input->left.hold),
+                       (float32)(input->down.hold - input->up.hold)};
 
     plr->spd.y += plr->grav;
-    if (input.jump) plr->spd.y = -4;
+    if (input->jump) plr->spd.y = -4;
     // Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
     Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &plr->pos, &plr->spd, plr->size);
 
-    if (input.shift.hold) plr->ground_speed_max = 2;
+    if (input->shift.hold) plr->ground_speed_max = 2;
     else plr->ground_speed_max = 1;
     
     if (plr->spd.y != 0){
         sprite_change(plr, sPlayer_air);
         player_move_hori(plr, true);
-        if (!input.jump.hold){
+        if (!input->jump.hold){
             if (plr->spd.y < 0)
                 plr->spd.y /= 4;
         }
@@ -271,7 +271,7 @@ player_update(Game_Input_Map input)
     }
     else{
         sprite_change(plr, sPlayer_idle);
-        plr->anim_index = (float32)input.up.hold;
+        plr->anim_index = (float32)input->up.hold;
         player_move_hori(plr, false);
     }
 

@@ -127,3 +127,36 @@ void draw_text_buffer(Vec2f pos, Vec2f scale, Vec2f spacing, const char* fmt, ..
     
     draw_text(buffer, pos, scale, spacing);
 }
+
+
+
+
+
+
+// void
+// draw_text_old(const char* text, Vec2f pos, Vec2f scale = {1, 1}, Vec2 spacing = {5, 8})
+// {
+//     BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
+//     int32 frame_size = font_image->height;
+//     float32 drawx_offset = 0; //exists for us to handle the position simply
+//     int32 loop_length = string_length(text);
+//     for (int i = 0; i < loop_length; ++i)
+//     {
+//         char frame = text[i];
+//         if (frame == '\n')
+//         {
+//             pos.y += (spacing.y * scale.y);
+//             drawx_offset = 0;
+//             continue;
+//         }
+
+//         char frame_offset = frame - FONT_ASCII_CHARACTER_START_OFFSET;
+//         draw_bmp_part(font_image,
+//                       {pos.x + drawx_offset, pos.y}, //area_pos
+//                       {scale.x, scale.y},            //overall scale
+//                       frame_offset * frame_size, 0, //pos on image
+//                       frame_size, frame_size);      //size to draw
+        
+//         drawx_offset += (spacing.x * scale.x);
+//     }    
+// }

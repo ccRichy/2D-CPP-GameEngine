@@ -415,7 +415,7 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
             SHORT deadzone_r = XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE;
                             
             //input device state
-            if ((game_input_map->game_input_device != Game_Input_Device::Controller) &&
+            if ((game_input_map->input_device != Game_Input_Device::Controller) &&
                 (pad->wButtons ||
                  abs_i32(pad->sThumbLX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
                  abs_i32(pad->sThumbRX) > deadzone_l*3 || abs_i32(pad->sThumbLY) > deadzone_l*3 ||
@@ -427,7 +427,7 @@ win32_xinput_poll(Win32_Game_Code* game_code, Game_Input_Map* game_input_map)
 
             //send out inputs
             //TODO: abstration layer for rebinding
-            if (game_input_map->game_input_device == Game_Input_Device::Controller)
+            if (game_input_map->input_device == Game_Input_Device::Controller)
             {
                 Game_Input_Map* _in = game_input_map;
 
@@ -500,7 +500,7 @@ win32_process_input(Game_Input_Map* input_map, Game_Input_Map* input_map_prev)
 //WINDOW
 //TODO: MAYBE split out inputs and others into their own functions. wait til it becomes too much?
 internal void
-win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_input_map, bool32* global_is_running)
+win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_input_map, bool32* global_is_running, Typing_Buffer* typing_buffer)
 {
     MSG message;
     Game_Input_Map* in = game_input_map;
@@ -513,12 +513,11 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
             case WM_KEYDOWN:
             case WM_KEYUP:{
                 //device switch
-                if (game_input_map->game_input_device != Game_Input_Device::Keyboard_Mouse)
+                if (game_input_map->input_device != Game_Input_Device::Keyboard_Mouse)
                     if (game_code->input_change_device)
                         game_code->input_change_device(Game_Input_Device::Keyboard_Mouse, game_input_map);
 
                 uint32 vk_code = (uint32)message.wParam;
-
                 bool32 is_down = ((message.lParam & (1 << 31)) == 0);
                 bool32 was_down = ((message.lParam & (1 << 30)) != 0);
 
@@ -527,59 +526,108 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 key_data.is_down = is_down;
                 key_data.was_down = was_down;
                 
-                if (was_down != is_down)
+                if (in->input_mode == Input_Mode::Play)
                 {
-                    //game
-                    win32_key_check('W', in->up,    key_data);
-                    win32_key_check('S', in->down,  key_data);
-                    win32_key_check('A', in->left,  key_data);
-                    win32_key_check('D', in->right, key_data);
-                    win32_key_check(VK_SPACE, in->jump,  key_data);
-                    win32_key_check(VK_SHIFT, in->shoot,  key_data);
-
-                    //editor
-                    win32_key_check(VK_F12, in->edit_toggle, key_data);
-                    win32_key_check('S', in->edit_level_save, key_data);
-                    win32_key_check('L', in->edit_level_load, key_data);
-                    win32_key_check(VK_DELETE, in->edit_delete, key_data);
-
-                    //debug
-                    win32_key_check('R', in->reset,                     key_data);
-                    win32_key_check(VK_F1, in->debug_mode_toggle,       key_data);
-                    win32_key_check(VK_F8, in->debug_bgmode_toggle,     key_data);
-                    win32_key_check(VK_OEM_PLUS, in->debug_win_plus,    key_data);
-                    win32_key_check(VK_OEM_MINUS, in->debug_win_minus,  key_data);
-
-                    win32_key_check(VK_F5, in->debug_hotkey1,  key_data);
-                    win32_key_check(VK_F6, in->debug_hotkey2,  key_data);
-                    win32_key_check(VK_F7, in->debug_hotkey3,  key_data);
-
-                    //misc
-                    win32_key_check(VK_SPACE, in->space,    key_data);
-                    win32_key_check(VK_SHIFT, in->shift,    key_data);
-                    win32_key_check(VK_CONTROL, in->ctrl,   key_data);
-                    win32_key_check(VK_RETURN, in->enter,   key_data);
-                    win32_key_check(VK_ESCAPE, in->escape,  key_data);
-
-                    win32_key_check('0', in->num0,  key_data);
-                    win32_key_check('1', in->num1,  key_data);
-                    win32_key_check('2', in->num2,  key_data);
-                    win32_key_check('3', in->num3,  key_data);
-                    win32_key_check('4', in->num4,  key_data);
-                    win32_key_check('5', in->num5,  key_data);
-                    win32_key_check('6', in->num6,  key_data);
-                    win32_key_check('7', in->num7,  key_data);
-                    win32_key_check('8', in->num8,  key_data);
-                    win32_key_check('9', in->num9,  key_data);
-
+                    if (was_down != is_down)
+                    {
                     
-                    //Alt f4
-                    bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
+                        //game
+                        win32_key_check('W',      in->up,    key_data);
+                        win32_key_check('S',      in->down,  key_data);
+                        win32_key_check('A',      in->left,  key_data);
+                        win32_key_check('D',      in->right, key_data);
+                        win32_key_check(VK_SPACE, in->jump,  key_data);
+                        win32_key_check(VK_SHIFT, in->shoot, key_data);
+
+                        //editor
+                        win32_key_check(VK_F12,    in->edit_toggle,     key_data);
+                        win32_key_check('S',       in->edit_level_save, key_data);
+                        win32_key_check('L',       in->edit_level_load, key_data);
+                        win32_key_check(VK_DELETE, in->edit_delete,     key_data);
+
+                        //debug
+                        win32_key_check('R',          in->reset,               key_data);
+                        win32_key_check(VK_F1,        in->debug_mode_toggle,   key_data);
+                        win32_key_check(VK_F8,        in->debug_bgmode_toggle, key_data);
+                        win32_key_check(VK_OEM_PLUS,  in->debug_win_plus,      key_data);
+                        win32_key_check(VK_OEM_MINUS, in->debug_win_minus,     key_data);
+
+                        win32_key_check(VK_F5, in->debug_hotkey1,  key_data);
+                        win32_key_check(VK_F6, in->debug_hotkey2,  key_data);
+                        win32_key_check(VK_F7, in->debug_hotkey3,  key_data);
+
+                        //misc
+                        win32_key_check(VK_CONTROL, in->ctrl,    key_data);
+                        win32_key_check(VK_SHIFT,   in->shift,   key_data);
+                        win32_key_check(VK_MENU,    in->alt,      key_data);
+                        win32_key_check(VK_SPACE,   in->space,   key_data);
+                        win32_key_check(VK_RETURN,  in->enter,   key_data);
+                        win32_key_check(VK_ESCAPE,  in->escape,  key_data);
+                        win32_key_check(VK_OEM_3,   in->console, key_data);
+
+                        win32_key_check('0', in->num0,  key_data);
+                        win32_key_check('1', in->num1,  key_data);
+                        win32_key_check('2', in->num2,  key_data);
+                        win32_key_check('3', in->num3,  key_data);
+                        win32_key_check('4', in->num4,  key_data);
+                        win32_key_check('5', in->num5,  key_data);
+                        win32_key_check('6', in->num6,  key_data);
+                        win32_key_check('7', in->num7,  key_data);
+                        win32_key_check('8', in->num8,  key_data);
+                        win32_key_check('9', in->num9,  key_data);
+                    }
+                }
+                else if (in->input_mode == Input_Mode::Type)
+                {
+                    BYTE key_state[256];
+                    GetKeyboardState(key_state);
+                    WORD ascii_out[2];
+                    int ta_result = ToAscii(vk_code, (message.lParam >> 16) & 0xFF,
+                                            key_state, ascii_out, 0);
+
+                    if (was_down != is_down)
+                    {
+                        win32_key_check(VK_CONTROL, in->ctrl,    key_data);
+                        win32_key_check(VK_RETURN,  in->enter,   key_data);
+                        win32_key_check(VK_ESCAPE,  in->escape,  key_data);
+                        win32_key_check(VK_OEM_3,   in->console, key_data);                        
+                    }
+                    if (is_down)
+                    {
+                        //HACK: we are handling special keys explicitly for typing mode, but we might want to be more deliberate about this in the future
+                        if (ta_result > 0)
+                        { 
+                            u8 key = (u8)ascii_out[0];
+                            if (key == '\b' && typing_buffer->length > 0) //backspace
+                            {
+                                typing_buffer->length--;
+                                typing_buffer->items[typing_buffer->length] = 0;
+                            }
+                            else if (typing_buffer->length < TYPING_BUFFER_SIZE)
+                            {
+                                // if (vk_code == VK_RETURN) key = '\n';
+                                if (is_char_type(key, Char_Type::Printable))
+                                {
+                                    typing_buffer->items[typing_buffer->length] = key;
+                                    typing_buffer->length++;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                bool32 alt_hold = (message.lParam & (1 << 29)) != 0;
+                //Quitting
+                if (is_down)
+                {
                     if (alt_hold && vk_code == VK_F4)
                         *global_is_running = false;
                     if (vk_code == VK_ESCAPE)
                         *global_is_running = false;
+                        
                 }
+
+
             }break;
 
             case WM_MOUSEWHEEL:{

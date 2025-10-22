@@ -52,3 +52,8 @@ void draw_text_buffer(Vec2f pos, Vec2f scale, Vec2f spacing, const char* fmt, ..
     
 //     draw_text(buffer, pos, scale, spacing);
 // }
+
+
+
+//DEPRECATED:
+// void draw_text_old(const char* text, Vec2f pos, Vec2f scale = {1, 1}, Vec2 spacing = {5, 8})

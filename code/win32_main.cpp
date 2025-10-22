@@ -201,26 +201,31 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
             Game_Input_Map game_input_map = {};
             Game_Input_Map game_input_map_prev = {};
+            game_input_map.input_mode = Input_Mode::Play;
+
             
             if (game_memory.permanent_storage && game_memory.transient_storage)
             {
                 Win32_Game_Code game_code = win32_load_game_code(dll_path, dll_temp_path);
-                Game_Render_Buffer game_render_buffer = {};
-                Game_Performance game_performance = {};
-                Game_Settings settings; //REQUIRED: do NOT 0-init
-                Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
-
-                Game_Sound_Buffer game_sound_buffer = {};
-                game_sound_buffer.channels = SND_CHANNELS;
-                game_sound_buffer.sample_rate = SND_SAMPLE_RATE;
-                // game_sound_buffer.memory = ;
-                
                 Win32_Sleep_Data sleep_data = {};
                 sleep_data.estimate = 5e-3;
                 sleep_data.mean = 5e-3;
                 sleep_data.m2 = 0;
                 sleep_data.count = 1;
-
+                
+                Game_Render_Buffer game_render_buffer = {};
+                Game_Performance game_performance = {};
+                Game_Settings settings; //REQUIRED: do NOT 0-init
+                Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
+                
+                Game_Sound_Buffer game_sound_buffer = {};
+                game_sound_buffer.channels = SND_CHANNELS;
+                game_sound_buffer.sample_rate = SND_SAMPLE_RATE;
+                // game_sound_buffer.memory = ;
+                
+                Typing_Buffer typing_buffer = {};
+                typing_buffer.max_length = TYPING_BUFFER_SIZE;
+                
                 Game_Pointers game_pointers_value = {};
                 game_pointers_value.memory   = &game_memory;
                 game_pointers_value.render   = &game_render_buffer;
@@ -232,6 +237,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers_value.entity = &game_pointers_value.data->entity;
                 game_pointers_value.sprite = &game_pointers_value.data->sprites;
                 game_pointers_value.player = &game_pointers_value.data->entity.player;
+                game_pointers_value.typing = &typing_buffer;
                 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
@@ -265,7 +271,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 //INPUT
                     game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
-                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running);
+                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running, &typing_buffer);
                     win32_process_input(&game_input_map, &game_input_map_prev);
                     Game_Input_Map input = game_input_map;
 
@@ -299,7 +305,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 //GAME LOOP
                     ZeroMemory(game_render_buffer.memory, Global_Render_Buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
-                        game_code.update_and_draw(&game_pointers_value, game_input_map);
+                        game_code.update_and_draw(&game_pointers_value, &game_input_map);
 
                     int64 tick_game_update = win32_get_tick_diff(tick_loop_start);
                     int64 cycle_game_update = __rdtsc() - cycle_loop_start;

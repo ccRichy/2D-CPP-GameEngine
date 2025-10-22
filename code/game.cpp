@@ -194,206 +194,17 @@ im_hot()
 
 
 
-//Editor
-globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
-globalvar Entity* global_editor_selected_entity = nullptr;
 
-Entity*
-entity_spawn(Ent_Type type, Vec2f pos)
-{
-    Entity* result = nullptr;
-
-    switch (type)
-    {
-        case Ent_Type::Player:         player_create(pos); break;
-        case Ent_Type::Enemy: result = enemy_create(pos); break;
-        case Ent_Type::Wall:  result = wall_create(pos, {Tile(1), Tile(1)}); break;
-    }
-
-    return result;
-}
-
-
-Entity* editor_select_entity()
-{
-    Entity* result = nullptr;
-    Entity* array = pointers->entity->array;
-    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
-    {
-        Entity* ent = &array[ent_index];
-        if (!ent->is_alive) continue;
-        
-        V2f pos = mouse_get_pos_world();
-        if (collide_pixel_rect(pos, ent->pos, ent->size))
-            result = ent;
-    }
-    return result;
-}
-void editor_draw_selected()
-{
-    Entity* ent_hl = global_editor_selected_entity;
-    if (!ent_hl) return;
-    
-    int32 alpha = 150;
-    
-    Color color = GREEN;
-    color.a = (u8)alpha;
-    draw_rect(ent_hl->pos, ent_hl->size, color);
-}
-
-
+//tilemap
 void
-editor_save_scene(const char* filename)
+tilemap_clear_all(Tilemap* tmap)
 {
-    char buffer[2048] = {};
-
-    
-    //save tilemap
-    string_append(buffer, "Tiles\n");
-    Tilemap* tmap = &pointers->data->tilemap;
-    int32* grid = (int32*)&tmap->grid;
-    for (int Y = 0; Y < tmap->grid_h; ++Y)
-    {
-        for (int X = 0; X < tmap->grid_w; ++X)
-        {
-            char tile_string[64];
-            int32* tile = &tmap->grid[Y][X];
-            if (*tile)
-            {
-                sprintf(tile_string, "t%i x%i y%i, ",
-                        *tile, X, Y
-                );
-
-                //append
-                string_append(buffer, tile_string);
-                char newl[] = "\n";
-            }
-        }
+    i32 length = tmap->grid_w * tmap->grid_h;
+    i32* tiles = (i32*)tmap->grid;
+    for (int i = 0; i < length; ++i){
+        tiles[i] = 0;
     }
-
-    string_append(buffer, "\n!");
-    
-    //save entities
-    Entity* array = pointers->entity->array;
-    for (int entity_index = 0; entity_index < ENT_MAX; ++entity_index)
-    {
-        Entity* entity = &array[entity_index];
-        if (entity->is_alive){
-            char ent_string[64];
-            sprintf(ent_string, "e%i x%i y%i w%i h%i \n",
-                    (int32)entity->type,
-                    (int32)entity->pos.x,
-                    (int32)entity->pos.y,
-                    (int32)entity->size.x,
-                    (int32)entity->size.y
-            );
-            
-            //append
-            string_append(buffer, ent_string);
-        }
-    }
-
-    string_append(buffer, "!");
-    
-    pointers->memory->DEBUG_platform_file_write_entire(filename, string_length(buffer), &buffer);
-    debug_message("Level Saved: \"%s\"", filename);
 }
-void editor_load_scene(const char* filename)
-{
-    debug_message("Level Loaded: \"%s\"", filename);
-    
-    entity_clear_all();    
-    player_create({40, 40}); //HACK:
-    
-    //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-    char* file_mem = (char*)file.memory;
-
-    b32 is_loading_tiles = true;
-    b32 is_loading_entities = false;
-    
-    i32 tile_value = {};
-    V2i tile_pos = {};
-    
-    Ent_Type type = Ent_Type::Null;
-    V2f pos = {};
-    V2f size = {};
-    char value_string[64] = {};
-
-    u32 beginning_of_statement_index = 0;
-    u32 end_of_statement_index = 0;
-    
-    
-    char word_buffer[64] = {};
-    i32 file_mem_offset = 0;
-    while ( !string_contains(word_buffer, '!') )
-    {
-        i32 str_len = string_get_until_space(word_buffer, file_mem + file_mem_offset);
-
-        if (file_mem[file_mem_offset] == 't')
-            tile_value = string_get_i32(word_buffer);
-        if (file_mem[file_mem_offset] == 'x')
-            tile_pos.x = string_get_i32(word_buffer);
-        if (file_mem[file_mem_offset] == 'y')
-            tile_pos.y = string_get_i32(word_buffer);
-
-        file_mem_offset += str_len+1;
-        
-        if (string_contains(word_buffer, ',')) //end of single tile read
-        {
-            pointers->data->tilemap.grid[tile_pos.y][tile_pos.x] = tile_value;
-        }
-    }
-    // for (uint32 char_index = 0; char_index < LOOP_MAX; ++char_index)
-    // {
-    //     char c = file_mem[char_index];
-
-    //     if (c == ' ') //end of statement
-    //     {
-    //         end_of_statement_index = char_index;
-            
-    //         //get value
-    //         u32 value_length = end_of_statement_index - beginning_of_statement_index;
-    //         for (u32 statement_index = 0;
-    //              statement_index < value_length;
-    //              ++statement_index)
-    //         {
-    //             char cs = file_mem[statement_index + beginning_of_statement_index];
-    //             value_string[statement_index] = cs;
-    //         }
-    //         value_string[value_length] = 0; //null terminate string 
-    //         i32 value = string_get_i32(value_string);
-            
-    //         //get which value it is
-    //         auto var = file_mem[beginning_of_statement_index];
-    //         switch (var)
-    //         {
-    //             case 'e': type   = (Ent_Type)value; break;
-    //             case 'x': pos.x  = (f32)value; break;
-    //             case 'y': pos.y  = (f32)value; break;
-    //             case 'w': size.x = (f32)value; break;
-    //             case 'h': size.y = (f32)value; break;
-    //         }            
-            
-    //         beginning_of_statement_index = char_index+1;
-
-    //     }        
-    //     else if (c == '\n') //end of line
-    //     {
-    //         Entity* entity_spawned = entity_spawn(type, pos);
-    //         entity_spawned->size = size; //HACK:
-    //     }
-    //     else if (c == '!') //end of file
-    //     {
-    //         break;
-    //     }
-    // }
-    //post-loop
-}
-
-
-
-
 
 inline int32
 tilemap_get_grid_x(Tilemap* tmap, float32 x)
@@ -622,10 +433,245 @@ move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size)
 
 
 
+
+//Editor
+globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
+globalvar Entity* global_editor_selected_entity = nullptr;
+
+Entity*
+entity_spawn(Ent_Type type, Vec2f pos)
+{
+    Entity* result = nullptr;
+
+    switch (type)
+    {
+        case Ent_Type::Player:         player_create(pos); break;
+        case Ent_Type::Enemy: result = enemy_create(pos); break;
+        case Ent_Type::Wall:  result = wall_create(pos, {Tile(1), Tile(1)}); break;
+    }
+
+    return result;
+}
+
+Entity* entity_at_pos(Vec2f pos)
+{
+    Entity* result = nullptr;
+    Entity* array = pointers->entity->array;
+    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
+    {
+        Entity* ent = &array[ent_index];
+        if (!ent->is_alive) continue;
+        if (collide_pixel_rect(pos, ent->pos, ent->size))
+            result = ent;
+    }
+    return result;    
+}
+
+Entity* entity_at_mouse_pos()
+{
+    Entity* result = entity_at_pos(mouse_get_pos_world());
+    return result;
+}
+void editor_draw_selected()
+{
+    Entity* ent_hl = global_editor_selected_entity;
+    if (!ent_hl) return;
+    
+    int32 alpha = 150;
+    
+    Color color = GREEN;
+    color.a = (u8)alpha;
+    draw_rect(ent_hl->pos, ent_hl->size, color);
+}
+
+
+void
+editor_save_level(const char* filename)
+{
+    char buffer[2048] = {};
+
+    //player
+    Player* player = pointers->player;
+    string_append(buffer, "Player\n");
+    char player_string[64];
+    sprintf(player_string, "p x%i y%i\n",
+            (i32)player->pos.x, (i32)player->pos.y
+    );
+    string_append(buffer, player_string);
+    string_append(buffer, "!\n\n");
+    
+    //tilemap
+    string_append(buffer, "Tiles\n");
+    Tilemap* tmap = &pointers->data->tilemap;
+    int32* grid = (int32*)&tmap->grid;
+    for (int Y = 0; Y < tmap->grid_h; ++Y)
+    {
+        for (int X = 0; X < tmap->grid_w; ++X)
+        {
+            char tile_string[64];
+            int32* tile = &tmap->grid[Y][X];
+            if (*tile)
+            {
+                sprintf(tile_string, "t%i x%i y%i, ",
+                        *tile, X, Y
+                );
+
+                //append
+                string_append(buffer, tile_string);
+            }
+        }
+    }
+    string_append(buffer, "\n!\n\n");
+    
+    //entities
+    string_append(buffer, "Entities\n");
+    Entity* array = pointers->entity->array;
+    for (int entity_index = 0; entity_index < ENT_MAX; ++entity_index)
+    {
+        Entity* entity = &array[entity_index];
+        if (entity->is_alive){
+            char ent_string[64];
+            sprintf(ent_string, "e%i x%i y%i w%i h%i,\n",
+                    (int32)entity->type,
+                    (int32)entity->pos.x,
+                    (int32)entity->pos.y,
+                    (int32)entity->size.x,
+                    (int32)entity->size.y
+            );
+            
+            //append
+            string_append(buffer, ent_string);
+        }
+    }
+    string_append(buffer, "!");
+    
+    pointers->memory->DEBUG_platform_file_write_entire(filename, string_length(buffer), &buffer);
+    debug_message("Level Saved: \"%s\"", filename);
+}
+void editor_load_level(const char* filename)
+{
+    
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory)
+    {
+        debug_message("Level couldn't load: \"%s\" doesn't exist", filename);
+        return;
+    }
+    char* file_mem = (char*)file.memory;
+
+    //clear data
+    Tilemap* tmap = &pointers->data->tilemap;
+    entity_clear_all();
+    tilemap_clear_all(tmap);
+
+    
+    V2i player_pos = {};
+
+    i32 tile_value = 0;
+    V2i tile_pos = {};
+    
+    Ent_Type ent_type = Ent_Type::Null;
+    V2f ent_pos = {};
+    V2f ent_size = {};
+    char value_string[64] = {};
+    
+    i32 buff_len = 0;
+    i32 buff_offset = 0;
+    i32 file_mem_offset = 0;
+    char word_buffer[64] = {};
+
+    //PLAYER
+    char player_buff[64] = {};
+    buff_len = string_get_until_delimiter(player_buff, file_mem, '!');
+    while ( buff_offset < buff_len )
+    {
+        i32 word_len = string_get_until_space(word_buffer, &player_buff[buff_offset]);
+
+        if (word_buffer[0] == 'x')
+            player_pos.x = string_get_i32(word_buffer);
+        else if (word_buffer[0] == 'y')
+            player_pos.y = string_get_i32(word_buffer);
+
+        buff_offset += word_len+1;
+    }
+    player_create(v2i_to_v2f(player_pos));
+    file_mem_offset += buff_len;
+    buff_offset = 0;
+
+
+    //TILES
+    char tiles_buff[1024] = {};
+    buff_len = string_get_until_delimiter(tiles_buff, file_mem + file_mem_offset, '!');
+
+    while ( buff_offset < buff_len )
+    {
+        i32 word_len = string_get_until_space(word_buffer, tiles_buff + buff_offset);
+
+        auto var = word_buffer[0];
+        i32 value = string_get_i32(word_buffer);
+        switch (var)
+        {
+            case 't': tile_value = value; break;
+            case 'x': tile_pos.x = value; break;
+            case 'y': tile_pos.y = value; break;
+        }
+
+        buff_offset += word_len+1;
+        
+        if (string_contains(word_buffer, ',')) //end of single tile read
+        {
+            tmap->grid[tile_pos.y][tile_pos.x] = tile_value;
+        }
+    }
+    file_mem_offset += buff_len;
+    buff_offset = 0;
+
+
+    //ENTITY
+    char entity_buff[1024];
+    buff_len = string_get_until_delimiter(entity_buff, file_mem + file_mem_offset, '!');
+    while ( buff_offset < buff_len )
+    {
+        i32 word_len = string_get_until_space(word_buffer, entity_buff + buff_offset);
+
+        auto var = word_buffer[0];
+        i32 value = string_get_i32(word_buffer);
+        switch (var)
+        {
+            case 'e': ent_type   = (Ent_Type)value; break;
+            case 'x': ent_pos.x  = (f32)value; break;
+            case 'y': ent_pos.y  = (f32)value; break;
+            case 'w': ent_size.x = (f32)value; break;
+            case 'h': ent_size.y = (f32)value; break;
+        }            
+
+        buff_offset += word_len+1;
+
+        if (string_contains(word_buffer, ',')) //end of single entity
+        {
+            Entity* entity_spawned = entity_spawn(ent_type, ent_pos);
+            entity_spawned->size = ent_size; //HACK:
+        }
+    }
+
+    //change current level string
+    pointers->data->level_current[0] = 0; //HACK: zero out first character so string_append will overwrite the original
+    string_append(pointers->data->level_current, LEVEL_FIRST);
+    // pointers->data->level_current
+    debug_message("Level Loaded: \"%s\"", filename);
+}
+
+
+
+
+
+
+
 extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
 { //TODO: this should most likely be platform code
-    *input_map = {};
-    input_map->game_input_device = input_device_current;
+    input_map_clear_all(input_map);
+    input_map->input_device = input_device_current;
 }
 
 
@@ -644,7 +690,7 @@ game_initialize(Game_Pointers* _game_pointers)
     Game_Settings*  settings = pointers->settings;
     Game_Input_Map* input    = pointers->input;
 
-    //add Entity names into Data struct
+    //add Entity names into Data struct //HACK:
     for (int i = 0; i < array_length(entity->names); ++i)
     {
         entity->names[i] = global_ent_names[i];
@@ -735,65 +781,70 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_Entities* entity   = &data->entity;
     Player*        player   = &entity->player;
     Tilemap* tmap = &data->tilemap;
+    Game_State state = data->state;
+    Editor_Mode edit_mode = data->editor_mode;
+    Typing_Buffer* typing =    pointers->typing;
 
     
     //UPDATE (early)
     camera_zoom();
-    if (input.reset)
+    if (input->reset)
         player->pos = {BASE_W/2, 0};
-    if (input.debug_mode_toggle)
+    if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
     
-
-    
     //STATE UPDATE
-    if (data->state == Game_State::Edit)
+    if (state == Game_State::Edit)
     {
-        if (input.edit_toggle){
+        if (input->edit_toggle){
             data->state = Game_State::Play;
             debug_message("Game State: Play");
         }
 
-        if (input.ctrl.hold && input.edit_level_save)
-            editor_save_scene("testy_too.lvl");
-        if (input.ctrl.hold && input.edit_level_load)
-            editor_load_scene("testy_too.lvl");
+        if (input->ctrl.hold && input->edit_level_save)
+            editor_save_level("testy_too.lvl");
+        if (input->ctrl.hold && input->edit_level_load)
+            editor_load_level("testy_too.lvl");
 
 
-        if (data->editor_mode == Editor_Mode::Entity)
+        if (edit_mode == Editor_Mode::Entity)
         {
             //DEBUG Entity Editor Functions
-            //select entity
             if (!im_hot())
             {
-                if (input.mouse_left)
-                    global_editor_selected_entity = editor_select_entity();
-                //spawn entity
-                if (input.mouse_right.release)
+                if (input->mouse_left)
                 {
-                    Vec2f mouse_pos_world = mouse_get_pos_world();
-                    Vec2f pos_spawn = {round_f32(mouse_pos_world.x), round_f32(mouse_pos_world.y)};
-                    if (input.shift.hold)
-                        pos_spawn = mouse_get_pos_world_tile();
+                    if (input->alt.hold)
+                    {
+                        Vec2f mouse_pos_world = mouse_get_pos_world();
+                        Vec2f pos_spawn = {round_f32(mouse_pos_world.x), round_f32(mouse_pos_world.y)};
+                        if (input->shift.hold)
+                            pos_spawn = mouse_get_pos_world_tile();
             
-                    entity_spawn(global_editor_entity_to_spawn, pos_spawn);
+                        entity_spawn(global_editor_entity_to_spawn, pos_spawn);
+                    
+                    }
+                    else
+                    {
+                        global_editor_selected_entity = entity_at_mouse_pos();
+                    }
                 }
             }
             //delete entity from room
-            if (input.edit_delete){
+            if (input->mouse_right.release){
                 entity_destroy(global_editor_selected_entity);
                 global_editor_selected_entity = nullptr;
             }            
         }
-        else if (data->editor_mode == Editor_Mode::Tile)
+        else if (edit_mode == Editor_Mode::Tile)
         {
             if (!im_hot())
             {
                 //set tiles with mouse
-                if (input.mouse_left.hold){
+                if (input->mouse_left.hold){
                     tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);
                 }
-                if (input.mouse_right.hold){
+                if (input->mouse_right.hold){
                     tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 0);
                 }
             }
@@ -802,10 +853,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
         
       //Camera
-        float32 cam_speed = (input.shift.hold ? 4.f : 2.f);
+        float32 cam_speed = (input->shift.hold ? 4.f : 2.f);
         Vec2f move_input =
-            {(float32)(input.right.hold - input.left.hold) / GAME_SETTINGS->zoom_scale,
-             (float32)(input.down.hold - input.up.hold) / GAME_SETTINGS->zoom_scale};
+            {(float32)(input->right.hold - input->left.hold) / GAME_SETTINGS->zoom_scale,
+             (float32)(input->down.hold - input->up.hold) / GAME_SETTINGS->zoom_scale};
         data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
         
       //Draw coords
@@ -830,10 +881,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         }
         
     }
-    else if (data->state == Game_State::Play)
+    else if (state == Game_State::Play)
     {
         //controls
-        if (input.edit_toggle){
+        if (input->edit_toggle){
             data->state = Game_State::Edit;
             debug_message("Game State: Editor");
         }
@@ -920,100 +971,51 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
                              ,perf->megacycles_frame);
         }
 
+
+        //TODO:
+        //- show typing cursor
+        //- handle commands
+        //- render little console window
+        
+        //draw typing buffer
+        if (input->console.press)
+            input_set_mode(input, Input_Mode::Type);
+
+        if (input->input_mode == Input_Mode::Type)
+        {
+            V2f console_pos = {50, 50};
+            draw_rect(console_pos, {BASE_W, 10}, MAGENTA);
+            draw_text(typing->items, console_pos);
+            if (input->enter.press) //parse
+            {
+                char cmd_buff[64];
+                i32 args_index = 1 + string_get_until_space(cmd_buff, typing->items);
+
+                
+                switch (cmd_buff)
+                {
+                    case value:{
+                        
+                    }break;
+                }
+                if (string_equals(cmd_buff, "level"))
+                {
+                    //load level
+                    char args_buff[64];
+                    string_get_until_space(args_buff, &typing->items[args_index]);
+                    editor_load_level(args_buff);
+                }
+                
+                //reset
+                for (int i = 0; i < typing->length; ++i){
+                    typing->items[i] = 0;
+                }
+                typing->length = 0;
+                input_set_mode(input, Input_Mode::Play);
+            }
+        }
+        
         //draw mouse
-        draw_sprite_frame(&sprite->sMouse_cursors, input.mouse_pos_gui, 0);
-
-        // //tile collision test
-        // V2f m_pos = mouse_get_pos_world();
-        // V2f m_scale = {8, 8};
-        // Color col = GREEN;
-        // if (collide_rect_tilemap(m_pos, m_scale, tmap)) col = RED;
-        // draw_rect(mouse_get_pos_gui(), m_scale, col);
-
-
-        // //old cursor
-        // draw_rect(input.mouse_pos_gui + Vec2f{1, 1}, {2, 2}, MAGENTA);
-        // draw_rect(input.mouse_pos_gui, {1, 1}, LIME);
+        draw_sprite_frame(&sprite->sMouse_cursors, input->mouse_pos_gui, 0);
     }
 }
-
-
-
-
-
-
-
-//EXTRA
-// internal void
-// render_weird_gradient(Game_Render_Buffer* buffer, int blue_offset, int green_offset)
-// {
-//     uint8* row = (uint8*)buffer->memory; //type = separation
-    
-//     for (int Y = 0; Y < buffer->height; ++Y)
-//     {
-//         uint8* pixel = (uint8*)row; //reference to individal pixel 0xBBGRRXX //endian
-//         for (int X = 0; X < buffer->width; ++X)
-//         {
-//             *pixel = (uint8)(X%2 + blue_offset);
-//             pixel++;
-
-//             *pixel = (uint8)(Y + green_offset);
-//             pixel++;
-
-//             *pixel = 0;
-//             pixel++;
-
-//             *pixel = 0;
-//             pixel++;
-//         }
-
-//         row += buffer->pitch;
-//     }
-// }
-
-
-
-// void
-// draw_text_old(const char* text, Vec2f pos, Vec2f scale = {1, 1}, Vec2 spacing = {5, 8})
-// {
-//     BMP_File* font_image = game_pointers->data->sFont_ASCII_lilliput;
-//     int32 frame_size = font_image->height;
-//     float32 drawx_offset = 0; //exists for us to handle the position simply
-//     int32 loop_length = string_length(text);
-//     for (int i = 0; i < loop_length; ++i)
-//     {
-//         char frame = text[i];
-//         if (frame == '\n')
-//         {
-//             pos.y += (spacing.y * scale.y);
-//             drawx_offset = 0;
-//             continue;
-//         }
-
-//         char frame_offset = frame - FONT_ASCII_CHARACTER_START_OFFSET;
-//         draw_bmp_part(font_image,
-//                       {pos.x + drawx_offset, pos.y}, //area_pos
-//                       {scale.x, scale.y},            //overall scale
-//                       frame_offset * frame_size, 0, //pos on image
-//                       frame_size, frame_size);      //size to draw
-        
-//         drawx_offset += (spacing.x * scale.x);
-//     }    
-// }
-
-
-
-
-
-
-// #if MY_WIN32
-// #include <windows.h>
-// BOOL WINAPI DllMain(
-//   HINSTANCE hinstDLL,
-//   DWORD     fdwReason,
-//   LPVOID    lpvReserved
-// )
-// {
-//     return TRUE;
-// }
-// #endif

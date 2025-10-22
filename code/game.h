@@ -9,7 +9,8 @@
 
 
 
-#define LEVEL_FIRST "test.lvl"
+#define LEVEL_FIRST "first.lvl"
+#define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
 #define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
 
@@ -20,6 +21,12 @@
 #define GAME_STATE_DEFAULT Game_State::Edit
 #define GAME_DRAW_MODE_DEFAULT Draw_Mode::World
 #define GAME_EDITOR_MODE_DEFAULT Editor_Mode::Entity
+
+#define TILE_SIZE 8
+#define TILEMAP_W 32
+#define TILEMAP_H 32
+#define Tile(value) (value * TILE_SIZE)
+
 
 
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
@@ -40,34 +47,6 @@ struct Debug_Message_Queue
     Vec2f scale;
     Debug_Message current_message;
 };
-
-
-enum struct Editor_Mode
-{
-    Entity,
-    Tile,
-    Num
-};
-
-
-//tile
-#define TILE_SIZE 8
-#define Tile(value) (value * TILE_SIZE)
-
-#define TILEMAP_W 32
-#define TILEMAP_H 32
-
-struct Tilemap
-{
-    Vec2f pos;
-    int32 grid_w;
-    int32 grid_h;
-    int32 tile_w;
-    int32 tile_h;
-    int32 grid[TILEMAP_H][TILEMAP_W];
-};
-
-
 
 
 
@@ -95,6 +74,24 @@ enum struct Draw_Mode{
     Gui
 };
 
+enum struct Editor_Mode
+{
+    Entity,
+    Tile,
+    Num
+};
+
+
+
+struct Tilemap
+{
+    Vec2f pos;
+    int32 grid_w;
+    int32 grid_h;
+    int32 tile_w;
+    int32 tile_h;
+    int32 grid[TILEMAP_H][TILEMAP_W];
+};
 struct Game_Entities
 {
     Player player;
@@ -141,24 +138,30 @@ struct Game_Sprites
 };
 struct Game_Data
 {
-    //TODO: Game_Camera
+    //settings
     Game_State state;
     Draw_Mode draw_mode;
     Editor_Mode editor_mode;
+
+    //systems
     Debug_Message_Queue debug_msg;
-    
+
+    //resources
     Game_Sprites sprites;
+
+    //world
+    char level_current[LEVEL_NAME_MAX_LEN];
     Game_Entities entity;
     Tilemap tilemap;
 
-    //random data
+    
+    //misc //TODO: factor out/move
     bool32 debug_mode_enabled;
     Vec2f camera_pos;
     float32 camera_yoffset_extra;
     Vec2f camera_pos_offset_default;
     Vec2f camera_pos_offset;
     
-    //misc //TODO: move these
     BMP_Data sTest;
     BMP_Data sTest_wide;
     BMP_Data sMan;
@@ -171,12 +174,10 @@ struct Game_Data
     Font font_test;
 };
 
-struct Game_Settings //REQUIRED: give members default value
+struct Game_Settings //REQUIRED: do not 0 init this struct
 {
-    //TODO: move into game_data //it may not qualifty as game data once the progam is more complex,
-                                //but its DEFINITELY not a SETTING
-    float32 window_scale = 4.0f;
-    float32 zoom_scale = 1.0f;
+    float32 window_scale = 4.0f; //doesnt exactly qualify as a "setting"
+    float32 zoom_scale = 1.0f;   //should probably exist in the camera object
 };
 struct Game_Performance //TODO: averages
 {
@@ -198,11 +199,12 @@ struct Game_Pointers //just all the fuckin data
     Game_Memory*        memory;
     Game_Render_Buffer* render;
     Game_Sound_Buffer*  sound;
-    Game_Settings*      settings;
     Game_Input_Map*     input;
     Game_Performance*   performance;
+    Game_Settings*      settings;
     Game_Data*          data;
     Game_Entities*      entity;
     Game_Sprites*       sprite;
     Player*             player;
+    Typing_Buffer*      typing;
 };

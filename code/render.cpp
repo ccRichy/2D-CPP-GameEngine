@@ -583,6 +583,7 @@ draw_sprite_frame(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 
 
 
 
+
 // void
 // draw_bmp_pixels(BMP_Data* bmp, Vec2f pos)
 // {
@@ -601,5 +602,36 @@ draw_sprite_frame(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 
 //         if (xoffset >= bmp->width-1)
 //             pos.y -= 1;
 //         bitmap_pixel++;
+//     }
+// }
+
+
+
+
+//EXTRA
+// internal void
+// render_weird_gradient(Game_Render_Buffer* buffer, int blue_offset, int green_offset)
+// {
+//     uint8* row = (uint8*)buffer->memory; //type = separation
+    
+//     for (int Y = 0; Y < buffer->height; ++Y)
+//     {
+//         uint8* pixel = (uint8*)row; //reference to individal pixel 0xBBGRRXX //endian
+//         for (int X = 0; X < buffer->width; ++X)
+//         {
+//             *pixel = (uint8)(X%2 + blue_offset);
+//             pixel++;
+
+//             *pixel = (uint8)(Y + green_offset);
+//             pixel++;
+
+//             *pixel = 0;
+//             pixel++;
+
+//             *pixel = 0;
+//             pixel++;
+//         }
+
+//         row += buffer->pitch;
 //     }
 // }

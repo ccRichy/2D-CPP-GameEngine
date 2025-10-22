@@ -1,21 +1,59 @@
 #include "my_string.h"
 
 
+
+
 #define LOOP_MAX 1024 //NOTE: increase this number as needed
+
+
+
 
 //special
 inline bool32
-is_char_num(char character)
+is_char_num(char c)
 {
-    bool32 result = (character >= '0' && character <= '9');
+    bool32 result = (c >= '0' && c <= '9');
+    return result;
+}
+inline bool32
+is_char_type(char c, Char_Type type)
+{
+    bool32 result = false;
+    switch (type)
+    {
+        case Char_Type::Number:{
+            result = (c >= '0' && c <= '9');
+        }break;
+        case Char_Type::Math:{
+            result = (c >= '0' && c <= '9') ||
+                     (c == '%') || (c == '(') || (c == ')') || (c == '*') ||
+                     (c == '+') || (c == '-') || (c == '<') || (c == '=') || (c == '>');
+        }break;
+        case Char_Type::Letter:{
+            result = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+        }break;
+        case Char_Type::Alphanumeric:{
+            result = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+                     (c >= '0' && c <= '9');
+        }break;
+        case Char_Type::Printable:{
+            result = (c >= ' ' && c <= '~');
+        }break;
+        case Char_Type::Whitespace:{
+            result = (c == ' ') || (c == '\n') || (c == '\t') || (c == '\r');
+        }break;
+        case Char_Type::Visible:{
+            result = (c >= ' ' && c <= '~') || (c == '\n') || (c == '\t') || (c == '\r');
+        }break;
+    }
     return result;
 }
 
 
 void string_append(char* charbuff, char* string_to_append)
 {
-    int32 index_append_pos = string_length(charbuff); //asumes 0
-    int32 loop_amt = string_length(string_to_append); //asumes 0
+    int32 index_append_pos = string_length(charbuff); 
+    int32 loop_amt = string_length(string_to_append);
     for (int char_index = 0; char_index < loop_amt; ++char_index)
     {
         charbuff[char_index + index_append_pos] = string_to_append[char_index];
@@ -23,8 +61,8 @@ void string_append(char* charbuff, char* string_to_append)
 }
 void string_append(char* charbuff, const char* string_to_append)
 {
-    int32 index_append_pos = string_length(charbuff); //asumes 0
-    int32 loop_amt = string_length(string_to_append); //asumes 0
+    int32 index_append_pos = string_length(charbuff);
+    int32 loop_amt = string_length(string_to_append);
     for (int char_index = 0; char_index < loop_amt; ++char_index)
     {
         charbuff[char_index + index_append_pos] = string_to_append[char_index];
@@ -114,6 +152,35 @@ bool32 string_contains(char* string, char character)
     }
     while( ch != 0 );
 
+    return result;
+}
+bool32 string_contains_string(char* string1, char* string2)
+{
+    b32 result = false;
+    char first_char_of_check = string2[0];
+    i32 length1 = string_length(string1);
+    i32 length2 = string_length(string2);
+    if (length2 <= length1)
+    {
+        for (int string1_index = 0; string1_index < length1; ++string1_index)
+        {
+            if (string1[string1_index] == first_char_of_check)
+            {
+                for (int string2_index = 0; string2_index < length2; ++string2_index)
+                {
+                    i32 real_index = string1_index + string2_index;
+
+                    if (string1[real_index] != string2[string2_index])
+                        break;
+                    if (string2_index == length2-1)
+                        result = true;
+                }
+            }
+            if (result)
+                break;
+        }
+    }
+    
     return result;
 }
 
