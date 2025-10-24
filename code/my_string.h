@@ -6,6 +6,12 @@
 
 #define To_String(x) #x
 
+// #define String_Clear(string)  \
+// int __iteration = 0;          \
+// while (string[__iteration]){   \
+//     string[__iteration] = 0;  \
+//     ++count;                  \     
+// }                             
 
 
 
@@ -44,6 +50,8 @@ bool32 string_equals(const char* string1, char* string2);
 //return string length
 int32 string_get_until_delimiter(char* buffer, char* string_start, char delimiter);
 int32 string_get_until_space(char* buffer, char* string_start);
+
+void string_clear(char* string);
 
 int32 string_get_i32(const char* string);
 // float32 string_get_f32(const char* string);

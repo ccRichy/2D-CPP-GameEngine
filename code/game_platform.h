@@ -16,8 +16,9 @@
 #endif
 
 
-#define GAME_MEMORY_MB_PERMANENT 8
-#define GAME_MEMORY_MB_TRANSIENT 16
+#define GAME_MEMORY_MB_PERMANENT  8
+#define GAME_MEMORY_MB_TRANSIENT  16
+#define SAVE_FILE_BUFFER_MB       10
 
 #define SND_CHANNELS          2
 #define SND_SAMPLE_RATE       44100

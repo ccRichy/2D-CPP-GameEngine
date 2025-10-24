@@ -60,40 +60,8 @@ void debug_message_queue_update()
 
 
 
-void
-level_save_state(const char* filename) //this dumps the whole ass raw memory
-{
-    if (GMEMORY->DEBUG_platform_file_write_entire)
-        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Tilemap), &pointers->data->tilemap);
-    debug_message("level state saved: \"%s\"?", filename);
-}
-void
-level_load_state(const char* filename) //trying to load old versions is likely to break
-{
-    //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-    if (!file.memory)
-    {
-        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
-    }
-    else
-    {
-        Tilemap* tilemap = (Tilemap*)file.memory;
-        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
-
-        // pointers->entity = (Tilemap)file.memory;
-        debug_message("level state loaded: \"%s\"?", filename);
-    }
-}
 
 
-void
-level_load(const char* filename, Game_Pointers game_pointers)
-{
-    DEBUG_File level = game_pointers.memory->DEBUG_platform_file_read_entire(filename);
-    *game_pointers.entity = *(Game_Entities*)level.memory;
-    // game_pointers.data->level_current = filename;
-}
 
 
 
@@ -495,7 +463,6 @@ move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size)
 
 
 
-
 //Editor
 globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
 globalvar Entity* global_editor_selected_entity = nullptr;
@@ -546,15 +513,50 @@ void editor_draw_selected()
     draw_rect(ent_hl->pos, ent_hl->size, color);
 }
 
-// struct String_Builder
-// {
-//     void* string;
-//     int32 size_bytes;
-// };
 
-#define SAVE_FILE_SIZE (Megabytes(10))
+
+
+
+
+
+void 
+level_clear()
+{
+    entity_clear_all();
+    tilemap_clear_all(&pointers->data->tilemap);
+    player_create({BASE_W/2, BASE_H/2});
+};
+
+
+void
+level_save_state(const char* filename) //this dumps the whole ass raw memory
+{
+    if (GMEMORY->DEBUG_platform_file_write_entire)
+        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Tilemap), &pointers->data->tilemap);
+    debug_message("level state saved: \"%s\"?", filename);
+}
+void
+level_load_state(const char* filename) //trying to load old versions is likely to break
+{
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory)
+    {
+        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+    }
+    else
+    {
+        Tilemap* tilemap = (Tilemap*)file.memory;
+        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
+
+        // pointers->entity = (Tilemap)file.memory;
+        debug_message("level state loaded: \"%s\"?", filename);
+    }
+}
+
+
 bool32
-editor_save_level(const char* filename)
+level_save_file(const char* filename)
 {
     if (filename[0] == 0)
     {
@@ -564,7 +566,7 @@ editor_save_level(const char* filename)
     
     //HACK:? temporaryily allocate storage for save file
     //TODO: make functions for opening, appeding, and closing a file
-    int32 buffer_size_bytes = SAVE_FILE_SIZE;
+    int32 buffer_size_bytes = Megabytes(SAVE_FILE_BUFFER_MB);
     char* buffer = new char[buffer_size_bytes](); // allocated on the heap
     
     //player
@@ -628,17 +630,22 @@ editor_save_level(const char* filename)
     string_append(file_path, filename);
     string_append(file_path, ".lvl");
 
-    //pointers->memory->DEBUG_platform_file_write_entire(file_path, string_length(buffer), *buffer);
+    //write
     int32 buffer_length = string_length(buffer) * sizeof(char);
     pointers->memory->DEBUG_platform_file_write_entire(file_path, buffer_length, (char*)buffer);
-    
-    debug_message("Level Saved: \"%s\"", file_path);
-    free(buffer);
 
+    //set current level
+    if (GDATA->level_current[0] == 0) //new level
+        string_append(GDATA->level_current, filename);
+
+    //log
+    debug_message("Level Saved: \"%s\"", file_path);
+
+    free(buffer);
     return true;
 }
 bool32
-editor_load_level(const char* filename)
+level_load_file(const char* filename) //without extension
 {
     //construct filepath
     char file_path[256] = "levels\\";
@@ -656,9 +663,7 @@ editor_load_level(const char* filename)
 
     //clear data
     Tilemap* tmap = &pointers->data->tilemap;
-    entity_clear_all();
-    tilemap_clear_all(tmap);
-
+    level_clear();
     
     V2i player_pos = {};
 
@@ -752,13 +757,18 @@ editor_load_level(const char* filename)
     }
 
     //change current level string
-    pointers->data->level_current[0] = 0; //HACK: zero out first character so string_append will overwrite the original
-    string_append(pointers->data->level_current, LEVEL_FIRST);
-    // pointers->data->level_current
+    // pointers->data->level_current[0] = 0; //HACK: zero out first character so string_append will overwrite the original
+    string_clear(pointers->data->level_current);
+    string_append(pointers->data->level_current, filename);
     debug_message("Level Loaded: \"%s\"", filename);
 
     return true;
 }
+
+
+
+
+
 
 
 
@@ -856,7 +866,7 @@ game_initialize(Game_Pointers* _game_pointers)
     //HACK: handle player 0 as uninitiazed (having 0 sprite crashes)
     player_create({BASE_W/2, BASE_H/2});
     
-    b32 is_lvl_loaded = editor_load_level(LEVEL_FIRST);
+    //b32 is_lvl_loaded = level_load_file(LEVEL_FIRST);
     // if (!is_lvl_loaded)
     //     player_create({BASE_W/2, BASE_H/2 - 20});
     // // wall_create({Tile(3), Tile(20)}, {Tile(18), Tile(1)});
@@ -917,7 +927,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
                 debug_message("Save level once before playing with `console\n\"save (name)\"");
             }
             else{
-                editor_load_level(data->level_current);
+                level_load_file(data->level_current);
                 data->state = Game_State::Play;
                 debug_message("Game State: Play");
             }
@@ -928,11 +938,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             if (level_is_new){
                 debug_message("Level Save: Save new level with `console: \"save [name]\"");
             }else{
-                editor_save_level(data->level_current);
+                level_save_file(data->level_current);
             }
         }
         if (input->ctrl.hold && input->edit_level_load)
-            editor_load_level("testy_too.lvl");
+            level_load_file("testy_too.lvl");
 
 
         if (edit_mode == Editor_Mode::Entity)
@@ -1105,8 +1115,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     //- render little console window
         
     //draw typing buffer
-    persist bool32 is_doing_parse;
-    persist bool32 is_leaving_parse;
     persist char cmd_string[64];
     persist char args_string[64];
     persist i32 args_index;
@@ -1131,35 +1139,21 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             args_index = 1 + string_get_until_space(cmd_string, typing->items);
             string_get_until_space(args_string, &typing->items[ args_index ]);
             
-            if (string_equals(cmd_string, "load"))
-            {
-                editor_load_level(args_string);
-                is_leaving_parse = true;
+            if (string_equals(cmd_string, "load"))            {
+                level_load_file(args_string);
             }
-            else if (string_equals(cmd_string, "save"))
-            {
-                editor_save_level(args_string);
-                if (data->level_current[0] == 0) //new level
-                    string_append(data->level_current, args_string);
-                        
-                is_leaving_parse = true;
+            else if (string_equals(cmd_string, "save")){
+                level_save_file(args_string);
             }
-            else 
-                is_leaving_parse = true;
-        }
-        //some situations we can leave immediately, but sometimes we want to wait for user input to confirm
-        if (is_doing_parse)
-        {   
-        }
-        if (is_leaving_parse)
-        {
+            else if (string_equals(cmd_string, "clear")){
+                level_clear();
+            }
+            
             //reset
             for (int i = 0; i < typing->length; ++i){
                 typing->items[i] = 0;
             }
             typing->length = 0;
-            is_doing_parse = false;
-            is_leaving_parse = false;
             input_set_mode(input, Input_Mode::Play);
         }
 

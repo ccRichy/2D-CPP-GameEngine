@@ -128,13 +128,12 @@ string_length(char* string)
 int32
 string_length(const char* string)
 {
-    int32 result = 0;
-    for (int char_pos = 0; char_pos < 4096; ++char_pos)
+    int count = 0;
+    while(*string++)
     {
-        if (string[char_pos] == 0) break;
-        result++;
+        ++count;
     }
-    return result;
+    return(count);
 }
 
 
@@ -287,6 +286,19 @@ string_get_until_space(char* buffer, char* string)
     buffer[ci] = 0;
     return ci; //string length
 }
+
+
+
+inline void
+string_clear(char* string)
+{
+    i32 len = string_length(string);
+    for (int i = 0; i < len; ++i)
+    {
+        string[i] = 0;
+    }
+}
+
 
 
 
