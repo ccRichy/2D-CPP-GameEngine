@@ -9,7 +9,7 @@
 
 
 
-#define LEVEL_FIRST "first.lvl"
+#define LEVEL_FIRST "first"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
 #define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
@@ -18,15 +18,15 @@
 #define BASE_H 180
 #define WINDOW_SCALE_DEFAULT 4
  
-#define GAME_STATE_DEFAULT Game_State::Edit
-#define GAME_DRAW_MODE_DEFAULT Draw_Mode::World
-#define GAME_EDITOR_MODE_DEFAULT Editor_Mode::Entity
+#define GSTATE_DEFAULT Game_State::Edit
+#define GDRAW_MODE_DEFAULT Draw_Mode::World
+#define GEDITOR_MODE_DEFAULT Editor_Mode::Entity
 
 #define TILE_SIZE 8
-#define TILEMAP_W 32
-#define TILEMAP_H 32
-#define Tile(value) (value * TILE_SIZE)
 
+#define TILEMAP_W 1024
+#define TILEMAP_H 1024
+#define Tile(value) (value * TILE_SIZE)
 
 
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
@@ -54,11 +54,11 @@ struct Debug_Message_Queue
 //WARNING: global variables without default values will be 0'd upon recompilation
 static Game_Pointers* pointers;
 //convenience //NOTE: these may be a horrible idea
-#define GAME_MEMORY pointers->memory
-#define GAME_DATA pointers->data
-#define GAME_ENTITY pointers->entity
-#define GAME_SETTINGS pointers->settings
-#define GAME_SPRITE pointers->sprite
+#define GMEM pointers->memory
+#define GDATA pointers->data
+#define GENTITY pointers->entity
+#define GSETTINGS pointers->settings
+#define GSPRITE pointers->sprite
 
 
 
@@ -82,7 +82,7 @@ enum struct Editor_Mode
 };
 
 
-
+typedef int32 Tile;
 struct Tilemap
 {
     Vec2f pos;
@@ -90,7 +90,7 @@ struct Tilemap
     int32 grid_h;
     int32 tile_w;
     int32 tile_h;
-    int32 grid[TILEMAP_H][TILEMAP_W];
+    Tile grid[TILEMAP_H][TILEMAP_W];
 };
 struct Game_Entities
 {

@@ -133,12 +133,13 @@ enemy_update()
         
         float32 coll_xoffset = (ent->size.x * sign(ent->spd.x) + ent->spd.x);
         ent->pos += ent->spd;
+        ent->pos.x ++;
 
         // if (!collide_wall(ent->pos, ent->size, {coll_xoffset, 1}))
         //     spd.x *= -1;
 
         if (ent->hp <= 0){
-        //TODO: clean
+            // enemy_die(ent);
         }
     }    
 }

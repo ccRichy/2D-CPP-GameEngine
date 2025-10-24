@@ -69,6 +69,7 @@ void string_append(char* charbuff, const char* string_to_append)
     }    
 }
 
+
 //standard
 void string_cat(char* buffer, char* string_pre, char* string_post)
 {
@@ -138,6 +139,7 @@ string_length(const char* string)
 }
 
 
+
 bool32 string_contains(char* string, char character)
 {
     b32 result = false;
@@ -154,6 +156,7 @@ bool32 string_contains(char* string, char character)
 
     return result;
 }
+
 bool32 string_contains_string(char* string1, char* string2)
 {
     b32 result = false;
@@ -202,6 +205,7 @@ string_equals(char* string1, char* string2)
     }
     return result;
 }
+
 bool32
 string_equals(const char* string1, const char* string2)
 {
@@ -220,6 +224,7 @@ string_equals(const char* string1, const char* string2)
     }
     return result;
 }
+
 bool32 string_equals(char* string1, const char* string2)
 {
     bool32 result = true;
@@ -238,6 +243,7 @@ bool32 string_equals(char* string1, const char* string2)
     return result;
     
 }
+
 bool32 string_equals(const char* string1, char* string2)
 {
     bool32 result = true;

@@ -196,7 +196,7 @@ void
 player_create(Vec2f _pos)
 {
     Player* plr = &pointers->entity->player;
-    plr->sprite = &GAME_SPRITE->sPlayer_idle;
+    plr->sprite = &GSPRITE->sPlayer_idle;
 
     //
     plr->pos   = _pos;
@@ -237,7 +237,7 @@ player_create(Vec2f _pos)
 
 
 //TODO: move this bs
-#define sprite_change(__entity, __sprite) __entity->sprite = &GAME_SPRITE->##__sprite
+#define sprite_change(__entity, __sprite) __entity->sprite = &pointers->sprite->##__sprite
 Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size);
 
 
@@ -257,6 +257,7 @@ player_update(Game_Input_Map* input)
     else plr->ground_speed_max = 1;
     
     if (plr->spd.y != 0){
+        
         sprite_change(plr, sPlayer_air);
         player_move_hori(plr, true);
         if (!input->jump.hold){

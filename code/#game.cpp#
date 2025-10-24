@@ -518,7 +518,7 @@ editor_save_level(const char* filename)
     //the string where all the save data is going into
     //HACK: temporaryily allocate storage for save file
     //TODO: make functions for opening, appeding, and closing a file
-    char buffer[SAVE_BUFFER_MAX] = {};
+    char buffer[SAVE_BUFFER_MAX] = malloc;
 
     //player
     Player* player = pointers->player;
