@@ -42,9 +42,12 @@ game_get_static_size(float32 value)
     return result;
 }
 inline float32
-game_get_draw_scale()
+game_get_draw_scale(Draw_Mode override_mode = Draw_Mode::Null)
 {
     auto draw_mode = pointers->data->draw_mode;
+    if (override_mode != Draw_Mode::Null)
+        draw_mode = override_mode;
+        
     float32 result = -1.0f;
     
     if (draw_mode == Draw_Mode::World)

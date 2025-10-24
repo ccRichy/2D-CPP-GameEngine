@@ -54,7 +54,7 @@ struct Debug_Message_Queue
 //WARNING: global variables without default values will be 0'd upon recompilation
 static Game_Pointers* pointers;
 //convenience //NOTE: these may be a horrible idea
-#define GMEM pointers->memory
+#define GMEMORY pointers->memory
 #define GDATA pointers->data
 #define GENTITY pointers->entity
 #define GSETTINGS pointers->settings
@@ -70,6 +70,7 @@ enum struct Game_State{
 };
 
 enum struct Draw_Mode{
+    Null = -1,
     World,
     Gui
 };

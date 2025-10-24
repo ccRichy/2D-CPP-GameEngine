@@ -118,13 +118,12 @@ string_cat(char* buffer, const char* string_pre, const char* string_post)
 int32
 string_length(char* string)
 {
-    int32 result = 0;
-    for (int char_pos = 0; char_pos < 4096; ++char_pos)
+    int count = 0;
+    while(*string++)
     {
-        if (string[char_pos] == 0) break;
-        result++;
+        ++count;
     }
-    return result;
+    return(count);
 }
 int32
 string_length(const char* string)

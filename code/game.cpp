@@ -2,7 +2,8 @@
 #include <math.h>  //TODO: intrinsics
 #include <stdio.h> //using sprintf
 #include <stdarg.h>
-
+#include <stdlib.h>
+#include <string.h>
 
 #include "my_types_constants.h"
 #include "my_math.cpp"
@@ -55,6 +56,44 @@ void debug_message_queue_update()
     }
 }
 
+
+
+
+
+void
+level_save_state(const char* filename) //this dumps the whole ass raw memory
+{
+    if (GMEMORY->DEBUG_platform_file_write_entire)
+        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Tilemap), &pointers->data->tilemap);
+    debug_message("level state saved: \"%s\"?", filename);
+}
+void
+level_load_state(const char* filename) //trying to load old versions is likely to break
+{
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory)
+    {
+        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+    }
+    else
+    {
+        Tilemap* tilemap = (Tilemap*)file.memory;
+        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
+
+        // pointers->entity = (Tilemap)file.memory;
+        debug_message("level state loaded: \"%s\"?", filename);
+    }
+}
+
+
+void
+level_load(const char* filename, Game_Pointers game_pointers)
+{
+    DEBUG_File level = game_pointers.memory->DEBUG_platform_file_read_entire(filename);
+    *game_pointers.entity = *(Game_Entities*)level.memory;
+    // game_pointers.data->level_current = filename;
+}
 
 
 
@@ -271,9 +310,11 @@ draw_tilemap(Tilemap* tmap)
 {
     //TILEMAP TEST
 
-    //determine what tiles to render
-    // V2f campos = pointers->data->camera_pos;
-    // V2i gridpos_left = tilemap_get_tile_at_world_pos(tmap, {});
+    //TODO: only render whats on screen
+    auto dmode = Draw_Mode::World;
+    V2f campos = pointers->data->camera_pos;
+    V2f camsize = {BASE_W * game_get_draw_scale(dmode), BASE_W * game_get_draw_scale(dmode)};
+    V2i gridpos = tilemap_get_grid_pos(tmap, campos);
 
     V2f tile_size = v2i_to_v2f({tmap->tile_w, tmap->tile_h});
     
@@ -505,7 +546,13 @@ void editor_draw_selected()
     draw_rect(ent_hl->pos, ent_hl->size, color);
 }
 
-#define SAVE_BUFFER_MAX ((TILEMAP_W * TILEMAP_H))
+// struct String_Builder
+// {
+//     void* string;
+//     int32 size_bytes;
+// };
+
+#define SAVE_FILE_SIZE (Megabytes(10))
 bool32
 editor_save_level(const char* filename)
 {
@@ -515,31 +562,32 @@ editor_save_level(const char* filename)
         return false;
     }
     
-    //the string where all the save data is going into
-    //HACK: temporaryily allocate storage for save file
+    //HACK:? temporaryily allocate storage for save file
     //TODO: make functions for opening, appeding, and closing a file
-    char buffer[SAVE_BUFFER_MAX] = {};
-
+    int32 buffer_size_bytes = SAVE_FILE_SIZE;
+    char* buffer = new char[buffer_size_bytes](); // allocated on the heap
+    
     //player
     Player* player = pointers->player;
     string_append(buffer, "Player\n");
     char player_string[64];
     sprintf(player_string, "p x%i y%i\n",
-            (i32)player->pos.x, (i32)player->pos.y
+           (i32)player->pos.x, (i32)player->pos.y
     );
     string_append(buffer, player_string);
     string_append(buffer, "!\n\n");
     
+    
     //tilemap
     string_append(buffer, "Tiles\n");
     Tilemap* tmap = &pointers->data->tilemap;
-    int32* grid = (int32*)&tmap->grid;
+    Tile* grid = (Tile*)&tmap->grid;
     for (int Y = 0; Y < tmap->grid_h; ++Y)
     {
         for (int X = 0; X < tmap->grid_w; ++X)
         {
             char tile_string[64];
-            int32* tile = &tmap->grid[Y][X];
+            Tile* tile = &tmap->grid[Y][X];
             if (*tile)
             {
                 sprintf(tile_string, "t%i x%i y%i, ",
@@ -580,8 +628,12 @@ editor_save_level(const char* filename)
     string_append(file_path, filename);
     string_append(file_path, ".lvl");
 
-    pointers->memory->DEBUG_platform_file_write_entire(file_path, string_length(buffer), &buffer);
+    //pointers->memory->DEBUG_platform_file_write_entire(file_path, string_length(buffer), *buffer);
+    int32 buffer_length = string_length(buffer) * sizeof(char);
+    pointers->memory->DEBUG_platform_file_write_entire(file_path, buffer_length, (char*)buffer);
+    
     debug_message("Level Saved: \"%s\"", file_path);
+    free(buffer);
 
     return true;
 }
@@ -847,7 +899,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     //UPDATE (early)
     camera_zoom();
     if (input->reset)
-        player->pos = {BASE_W/2, 0};
+    {
+        if (input->shift.hold)
+            level_save_state("state.st");
+        else
+            level_load_state("state.st");
+    }
+        //player->pos = {BASE_W/2, 0};
     if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
     

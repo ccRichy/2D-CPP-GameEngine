@@ -59,10 +59,15 @@ typedef DEBUG_PLATORM_FILE_READ_ENTIRE(DEBUG_Platform_File_Read_Entire);
 
 #define DEBUG_PLATORM_FILE_WRITE_ENTIRE(name) bool32 name(const char* filename, uint32 memory_size, void* memory)
 typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
-#endif
 
-#define DEBUG_PLATORM_FILE_WRITE_ENTIRE(name) bool32 name(const char* filename)
-typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
+//new ones
+#define DEBUG_PLATORM_FILE_OPEN(name) bool32 name(const char* filename)
+typedef DEBUG_PLATORM_FILE_OPEN(DEBUG_Platform_File_Open);
+#define DEBUG_PLATORM_FILE_CLOSE(name) bool32 name(const char* filename)
+typedef DEBUG_PLATORM_FILE_CLOSE(DEBUG_Platform_File_Close);
+#define DEBUG_PLATORM_FILE_APPEND(name) bool32 name(const char* filename)
+typedef DEBUG_PLATORM_FILE_APPEND(DEBUG_Platform_File_Append);
+
 #endif
 
 
@@ -84,8 +89,9 @@ struct Game_Memory
     DEBUG_Platform_File_Read_Entire*  DEBUG_platform_file_read_entire;
     DEBUG_Platform_File_Write_Entire* DEBUG_platform_file_write_entire;
 
-    DEBUG_Platform_File_Open* DEBUG_platform_file_write_entire;
-    DEBUG_Platform_File_Close* DEBUG_platform_file_write_entire;
+    DEBUG_Platform_File_Open* DEBUG_platform_file_open;
+    DEBUG_Platform_File_Close* DEBUG_platform_file_close;
+    DEBUG_Platform_File_Append* DEBUG_platform_append_close;
     // DEBUG_Platform_File_Open* DEBUG_platform_file_open;
     // DEBUG_Platform_File_Close* DEBUG_platform_file_close;
 #endif
