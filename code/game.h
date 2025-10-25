@@ -10,6 +10,7 @@
 
 
 #define LEVEL_FIRST "first"
+#define UNSAVED_BACKUP_NAME "unsaved"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
 #define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
@@ -98,10 +99,10 @@ struct Game_Entities
     Player player;
 
     union {
-        Entity array[ENT_MAX + 1];
+        Entity array[ENT_MAX_ALL() + 1];
         struct {
-            Entity walls[WALL_MAX];
-            Entity enemys[ENEMY_MAX];
+            Entity walls  [ ENT_MAX(Ent_Type::Wall) ];
+            Entity enemys [ ENT_MAX(Ent_Type::Enemy) ];
             
             Entity bottom_entity; //REQUIRED: to validate union sizes match
         };
@@ -193,7 +194,6 @@ struct Game_Performance //TODO: averages
     float64 ms_render;
     float64 megacycles_render;
 };
-
 //NOTE: initialized in platform layer
 struct Game_Pointers //just all the fuckin data
 {
@@ -207,5 +207,5 @@ struct Game_Pointers //just all the fuckin data
     Game_Entities*      entity;
     Game_Sprites*       sprite;
     Player*             player;
-    Typing_Buffer*      typing;
+    Typing_Buffer*      console;
 };

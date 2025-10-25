@@ -59,13 +59,6 @@ void debug_message_queue_update()
 
 
 
-
-
-
-
-
-
-
 inline Vec2f
 mouse_get_pos_gui()
 {
@@ -93,6 +86,7 @@ mouse_get_pos_world_tile()
     };
     return result;
 }
+
 
 
 
@@ -145,19 +139,17 @@ camera_zoom()
 globalvar int32 global_imgui_hot = -1;
 globalvar int32 global_imgui_active = -1;
 globalvar int32 global_imgui_num = 0;
-void im_begin()
+void
+im_begin()
 {
     global_imgui_hot = -1;
     global_imgui_num = 0;
 }
-void im_end()
-{
-    //TODO:
-}
-bool32 im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
+bool32
+im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
 {
     bool32 result = false;
-    
+
     int32 id = global_imgui_num++;
     auto input = pointers->input;
     auto data = pointers->data;
@@ -486,7 +478,7 @@ Entity* entity_at_pos(Vec2f pos)
 {
     Entity* result = nullptr;
     Entity* array = pointers->entity->array;
-    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
+    for (int ent_index = 0; ent_index < ENT_MAX(Ent_Type::Enemy); ++ent_index)
     {
         Entity* ent = &array[ent_index];
         if (!ent->is_alive) continue;
@@ -517,6 +509,11 @@ void editor_draw_selected()
 
 
 
+bool32 is_level_new(Game_Data* data)
+{
+    b32 result = (data->level_current[0] == 0 || string_equals(data->level_current, UNSAVED_BACKUP_NAME));
+    return result;
+}
 
 
 void 
@@ -525,34 +522,35 @@ level_clear()
     entity_clear_all();
     tilemap_clear_all(&pointers->data->tilemap);
     player_create({BASE_W/2, BASE_H/2});
+    string_clear(pointers->data->level_current);
 };
 
 
-void
-level_save_state(const char* filename) //this dumps the whole ass raw memory
-{
-    if (GMEMORY->DEBUG_platform_file_write_entire)
-        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Tilemap), &pointers->data->tilemap);
-    debug_message("level state saved: \"%s\"?", filename);
-}
-void
-level_load_state(const char* filename) //trying to load old versions is likely to break
-{
-    //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-    if (!file.memory)
-    {
-        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
-    }
-    else
-    {
-        Tilemap* tilemap = (Tilemap*)file.memory;
-        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
+// void
+// game_save_state(const char* filename) //this dumps the whole ass raw memory
+// {
+//     if (GMEMORY->DEBUG_platform_file_write_entire)
+//         GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), &pointers->data);
+//     debug_message("level state saved: \"%s\"?", filename);
+// }
+// void
+// game_load_state(const char* filename) //trying to load old versions is likely to break
+// {
+//     //load file
+//     DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+//     if (!file.memory)
+//     {
+//         debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+//     }
+//     else
+//     {
+//         Tilemap* tilemap = (Tilemap*)file.memory;
+//         memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
 
-        // pointers->entity = (Tilemap)file.memory;
-        debug_message("level state loaded: \"%s\"?", filename);
-    }
-}
+//         // pointers->entity = (Tilemap)file.memory;
+//         debug_message("level state loaded: \"%s\"?", filename);
+//     }
+// }
 
 
 bool32
@@ -606,7 +604,7 @@ level_save_file(const char* filename)
     //entities
     string_append(buffer, "Entities\n");
     Entity* array = pointers->entity->array;
-    for (int entity_index = 0; entity_index < ENT_MAX; ++entity_index)
+    for (int entity_index = 0; entity_index < ENT_MAX_ALL(); ++entity_index)
     {
         Entity* entity = &array[entity_index];
         if (entity->is_alive){
@@ -635,8 +633,12 @@ level_save_file(const char* filename)
     pointers->memory->DEBUG_platform_file_write_entire(file_path, buffer_length, (char*)buffer);
 
     //set current level
-    if (GDATA->level_current[0] == 0) //new level
+    // if (is_level_new(pointers->data)) //new level
+    if (!string_equals(GDATA->level_current, filename))
+    {
+        string_clear(GDATA->level_current);
         string_append(GDATA->level_current, filename);
+    }
 
     //log
     debug_message("Level Saved: \"%s\"", file_path);
@@ -758,13 +760,21 @@ level_load_file(const char* filename) //without extension
 
     //change current level string
     // pointers->data->level_current[0] = 0; //HACK: zero out first character so string_append will overwrite the original
-    string_clear(pointers->data->level_current);
-    string_append(pointers->data->level_current, filename);
+    if (!string_equals(pointers->data->level_current, filename)){
+        string_clear(pointers->data->level_current);
+        string_append(pointers->data->level_current, filename);
+    }
     debug_message("Level Loaded: \"%s\"", filename);
 
     return true;
 }
-
+void
+level_reload()
+{
+    char current_level_name[64];
+    string_append(current_level_name, pointers->data->level_current);
+    level_load_file(current_level_name);
+}
 
 
 
@@ -800,8 +810,7 @@ game_initialize(Game_Pointers* _game_pointers)
     
 
     //add Entity names into Data struct //HACK:
-    for (int i = 0; i < array_length(entity->names); ++i)
-    {
+    for (int i = 0; i < array_length(entity->names); ++i){
         entity->names[i] = global_ent_names[i];
     }
     
@@ -828,6 +837,17 @@ game_initialize(Game_Pointers* _game_pointers)
         BASE_H/2 + pointers->data->camera_yoffset_extra};
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
+
+    //ENTITIY INIT //NOTE: This is where we point the array indexes to the relative Ent_Type enum index. This should hopefully help automate  that process.
+    for (int i = 0; i < (i32)Ent_Type::Num; ++i)
+    {
+        auto entity_pointer = pointers->entity->array;
+        entity_pointers[i] = entity_pointer + ENT_MAX_COUNTS[i];
+    }
+    
+
+
+    
   //IMAGES
     //player
 #define PLR_SPR_ORIGIN {6.f, 5.f}
@@ -864,8 +884,8 @@ game_initialize(Game_Pointers* _game_pointers)
   //LEVEL TEMP
 
     //HACK: handle player 0 as uninitiazed (having 0 sprite crashes)
+    //or maybe never do this :)
     player_create({BASE_W/2, BASE_H/2});
-    
     //b32 is_lvl_loaded = level_load_file(LEVEL_FIRST);
     // if (!is_lvl_loaded)
     //     player_create({BASE_W/2, BASE_H/2 - 20});
@@ -877,11 +897,6 @@ game_initialize(Game_Pointers* _game_pointers)
 }
 
 
-bool32 is_level_new(Game_Data* data)
-{
-    b32 result = (data->level_current[0] == 0);
-    return result;
-}
 
 
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
@@ -900,42 +915,42 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_Sprites*  sprite   = &data->sprites;
     Game_Entities* entity   = &data->entity;
     Player*        player   = &entity->player;
-    Tilemap* tmap = &data->tilemap;
-    Game_State state = data->state;
-    Editor_Mode edit_mode = data->editor_mode;
-    Typing_Buffer* typing =    pointers->typing;
+    Tilemap*       tmap      = &data->tilemap;
+    Game_State     state     = data->state;
+    Editor_Mode    edit_mode = data->editor_mode;
+    Typing_Buffer* console    = pointers->console;
+
 
     
     //UPDATE (early)
     camera_zoom();
     if (input->reset)
-    {
-        if (input->shift.hold)
-            level_save_state("state.st");
-        else
-            level_load_state("state.st");
-    }
-        //player->pos = {BASE_W/2, 0};
+        player->pos = {BASE_W/2, 0};
+    // {
+    //     if (input->shift.hold)
+    //         game_save_state("state.st");
+    //     else
+    //         game_load_state("state.st");
+    // }
+        
     if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
-    
     //STATE UPDATE
     if (state == Game_State::Edit)
     {
         if (input->edit_toggle){
-            if (is_level_new(data)){
-                debug_message("Save level once before playing with `console\n\"save (name)\"");
-            }
-            else{
-                level_load_file(data->level_current);
-                data->state = Game_State::Play;
-                debug_message("Game State: Play");
-            }
+            if (is_level_new(data))
+                level_save_file(UNSAVED_BACKUP_NAME);
+            
+            data->state = Game_State::Play;
+            debug_message("Game State: Playing \"%s\"", data->level_current);
+
+        // debug_message("Save level once before playing with `console\n\"save (name)\"");
         }
 
+        //save/load hotkeys
         if (input->ctrl.hold && input->edit_level_save){
-            bool32 level_is_new = (data->level_current[0] == 0);
-            if (level_is_new){
+            if (is_level_new(data)){
                 debug_message("Level Save: Save new level with `console: \"save [name]\"");
             }else{
                 level_save_file(data->level_current);
@@ -955,12 +970,14 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
                     if (input->alt.hold)
                     {
                         Vec2f mouse_pos_world = mouse_get_pos_world();
-                        Vec2f pos_spawn = {round_f32(mouse_pos_world.x), round_f32(mouse_pos_world.y)};
+                        Vec2f pos_spawn = {
+                            round_f32(mouse_pos_world.x),
+                            round_f32(mouse_pos_world.y)
+                        };
                         if (input->shift.hold)
                             pos_spawn = mouse_get_pos_world_tile();
-            
-                        entity_spawn(global_editor_entity_to_spawn, pos_spawn);
-                    
+
+                        entity_spawn(global_editor_entity_to_spawn, pos_spawn);                    
                     }
                     else
                     {
@@ -1017,12 +1034,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             if (grid_y - data->camera_pos.y > BASE_H) break;
             draw_rect({0, (float32)grid_y * grid_spacing}, {1000, grid_line_size}, color_faded);
         }
-        
+
     }
     else if (state == Game_State::Play)
     {
         //controls
         if (input->edit_toggle){
+            level_reload();
             data->state = Game_State::Edit;
             debug_message("Game State: Editor");
         }
@@ -1039,7 +1057,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
 
 
-    
+                             
     //AGNOSTIC RENDERING
     data->draw_mode = Draw_Mode::World;
     {
@@ -1069,8 +1087,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             data->editor_mode = (Editor_Mode)edit_index;
         draw_text("mode", final_pos, {0.5, 0.5});
     }
-        
-        
+
+
     if (data->editor_mode == Editor_Mode::Entity)
     {
         Vec2f button_pos = {10, 40};
@@ -1093,7 +1111,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     {
             
     }
-    
+
 
     //debug
     debug_message_queue_update();
@@ -1128,7 +1146,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         //draw console winddow
         V2f console_pos = {50, 50};
         draw_rect(console_pos, {BASE_W, 10}, MAGENTA);
-        draw_text(typing->items, console_pos);
+        draw_text(console->items, console_pos);
         
 
         //confirm input
@@ -1136,10 +1154,10 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         {
             //get command and argument(s) strings
             //args_index gives us the offset to the start of the args_string
-            args_index = 1 + string_get_until_space(cmd_string, typing->items);
-            string_get_until_space(args_string, &typing->items[ args_index ]);
+            args_index = 1 + string_get_until_space(cmd_string, console->items);
+            string_get_until_space(args_string, &console->items[ args_index ]);
             
-            if (string_equals(cmd_string, "load"))            {
+            if (string_equals(cmd_string, "load")){
                 level_load_file(args_string);
             }
             else if (string_equals(cmd_string, "save")){
@@ -1150,15 +1168,15 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             }
             
             //reset
-            for (int i = 0; i < typing->length; ++i){
-                typing->items[i] = 0;
+            for (int i = 0; i < console->length; ++i){
+                console->items[i] = 0;
             }
-            typing->length = 0;
+            console->length = 0;
             input_set_mode(input, Input_Mode::Play);
         }
 
     }
-        
+
     //draw mouse
     draw_sprite_frame(&sprite->sMouse_cursors, input->mouse_pos_gui, 0);
 }

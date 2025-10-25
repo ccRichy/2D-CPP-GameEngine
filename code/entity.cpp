@@ -26,7 +26,7 @@ void
 entity_clear_all()
 {
     Entity* array = pointers->entity->array;
-    for (int ent_index = 0; ent_index < ENT_MAX; ++ent_index)
+    for (int ent_index = 0; ent_index < ENT_MAX_ALL(); ++ent_index)
     {
         array[ent_index] = {};
     }
@@ -59,9 +59,10 @@ entity_destroy(Entity* entity)
     }
 }
 
-Entity* entity_init(Entity* array, int32 array_max, Ent_Type type, Vec2f pos)
+Entity* entity_init(Entity* array, Ent_Type type, Vec2f pos)
 {
-    auto num_of_alive = entity_get_num(type);//pointers->entity->nums[(int32)type];
+    i32 num_of_alive = entity_get_num(type);//pointers->entity->nums[(int32)type];
+    i32 array_max = ENT_MAX(type); 
     if (num_of_alive >= array_max) return nullptr;
     
     Entity* result = nullptr;
@@ -87,7 +88,7 @@ Entity*
 wall_create(Vec2f pos, Vec2f size)
 {
     Entity* ent = entity_init(
-        pointers->entity->walls, WALL_MAX,
+        pointers->entity->walls,
         Ent_Type::Wall, pos
     );
     if (ent){
@@ -99,7 +100,7 @@ wall_create(Vec2f pos, Vec2f size)
 void
 wall_draw()
 {
-    for (int i = 0; i < WALL_MAX; ++i)
+    for (int i = 0; i < ENT_MAX(Ent_Type::Wall); ++i)
     {
         Entity* ent = &pointers->entity->walls[i];
         if (!ent->is_alive) continue;
@@ -113,7 +114,7 @@ Entity*
 enemy_create(Vec2f pos)
 {
     Entity* ent = entity_init(
-        pointers->entity->enemys, ENEMY_MAX,
+        pointers->entity->enemys,
         Ent_Type::Enemy, pos
     );    
     if (ent){
@@ -126,7 +127,7 @@ void
 enemy_update()
 {
     float32 maxspd = 0.4f;
-    for (int i = 0; i < ENEMY_MAX; ++i)
+    for (int i = 0; i < ENT_MAX(Ent_Type::Wall); ++i)
     {
         Entity* ent = &pointers->entity->enemys[i];
         if (!ent->is_alive) continue;
@@ -146,7 +147,7 @@ enemy_update()
 void
 enemy_draw()
 {
-    for (int i = 0; i < ENEMY_MAX; ++i)
+    for (int i = 0; i < ENT_MAX(Ent_Type::Enemy); ++i)
     {
         Entity* ent = &pointers->entity->enemys[i];
         if (!ent->is_alive) continue;

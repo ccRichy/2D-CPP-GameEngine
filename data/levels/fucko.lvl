@@ -1,0 +1,11 @@
+Player
+p x158 y100
+!
+
+Tiles
+t1 x17 y5, t1 x18 y5, t1 x19 y5, t1 x29 y5, t1 x30 y5, t1 x31 y5, t1 x32 y5, t1 x17 y6, t1 x18 y6, t1 x19 y6, t1 x29 y6, t1 x30 y6, t1 x31 y6, t1 x18 y7, t1 x19 y7, t1 x29 y7, t1 x30 y7, t1 x31 y7, t1 x14 y13, t1 x14 y14, t1 x16 y14, t1 x17 y14, t1 x30 y14, t1 x31 y14, t1 x32 y14, t1 x33 y14, t1 x14 y15, t1 x15 y15, t1 x16 y15, t1 x17 y15, t1 x18 y15, t1 x19 y15, t1 x27 y15, t1 x28 y15, t1 x29 y15, t1 x30 y15, t1 x31 y15, t1 x32 y15, t1 x33 y15, t1 x15 y16, t1 x17 y16, t1 x18 y16, t1 x19 y16, t1 x20 y16, t1 x21 y16, t1 x22 y16, t1 x25 y16, t1 x26 y16, t1 x27 y16, t1 x28 y16, t1 x29 y16, t1 x30 y16, t1 x31 y16, t1 x32 y16, t1 x18 y17, t1 x19 y17, t1 x20 y17, t1 x21 y17, t1 x22 y17, t1 x23 y17, t1 x24 y17, t1 x25 y17, t1 x26 y17, t1 x27 y17, t1 x28 y17, t1 x30 y17, t1 x21 y18, t1 x22 y18, t1 x23 y18, t1 x24 y18, t1 x25 y18, t1 x26 y18, t1 x27 y18, t1 x28 y18, t1 x23 y19, t1 x24 y19, t1 x25 y19, t1 x26 y19, 
+!
+
+Entities
+e2 x115 y80 w8 h16,
+!

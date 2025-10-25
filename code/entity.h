@@ -30,19 +30,31 @@ globalvar const char* global_ent_names[Ent_Type::Num] =
     "wall",
     "enemy"
 };
+constexpr int ENT_MAX_COUNTS[] = {
+    0,   // Player
+    8,   // Wall
+    8,   // Enemy
+};
 
-//TODO: consider wether or not to make these MAX values into a parallel array
-//      so we can access them dynamically based on Ent_Type
-#define ENEMY_MAX 8
-#define WALL_MAX 8
+constexpr int ENT_MAX_ALL(){
+    i32 result = 0;
+    for (int i = 0; i < (i32)Ent_Type::Num; ++i){
+        result += ENT_MAX_COUNTS[i];
+    }
+    return result;
+}
+constexpr int ENT_MAX(Ent_Type type){
+    i32 result = ENT_MAX_COUNTS[(i32)type];
+    return result;
+}
 
-#define ENT_MAX ENEMY_MAX + WALL_MAX
+
 
 struct Entity
 {
     //base
     Ent_Type type;
-    bool32 is_alive;
+    bool32   is_alive;
 
     Sprite* sprite;
     float32 anim_index;
@@ -56,3 +68,6 @@ struct Entity
     //combat
     float32 hp;
 };
+
+//NOTE: points to the 1st entity in memory dilineated by the Game_Entities' union
+globalvar Entity* entity_pointers[Ent_Type::Num];

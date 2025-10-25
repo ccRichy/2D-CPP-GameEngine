@@ -11,6 +11,7 @@
 #include <windows.h>
 #include <xinput.h>
 #include <xaudio2.h>
+#include <dwmapi.h>
 #include "win32.cpp"
 #include "win32_xaudio.cpp"
 
@@ -223,8 +224,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_sound_buffer.sample_rate = SND_SAMPLE_RATE;
                 // game_sound_buffer.memory = ;
                 
-                Typing_Buffer typing_buffer = {};
-                typing_buffer.max_length = TYPING_BUFFER_SIZE;
+                Typing_Buffer console_buffer = {};
+                console_buffer.max_length = TYPING_BUFFER_SIZE;
                 
                 Game_Pointers game_pointers_value = {};
                 game_pointers_value.memory   = &game_memory;
@@ -237,7 +238,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers_value.entity = &game_pointers_value.data->entity;
                 game_pointers_value.sprite = &game_pointers_value.data->sprites;
                 game_pointers_value.player = &game_pointers_value.data->entity.player;
-                game_pointers_value.typing = &typing_buffer;
+                game_pointers_value.console = &console_buffer;
                 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
@@ -271,7 +272,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 //INPUT
                     game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
-                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running, &typing_buffer);
+                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running, &console_buffer);
                     win32_process_input(&game_input_map, &game_input_map_prev);
                     Game_Input_Map input = game_input_map;
 
