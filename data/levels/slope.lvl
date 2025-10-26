@@ -1,5 +1,5 @@
 Player
-p x270 y73
+p x268 y73
 !
 
 Tiles
@@ -7,5 +7,5 @@ t1 x33 y10, t1 x34 y10, t1 x35 y10, t1 x31 y11, t1 x32 y11, t1 x33 y11, t1 x34 y
 !
 
 Entities
-e2 x108 y69 w8 h16,
+e2 x109 y69 w8 h16,
 !

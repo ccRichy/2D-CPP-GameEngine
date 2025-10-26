@@ -1,16 +1,18 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 #define Kilobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
-
-
-
 //TODO: 64-bit versions of functions where appropriate
 #define in_range(value, min, max) (value >= min && value <= max)
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
-
 
 
 

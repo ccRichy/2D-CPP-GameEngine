@@ -1,4 +1,18 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
+
 #pragma once
+
+
+
+//TODO: REQUIRED:
+//- Connect to internet server.
+//- Upload file
+//- Download file
 
 
 
@@ -7,20 +21,6 @@
 #define BGMODE_TRANSPARENCY_AMT 140
 
 
-
-
-//XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
-#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
-typedef X_INPUT_GET_STATE(x_input_get_state);
-X_INPUT_GET_STATE(XInputGetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
-globalvar x_input_get_state* XInputGetState_ = XInputGetStateStub;
-#define XInputGetState XInputGetState_
-
-#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_VIBRATION*)
-typedef X_INPUT_SET_STATE(x_input_set_state);
-X_INPUT_SET_STATE(XInputSetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
-globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
-#define XInputSetState XInputSetState_
 
 
 
@@ -102,3 +102,22 @@ struct Win32_Data_Pointers
 //     bool32 is_bgmode_enabled;
 //     bool32 is_bgmode_transparent_out_of_focus;
 // };
+
+
+
+
+
+
+
+//XINPUT //NOTE: all this crap is so we dont instacrash for incompatibility
+#define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_STATE*)
+typedef X_INPUT_GET_STATE(x_input_get_state);
+X_INPUT_GET_STATE(XInputGetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
+globalvar x_input_get_state* XInputGetState_ = XInputGetStateStub;
+#define XInputGetState XInputGetState_
+
+#define X_INPUT_SET_STATE(name) DWORD WINAPI name(DWORD, XINPUT_VIBRATION*)
+typedef X_INPUT_SET_STATE(x_input_set_state);
+X_INPUT_SET_STATE(XInputSetStateStub){ return ERROR_DEVICE_NOT_CONNECTED; }
+globalvar x_input_set_state* XInputSetState_ = XInputSetStateStub;
+#define XInputSetState XInputSetState_

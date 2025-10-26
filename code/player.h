@@ -28,6 +28,7 @@ struct Physics
     float32 grav;
 };
 
+
 struct Player
 {
     Vec2f pos;
@@ -55,7 +56,7 @@ struct Player
     //anim
     Sprite* sprite;
     float32 anim_index;
-    float32 anim_speed_mult;
+    float32 anim_speed;
 
 #if 0
     Player_State state;

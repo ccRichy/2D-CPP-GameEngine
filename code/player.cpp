@@ -200,7 +200,7 @@ player_create(Vec2f _pos)
 
     //
     plr->pos   = _pos;
-    plr->anim_speed_mult = 1;
+    plr->anim_speed = 1;
     plr->size  = {4, Tile(1)-1};
     plr->scale = {1, 1};
     plr->color = GREEN;
@@ -248,42 +248,49 @@ player_update(Game_Input_Map* input)
     plr->move_input = {(float32)(input->right.hold - input->left.hold),
                        (float32)(input->down.hold - input->up.hold)};
 
-    plr->spd.y += plr->grav;
-    if (input->jump) plr->spd.y = -4;
-    // Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
-    Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &plr->pos, &plr->spd, plr->size);
 
+//movecollide
+    plr->spd.y += plr->grav;
+    if (plr->spd.y > plr->terminal_velocity)
+        plr->spd.y = plr->terminal_velocity;
+
+    Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &plr->pos, &plr->spd, plr->size);
+    // Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
+
+
+//proto sprint
     if (input->shift.hold) plr->ground_speed_max = 2;
     else plr->ground_speed_max = 1;
-    
-    if (plr->spd.y != 0){
-        
+
+//proto state
+    if (plr->spd.y != 0) //air
+    {
         sprite_change(plr, sPlayer_air);
         player_move_hori(plr, true);
         if (!input->jump.hold){
             if (plr->spd.y < 0)
                 plr->spd.y /= 4;
         }
-    }else if (plr->spd.x != 0) {
+    }else if (plr->spd.x != 0) //walk
+    {
+        if (input->jump) plr->spd.y = -plr->jump_spd;
         sprite_change(plr, sPlayer_walk);
         player_move_hori(plr, false);
         if (plr->move_input.x != 0) plr->scale.x = (float32)sign(plr->move_input.x);
-        plr->anim_speed_mult = abs_f32(plr->spd.x);
+        plr->anim_speed = abs_f32(plr->spd.x);
     }
-    else{
+    else{ //idle
         sprite_change(plr, sPlayer_idle);
         plr->anim_index = (float32)input->up.hold;
         player_move_hori(plr, false);
     }
-
-    if (plr->spd.y > plr->terminal_velocity) plr->spd.y = plr->terminal_velocity;
 }
 
 void
 player_draw(Player* plr)
 {
     Sprite* spr = plr->sprite;
-    plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed_mult;
+    plr->anim_index += ((float32)spr->fps/FPS_TARGET) * plr->anim_speed;
     if (plr->anim_index >= spr->frame_num) plr->anim_index = 0;
 
     draw_sprite_frame(plr->sprite, plr->pos, plr->anim_index, plr->scale);

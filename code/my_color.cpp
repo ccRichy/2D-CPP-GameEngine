@@ -4,8 +4,6 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-
-
 #include "my_color.h"
 
 

@@ -1,6 +1,13 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 #pragma once
-
 #define array_length(array) (sizeof(array) / sizeof(array[0]))
+
+
 
 #define array_shift_left(array, length, nullvalue)\
 for (int __it = 0; __it < length; ++__it)         \

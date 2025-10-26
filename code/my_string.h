@@ -1,3 +1,10 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
+
 //NOTE: //REQUIRED: these functions assume null termination strings
 #pragma once
 

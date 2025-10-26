@@ -620,13 +620,9 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 //Quitting
                 if (is_down)
                 {
-                    if (alt_hold && vk_code == VK_F4)
+                    if (alt_hold && vk_code == 'Q')
                         *global_is_running = false;
-                    if (vk_code == VK_ESCAPE)
-                        *global_is_running = false;
-                        
                 }
-
 
             }break;
 

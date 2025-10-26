@@ -1,11 +1,15 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 #pragma once
-
 #include "game_platform.h"
 #include "player.h"
 #include "entity.h"
 #include "render.h"
 #include "text.h"
-
 
 
 
@@ -146,6 +150,7 @@ struct Game_Data
     Editor_Mode editor_mode;
 
     //systems
+    bool32 debug_mode_enabled;
     Debug_Message_Queue debug_msg;
 
     //resources
@@ -158,7 +163,6 @@ struct Game_Data
 
     
     //misc //TODO: factor out/move
-    bool32 debug_mode_enabled;
     Vec2f camera_pos;
     float32 camera_yoffset_extra;
     Vec2f camera_pos_offset_default;

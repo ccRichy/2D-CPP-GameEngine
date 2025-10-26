@@ -1,3 +1,10 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
+
 //TODO: factor out c library
 #include <math.h>  //TODO: intrinsics
 #include <stdio.h> //using sprintf
@@ -526,31 +533,31 @@ level_clear()
 };
 
 
-// void
-// game_save_state(const char* filename) //this dumps the whole ass raw memory
-// {
-//     if (GMEMORY->DEBUG_platform_file_write_entire)
-//         GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), &pointers->data);
-//     debug_message("level state saved: \"%s\"?", filename);
-// }
-// void
-// game_load_state(const char* filename) //trying to load old versions is likely to break
-// {
-//     //load file
-//     DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-//     if (!file.memory)
-//     {
-//         debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
-//     }
-//     else
-//     {
-//         Tilemap* tilemap = (Tilemap*)file.memory;
-//         memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
+void
+game_save_state(const char* filename) //this dumps the whole ass raw memory
+{
+    if (GMEMORY->DEBUG_platform_file_write_entire)
+        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), &pointers->data);
+    debug_message("level state saved: \"%s\"?", filename);
+}
+void
+game_load_state(const char* filename) //trying to load old versions is likely to break
+{
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory)
+    {
+        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+    }
+    else
+    {
+        Tilemap* tilemap = (Tilemap*)file.memory;
+        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
 
-//         // pointers->entity = (Tilemap)file.memory;
-//         debug_message("level state loaded: \"%s\"?", filename);
-//     }
-// }
+        // pointers->entity = (Tilemap)file.memory;
+        debug_message("level state loaded: \"%s\"?", filename);
+    }
+}
 
 
 bool32
@@ -811,7 +818,7 @@ game_initialize(Game_Pointers* _game_pointers)
 
     //add Entity names into Data struct //HACK:
     for (int i = 0; i < array_length(entity->names); ++i){
-        entity->names[i] = global_ent_names[i];
+        entity->names[i] = ENT_INFO[i].name;
     }
     
     Assert( (&input->bottom_button - &input->buttons[0]) == (array_length(input->buttons) - 1) );
@@ -838,11 +845,14 @@ game_initialize(Game_Pointers* _game_pointers)
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
 
-    //ENTITIY INIT //NOTE: This is where we point the array indexes to the relative Ent_Type enum index. This should hopefully help automate  that process.
+    
+    //TODO: ENTITIY INIT 
+    Entity* entity_pointer = pointers->entity->array;
     for (int i = 0; i < (i32)Ent_Type::Num; ++i)
     {
-        auto entity_pointer = pointers->entity->array;
-        entity_pointers[i] = entity_pointer + ENT_MAX_COUNTS[i];
+        i32 offset = ENT_INFO[i].max_count;
+        entity_pointer += offset;
+        
     }
     
 
@@ -886,7 +896,7 @@ game_initialize(Game_Pointers* _game_pointers)
     //HACK: handle player 0 as uninitiazed (having 0 sprite crashes)
     //or maybe never do this :)
     player_create({BASE_W/2, BASE_H/2});
-    //b32 is_lvl_loaded = level_load_file(LEVEL_FIRST);
+    // b32 is_lvl_loaded = level_load_file(LEVEL_FIRST);
     // if (!is_lvl_loaded)
     //     player_create({BASE_W/2, BASE_H/2 - 20});
     // // wall_create({Tile(3), Tile(20)}, {Tile(18), Tile(1)});
@@ -926,12 +936,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     camera_zoom();
     if (input->reset)
         player->pos = {BASE_W/2, 0};
-    // {
-    //     if (input->shift.hold)
-    //         game_save_state("state.st");
-    //     else
-    //         game_load_state("state.st");
-    // }
         
     if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
@@ -944,8 +948,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             
             data->state = Game_State::Play;
             debug_message("Game State: Playing \"%s\"", data->level_current);
-
-        // debug_message("Save level once before playing with `console\n\"save (name)\"");
         }
 
         //save/load hotkeys
@@ -957,7 +959,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             }
         }
         if (input->ctrl.hold && input->edit_level_load)
-            level_load_file("testy_too.lvl");
+            level_reload();
 
 
         if (edit_mode == Editor_Mode::Entity)
@@ -1103,7 +1105,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             Vec2f final_pos = {button_pos.x, button_pos.y + ((button_size.y + 1) * ent_index)};
             if (im_button(final_pos, button_size))
                 global_editor_entity_to_spawn = (Ent_Type)ent_index;
-            draw_text(global_ent_names[ent_index], final_pos, {0.5, 0.5});
+            draw_text(ENT_INFO[ent_index].name, final_pos, {0.5, 0.5});
         }
             
     }
@@ -1178,5 +1180,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
 
     //draw mouse
-    draw_sprite_frame(&sprite->sMouse_cursors, input->mouse_pos_gui, 0);
+    if (data->state == Game_State::Edit || data->debug_mode_enabled)
+        draw_sprite_frame(&sprite->sMouse_cursors, input->mouse_pos_gui, 0);
 }
