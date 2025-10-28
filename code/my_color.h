@@ -4,7 +4,7 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-#pragma once
+// #pragma once
 
 
 
@@ -17,7 +17,6 @@ struct Color
         uint32 decimal;
     };
 };
-
 
 
 //bgra

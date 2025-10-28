@@ -15,17 +15,16 @@
 #include "my_types_constants.h"
 #include "my_math.cpp"
 #include "my_string.cpp"
-#include "my_color.cpp"
 #include "array_functions.h"
 
 #include "game.h"
 
+#include "my_color.cpp"
 #include "render.cpp"
 #include "collide.cpp"
 #include "player.cpp"
 #include "entity.cpp"
 #include "text.cpp"
-
 
 
 
@@ -473,7 +472,7 @@ entity_spawn(Ent_Type type, Vec2f pos)
 
     switch (type)
     {
-        case Ent_Type::Player:         player_create(pos); break;
+        case Ent_Type::Player:         PLAYER->Create(pos); break;
         case Ent_Type::Enemy: result = enemy_create(pos); break;
         case Ent_Type::Wall:  result = wall_create(pos, {Tile(1), Tile(1)}); break;
     }
@@ -528,7 +527,7 @@ level_clear()
 {
     entity_clear_all();
     tilemap_clear_all(&pointers->data->tilemap);
-    player_create({BASE_W/2, BASE_H/2});
+    PLAYER->Create({BASE_W/2, BASE_H/2});
     string_clear(pointers->data->level_current);
 };
 
@@ -575,7 +574,7 @@ level_save_file(const char* filename)
     char* buffer = new char[buffer_size_bytes](); // allocated on the heap
     
     //player
-    Player* player = pointers->player;
+    Player* player = PLAYER;
     string_append(buffer, "Player\n");
     char player_string[64];
     sprintf(player_string, "p x%i y%i\n",
@@ -703,7 +702,7 @@ level_load_file(const char* filename) //without extension
 
         buff_offset += word_len+1;
     }
-    player_create(v2i_to_v2f(player_pos));
+    PLAYER->Create(v2i_to_v2f(player_pos));
     file_mem_offset += buff_len;
     buff_offset = 0;
 
@@ -808,23 +807,17 @@ game_initialize(Game_Pointers* _game_pointers)
     // game_pointers = _game_pointers;
     pointers->memory->is_initalized = true;
     
+    Game_Input_Map* input    = pointers->input;
     Game_Data*      data     = pointers->data;
     Game_Entities*  entity   = &data->entity;
     Game_Sprites*   sprite   = &data->sprites;
     Player*         player   = &entity->player;
     Game_Settings*  settings = pointers->settings;
-    Game_Input_Map* input    = pointers->input;
-    
 
-    //add Entity names into Data struct //HACK:
-    for (int i = 0; i < array_length(entity->names); ++i){
-        entity->names[i] = ENT_INFO[i].name;
-    }
-    
     Assert( (&input->bottom_button - &input->buttons[0]) == (array_length(input->buttons) - 1) );
     Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space );
     Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) );
-
+    
     data->state = GSTATE_DEFAULT;
     data->draw_mode = GDRAW_MODE_DEFAULT;
     data->editor_mode = GEDITOR_MODE_DEFAULT;
@@ -836,7 +829,7 @@ game_initialize(Game_Pointers* _game_pointers)
     data->tilemap.tile_h = TILE_SIZE;
     data->tilemap.grid_w = TILEMAP_W;
     data->tilemap.grid_h = TILEMAP_H;
-    data->tilemap.pos = {};
+    data->tilemap.pos = {0, 0};
     
     data->camera_yoffset_extra = 4.f;
     data->camera_pos_offset_default = {
@@ -857,30 +850,35 @@ game_initialize(Game_Pointers* _game_pointers)
     
 
 
-    
-  //IMAGES
+#define SPR_LOAD(name, frame_num, fps, origin) sprite->##name = sprite_create(#name, frame_num, fps, origin)
     //player
 #define PLR_SPR_ORIGIN {6.f, 5.f}
-    sprite->sPlayer_air         = sprite_create("sPlayer_air2.bmp", 7, 15, PLR_SPR_ORIGIN);
-    sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach.bmp", 2, 0, PLR_SPR_ORIGIN);  
-    sprite->sPlayer_idle        = sprite_create("sPlayer_idle.bmp", 2, 0, PLR_SPR_ORIGIN);               
-    sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge.bmp", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach.bmp", 3, 0, PLR_SPR_ORIGIN);
-    sprite->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb.bmp", 2, 10, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_rope_slide  = sprite_create("sPlayer_rope_slide.bmp", 2, 10, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_splat_slow  = sprite_create("sPlayer_splat_slow.bmp", 5, 7, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_splat_swift = sprite_create("sPlayer_splat_swift.bmp", 6, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_turn        = sprite_create("sPlayer_turn.bmp", 1, 6, PLR_SPR_ORIGIN);
-    sprite->sPlayer_walk        = sprite_create("sPlayer_walk.bmp", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach.bmp", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_idle.bmp", 5, 6, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_walk.bmp", 4, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
+    sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  
+    sprite->sPlayer_idle        = sprite_create("sPlayer_idle", 2, 0, PLR_SPR_ORIGIN);               
+    sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach", 3, 0, PLR_SPR_ORIGIN);
+    sprite->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb", 2, 10, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_rope_slide  = sprite_create("sPlayer_rope_slide", 2, 10, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_splat_slow  = sprite_create("sPlayer_splat_slow", 5, 7, PLR_SPR_ORIGIN); 
+    sprite->sPlayer_splat_swift = sprite_create("sPlayer_splat_swift", 6, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_turn        = sprite_create("sPlayer_turn", 1, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_walk        = sprite_create("sPlayer_walk", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach", 4, 10, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_idle", 5, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_walk", 4, 6, PLR_SPR_ORIGIN);
 
+    //other
+    sprite->sWall_anim   = sprite_create("sWall_anim", 4, 6, {});
+    sprite->sBlob_small   = sprite_create("sBlob_small", 4, 6, {});
+    
+    
     //meta
-    sprite->sMouse_cursors   = sprite_create("sMouse_cursors2.bmp", 4, 0, {2, 2});
+    sprite->sDebug   = sprite_create("sTest", 1, 0, {});
+    sprite->sMouse_cursors   = sprite_create("sMouse_cursors2", 4, 0, {2, 2});
 
         
-#define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name ".bmp")
+#define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name)
     BMP_LOAD(sTest);
     BMP_LOAD(sTest_wide);
     BMP_LOAD(sMan);
@@ -891,19 +889,8 @@ game_initialize(Game_Pointers* _game_pointers)
 
     font_create(&data->sFont_ASCII_lilliput_vert, 8);
     
-  //LEVEL TEMP
-
-    //HACK: handle player 0 as uninitiazed (having 0 sprite crashes)
-    //or maybe never do this :)
-    player_create({BASE_W/2, BASE_H/2});
-    // b32 is_lvl_loaded = level_load_file(LEVEL_FIRST);
-    // if (!is_lvl_loaded)
-    //     player_create({BASE_W/2, BASE_H/2 - 20});
-    // // wall_create({Tile(3), Tile(20)}, {Tile(18), Tile(1)});
-    // wall_create({Tile(17), Tile(20)}, {Tile(50), Tile(1)});
-    // wall_create({Tile(4), Tile(11)}, {Tile(18), Tile(1)});
-    // wall_create({Tile(2), Tile(11)}, {Tile(1), Tile(10)});
-    // wall_create({Tile(32), Tile(11)}, {Tile(1), Tile(10)});
+    level_load_file(LEVEL_FIRST);
+    // PLAYER->Create({BASE_W/2, BASE_H/2});
 }
 
 
@@ -911,7 +898,10 @@ game_initialize(Game_Pointers* _game_pointers)
 
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 {
+    //NOTE: these are here (updated every frame) so we dont have to worry about reassignment upon hot-reload
+    //TODO: assign these at hot-reload/recompiling point
     pointers = __game_pointers;
+    PLAYER = pointers->player;
 
     if (!pointers->memory->is_initalized){
         //NOTE: if we assume all default init data is handled by game_initialize,
@@ -1048,7 +1038,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         }
 
         //entity update
-        player_update(input);
+        PLAYER->Update(input);
         enemy_update();
 
         //camera update
@@ -1067,14 +1057,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         
         wall_draw();
         enemy_draw();
-        player_draw(player);
+        PLAYER->Draw();
         
         editor_draw_selected();
     }
     
     data->draw_mode = Draw_Mode::Gui;
     im_begin();
-    //draw editor_mode buttons
     Vec2f eb_pos = {40, 10};
     Vec2f eb_size = {16, 6};
     draw_text_buffer(
@@ -1082,6 +1071,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         "editor mode: %i", (i32)data->editor_mode
     );
 
+    //change edit mode
     for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index)
     {
         Vec2f final_pos = {eb_pos.x + (eb_size.x + 2) * edit_index, eb_pos.y};
@@ -1090,14 +1080,14 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         draw_text("mode", final_pos, {0.5, 0.5});
     }
 
-
+    //select entities
     if (data->editor_mode == Editor_Mode::Entity)
     {
         Vec2f button_pos = {10, 40};
         Vec2f button_size = {16, 6};
         draw_text_buffer(
             {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f}, {5, 8},
-            "selected:%s", entity_get_name(global_editor_entity_to_spawn)
+            "selected:%s", entity_name(global_editor_entity_to_spawn)
         );
 
         for (int ent_index = 0; ent_index < (int32)Ent_Type::Num; ++ent_index)

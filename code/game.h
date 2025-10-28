@@ -5,15 +5,7 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 #pragma once
-#include "game_platform.h"
-#include "player.h"
-#include "entity.h"
-#include "render.h"
-#include "text.h"
-
-
-
-#define LEVEL_FIRST "first"
+#define LEVEL_FIRST "default"
 #define UNSAVED_BACKUP_NAME "unsaved"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
@@ -34,6 +26,31 @@
 #define Tile(value) (value * TILE_SIZE)
 
 
+#define GMEMORY pointers->memory
+#define GDATA pointers->data
+#define GENTITY pointers->entity
+#define GSETTINGS pointers->settings
+#define GSPRITE pointers->sprite
+
+
+#include "game_platform.h"
+#include "my_color.h"
+#include "render.h"
+#include "entity.h"
+#include "text.h"
+#include "player.h"
+
+
+
+//WARNING: global variables without default values will be 0'd when hot-reloading
+struct Game_Pointers;
+globalvar Game_Pointers* pointers;
+globalvar Player* PLAYER;
+//convenience //NOTE: these may be a horrible idea
+
+
+
+
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
 #define DEBUG_MESSAGE_MAX 10                    //debug messages at top op screen
 #define DEBUG_MESSAGE_LIFETIME_DEFAULT 160      //
@@ -52,19 +69,6 @@ struct Debug_Message_Queue
     Vec2f scale;
     Debug_Message current_message;
 };
-
-
-
-
-//WARNING: global variables without default values will be 0'd upon recompilation
-static Game_Pointers* pointers;
-//convenience //NOTE: these may be a horrible idea
-#define GMEMORY pointers->memory
-#define GDATA pointers->data
-#define GENTITY pointers->entity
-#define GSETTINGS pointers->settings
-#define GSPRITE pointers->sprite
-
 
 
 
@@ -133,9 +137,14 @@ struct Game_Sprites
     Sprite sPlayer_walk_reach;
     Sprite sPlayer_wire_idle;
     Sprite sPlayer_wire_walk;
-
+    
+    //other
+    Sprite sWall_anim;
+    Sprite sBlob_small;
+    
   //Meta
     Sprite sMouse_cursors;
+    Sprite sDebug;
     
     
   //Items
@@ -198,7 +207,7 @@ struct Game_Performance //TODO: averages
     float64 ms_render;
     float64 megacycles_render;
 };
-//NOTE: initialized in platform layer
+//NOTE: members populated in platform layer
 struct Game_Pointers //just all the fuckin data
 {
     Game_Memory*        memory;

@@ -4,7 +4,6 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-
 struct Collide_Data
 {
     bool32 hori;

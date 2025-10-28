@@ -4,8 +4,8 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-#pragma once
-#include "game.h"
+//#pragma once
+// #include "game.h"
 
 
 
@@ -19,17 +19,6 @@ enum class Ent_Type
     
     Num,
 };
-// globalvar const char* global_ent_names[Ent_Type::Num] =
-// {
-//     "player",
-//     "wall",
-//     "enemy"
-// };
-// constexpr int ENT_MAX_COUNTS[] = {
-//     0,   // Player
-//     8,   // Wall
-//     8,   // Enemy
-// };
 
 struct Entity
 {
@@ -50,8 +39,7 @@ struct Entity
     float32 hp;
 };
 
-//NOTE: points to the 1st entity in memory dilineated by the Game_Entities' union
-globalvar Entity* entity_pointers[Ent_Type::Num];
+
 
 struct Ent_Info {
     const char* name;
@@ -76,3 +64,16 @@ constexpr int ENT_MAX(Ent_Type type){
     i32 result = ENT_INFO[(i32)type].max_count;
     return result;
 }
+
+
+// globalvar const char* global_ent_names[Ent_Type::Num] =
+// {
+//     "player",
+//     "wall",
+//     "enemy"
+// };
+// constexpr int ENT_MAX_COUNTS[] = {
+//     0,   // Player
+//     8,   // Wall
+//     8,   // Enemy
+// };

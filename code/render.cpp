@@ -1,11 +1,15 @@
-#include "render.h"
+// #include "render.h"
 
 
 //TODO: optimize!!
 BMP_Data
 DEBUG_load_bmp(const char* filename)
 {
-    auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(filename).memory;
+    char file_path[64] = {};
+    string_append(file_path, "images\\");
+    string_append(file_path, filename);
+    string_append(file_path, ".bmp");
+    auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(file_path).memory;
     BMP_Data result = {};
     result.size_bytes = file->size;
     result.width = file->width;
@@ -27,8 +31,10 @@ sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f ori
     result.fps = fps;
     result.frame_num = frame_num;
     result.is_animation = (frame_num > 0 && fps != 0);
-    result.width = (int32)(result.bmp.width / result.frame_num);
+    result.width = result.bmp.width;
     result.height = result.bmp.height;
+    result.frame_width = (int32)(result.bmp.width / result.frame_num);
+    result.frame_height = result.bmp.height;
     return result;
 }
 
@@ -579,8 +585,8 @@ draw_sprite_frame(Sprite* spr, Vec2f pos, float32 anim_index, Vec2f scale = {1, 
 {
     int32 frame = floor_i32(anim_index);
     draw_sprite_part(spr, pos, scale,
-                     {frame * spr->width, 0}, //pos
-                     {spr->width, spr->height });//size
+                     {frame * spr->frame_width, 0}, //pos
+                     {spr->frame_width, spr->frame_height });//size
 }
 
 

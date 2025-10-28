@@ -5,7 +5,7 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-#pragma once
+//#pragma once
 
 
 /////STUFF//////
@@ -40,6 +40,8 @@ struct Sprite
 	Vec2f origin;
     int32 width;
     int32 height;
+    int32 frame_width;
+    int32 frame_height;    
     float32 fps;
     uint32 frame_num;
     bool32 is_animation;

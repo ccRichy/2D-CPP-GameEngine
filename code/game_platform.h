@@ -4,10 +4,7 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-#pragma once
 #include "input.h"
-
-
 
 //TODO: move to a debug file?
 #if MY_DEBUG
@@ -29,7 +26,8 @@
 
 
 
-inline uint32 //TODO: where the fuck do we put this
+
+inline uint32 //TODO: move to math
 safe_truncate_uint64(uint64 value)
 {
     Assert(value <= 0xFFFFFFFF);
@@ -113,7 +111,6 @@ struct Game_Sound_Buffer
     int32  sample_rate;
     int16* memory;
 };
-
 
 
 

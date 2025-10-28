@@ -1,11 +1,12 @@
 Player
-p x270 y73
+p x160 y90
 !
 
 Tiles
-t1 x33 y10, t1 x34 y10, t1 x35 y10, t1 x31 y11, t1 x32 y11, t1 x33 y11, t1 x34 y11, t1 x30 y12, t1 x31 y12, t1 x32 y12, t1 x33 y12, t1 x34 y12, t1 x30 y13, t1 x31 y13, t1 x32 y13, t1 x33 y13, t1 x29 y14, t1 x30 y14, t1 x31 y14, t1 x32 y14, t1 x29 y15, t1 x30 y15, t1 x31 y15, t1 x14 y16, t1 x15 y16, t1 x16 y16, t1 x17 y16, t1 x18 y16, t1 x19 y16, t1 x20 y16, t1 x21 y16, t1 x22 y16, t1 x23 y16, t1 x24 y16, t1 x25 y16, t1 x26 y16, t1 x27 y16, t1 x28 y16, t1 x7 y17, t1 x8 y17, t1 x9 y17, t1 x11 y17, t1 x12 y17, t1 x13 y17, t1 x14 y17, t1 x15 y17, t1 x16 y17, t1 x17 y17, t1 x18 y17, t1 x19 y17, t1 x20 y17, t1 x21 y17, t1 x22 y17, t1 x23 y17, t1 x24 y17, t1 x25 y17, t1 x26 y17, t1 x27 y17, t1 x28 y17, t1 x14 y18, t1 x16 y18, t1 x19 y18, 
+t1 x9 y3, t1 x26 y11, t1 x26 y12, t1 x15 y13, t1 x16 y13, t1 x17 y13, t1 x18 y13, t1 x19 y13, t1 x20 y13, t1 x21 y13, t1 x22 y13, t1 x23 y13, t1 x24 y13, t1 x25 y13, t1 x26 y13, t1 x15 y14, t1 x16 y14, t1 x17 y14, t1 x18 y14, t1 x19 y14, t1 x20 y14, t1 x21 y14, t1 x22 y14, t1 x23 y14, t1 x24 y14, t1 x25 y14, 
 !
 
 Entities
-e2 x108 y69 w8 h16,
+e1 x132 y50 w8 h8,
+e2 x98 y60 w8 h16,
 !

@@ -1,10 +1,11 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 #include "my_string.h"
-
-
-
-
 #define LOOP_MAX 1024 //NOTE: increase this number as needed
-
 
 
 
@@ -55,18 +56,14 @@ void string_append(char* charbuff, char* string_to_append)
     int32 index_append_pos = string_length(charbuff); 
     int32 loop_amt = string_length(string_to_append);
     for (int char_index = 0; char_index < loop_amt; ++char_index)
-    {
         charbuff[char_index + index_append_pos] = string_to_append[char_index];
-    }
 }
 void string_append(char* charbuff, const char* string_to_append)
 {
     int32 index_append_pos = string_length(charbuff);
     int32 loop_amt = string_length(string_to_append);
     for (int char_index = 0; char_index < loop_amt; ++char_index)
-    {
         charbuff[char_index + index_append_pos] = string_to_append[char_index];
-    }    
 }
 
 

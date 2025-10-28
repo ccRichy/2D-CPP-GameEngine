@@ -6,11 +6,6 @@
    ======================================================================== */
 
 //TODO: text alignment
-#pragma once
-
-
-
-
 #define FONT_GLYPH_SIZE 8
 #define FONT_LENGTH 94
 #define FONT_ASCII_CHARACTER_START_OFFSET 32

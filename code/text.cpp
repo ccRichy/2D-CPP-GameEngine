@@ -7,7 +7,7 @@
 
 //NOTE: Font creation function assumes a vertical image so we can crawl linearly over the pixels
 
-#include "text.h"
+// #include "text.h"
 
 Font
 font_create(BMP_Data* image, uint32 glyph_size)

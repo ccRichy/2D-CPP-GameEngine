@@ -5,9 +5,9 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-#include "entity.h"
-#include "render.h"
-
+//#include "entity.h"
+// #include "render.h"
+#define entity_name(type) ENT_INFO[(i32)type].name
 
 
 inline int32
@@ -16,12 +16,12 @@ entity_get_num(Ent_Type type)
     int32 result = pointers->entity->nums[(int32)type];
     return result;
 }
-inline const char*
-entity_get_name(Ent_Type type)
-{
-    const char* result = pointers->entity->names[(int32)type];
-    return result;
-}
+// inline const char*
+// entity_get_name(Ent_Type type)
+// {
+//     const char* result = pointers->entity->names[(int32)type];
+//     return result;
+// }
 void
 entity_clear_all()
 {
@@ -72,7 +72,8 @@ Entity* entity_init(Entity* array, Ent_Type type, Vec2f pos)
         int32 looped_index = index_value % array_max;
         if (!array[looped_index].is_alive)
         {
-            result = &array[looped_index];
+            result = &array[looped_index]; 
+            result->sprite = entity_sprite_default(type); //set default sprite
             result->type = type;
             result->pos = pos;
             result->is_alive = true;
