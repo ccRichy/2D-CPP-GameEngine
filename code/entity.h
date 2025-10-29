@@ -44,7 +44,6 @@ struct Entity
 struct Ent_Info {
     const char* name;
     int max_count;
-    Entity* pointer; //REQUIRED: set from game_init
 };
 
 constexpr Ent_Info ENT_INFO[] = {

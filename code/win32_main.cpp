@@ -216,7 +216,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 
                 Game_Render_Buffer game_render_buffer = {};
                 Game_Performance game_performance = {};
-                Game_Settings settings; //REQUIRED: do NOT 0-init
+                Game_Settings settings = {};
                 Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
                 
                 Game_Sound_Buffer game_sound_buffer = {};

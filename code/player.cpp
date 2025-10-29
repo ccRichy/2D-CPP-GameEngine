@@ -46,172 +46,14 @@ player_gravity(Player* plr)
 
 
 
-// #if 0
-/////STATES
-void //WARNING: deprecated
-state_change(State** state_variable, State* target)
-{
-    *state_variable = target;
-    target->Enter();
-}
-void state_enter_default(Player* plr, Sprite* sprite, float32 anim_index = 0, float32 anim_speed = 1)
+void state_enter_default(Player* plr,
+                         Sprite* sprite, float32 anim_index = 0, float32 anim_speed = 1,
+                         Physics physics = {})
 {
     plr->sprite = sprite;
     plr->anim_index = anim_index;
     plr->anim_speed = anim_speed;
 }
-
-
-//IDLE
-void player_idle_enter()
-{
-    Player* plr = PLAYER;
-    state_enter_default(plr, &GSPRITE->sPlayer_idle, 0, 0);
-    plr->physics = plr->ground_physics;
-}
-void
-player_idle_step(Game_Input_Map input)
-{
-    Player* plr = PLAYER;
-    //anim
-    plr->anim_index = (float32)input.up.hold;
-    //speed
-    player_gravity(plr);
-    player_move_hori(plr, false);
-    move_collide_wall(&plr->pos, &plr->spd, plr->size);
-        
-    // if (input.jump)
-    //     state_change(&plr->state, &plr->st_jump);
-    // else if (plr->spd.y != 0)
-    //     state_change(&plr->state, &plr->st_fall);
-    // else if (plr->move_input.x != 0 && plr->spd.x != 0)
-    //     state_change(&plr->state, &plr->st_walk);
-}
-
-
-
-
-//WALK
-void
-player_walk_enter()
-{
-    Player* plr = PLAYER;
-    state_enter_default(plr, &GSPRITE->sPlayer_walk);
-    plr->physics = plr->ground_physics;
-}
-void
-player_walk_step(Game_Input_Map input)
-{
-    Player* plr = PLAYER;
-
-    plr->spd.y += plr->physics.grav;
-    player_move_hori(plr, false);
-    move_collide_wall(&plr->pos, &plr->spd, plr->size);
-
-    //anim
-    if (sign(plr->move_input.x) != sign(plr->spd.x) && plr->move_input.x != 0)
-        plr->sprite = &GSPRITE->sPlayer_turn;
-    else if (input.up.hold)
-        plr->sprite = plr->sprite = &GSPRITE->sPlayer_walk_reach;
-    else
-        plr->sprite = plr->sprite = &GSPRITE->sPlayer_walk;
-
-    if (plr->move_input.x != 0)
-        plr->scale.x = (float32)sign(plr->move_input.x);
-    plr->anim_speed = abs_f32(plr->spd.x);
-
-    //state
-    // if (input.jump)
-    //     state_change(&plr->state, &plr->st_jump);
-    // else if (plr->spd.y != 0)
-    //     state_change(&plr->state, &plr->st_fall);
-    // else if (plr->spd.x == 0)
-    //     state_change(&plr->state, &plr->st_idle);
-}
-
-//JUMP
-void
-player_jump_enter()
-{
-    Player* plr = PLAYER;
-    state_enter_default(plr, &GSPRITE->sPlayer_air, 0, 0);
-
-    plr->physics = plr->jump_physics;
-    plr->spd.y = -plr->jump_spd;
-    // plr->grav = plr->grav_low;
-}
-void
-player_jump_step(Game_Input_Map input)
-{
-    Player* plr = PLAYER;
-
-    //anim
-    float32 yspd_threshold = 0.4f;
-    if (abs_f32(plr->spd.y) > yspd_threshold){
-        if (input.up.hold){
-            plr->sprite = &GSPRITE->sPlayer_air_reach;
-            plr->anim_index = (plr->move_input.x != 0 && plr->move_input.x != plr->scale.x);
-        }else{
-            plr->sprite = &GSPRITE->sPlayer_air;
-        }
-    }else{
-        plr->anim_speed = abs_f32(plr->spd.y) * 1.6f;
-    }
-        
-    //speed
-    player_gravity(plr);
-    player_move_hori(plr, true);
-    if (!input.jump.hold) plr->spd.y *= 0.9f;
-    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
-
-    //state
-    // if (plr->spd.y > 0)
-    //     state_change(&plr->state, &plr->st_fall);
-}
-    
-//FALL
-void
-player_fall_enter()
-{
-    Player* plr = PLAYER;
-    Sprite* spr = pointers->input->up.hold ? &GSPRITE->sPlayer_air_reach : &GSPRITE->sPlayer_air;
-    float32 index = pointers->input->up.hold ? plr->anim_index : 0;
-    state_enter_default(plr, spr, index, 0);
-        
-    plr->physics = plr->fall_physics;
-}
-void
-player_fall_step(Game_Input_Map input)
-{
-    Player* plr = PLAYER;
-
-    //anim
-    if (input.up.hold){
-        plr->sprite = &GSPRITE->sPlayer_air_reach;
-        plr->anim_index = (plr->move_input.x != 0 && plr->move_input.x != plr->scale.x);
-    }else{
-        plr->sprite = &GSPRITE->sPlayer_air;
-    }
-    plr->anim_speed = abs_f32(plr->spd.y) * 0.8f;
-
-        
-    player_move_hori(plr, true);
-    player_gravity(plr);
-    Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
-        
-    // if (coll.ydir == 1)
-    //     state_change(&plr->state,
-    //                  plr->spd.x != 0 ? &plr->st_walk : &plr->st_idle);
-};
-// #endif
-
-
-
-
-//TODO: move theez
-#define sprite_change(__entity, __sprite) __entity->sprite = &pointers->sprite->##__sprite
-Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size);
-
 
 
 
@@ -223,6 +65,8 @@ void Player::state_switch(Player_State new_state)
 }
 
 
+//forward declaration for following functions
+Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size); //HACK:
 
 void
 Player::state_perform(Player_State _state, State_Function _function)
@@ -256,13 +100,10 @@ Player::state_perform(Player_State _state, State_Function _function)
       case Player_State::Walk:{
           switch (_function){
             case State_Function::Enter:{
-                
                 state_enter_default(this, &GSPRITE->sPlayer_walk);
                 physics = ground_physics;
             }break;
             case State_Function::Step:{
-                
-
                 spd.y += physics.grav;
                 player_move_hori(this, false);
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
@@ -363,6 +204,18 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
           }
       }break;
+      case Player_State::Ledge:{
+          switch (_function){
+            case State_Function::Enter:{
+                
+            }break;
+            case State_Function::Step:{
+            }break;
+            case State_Function::Leave:{
+            }break;
+          }
+      }break;
+
         
     }
 }
@@ -381,13 +234,12 @@ Player::state_perform(Player_State _state, State_Function _function)
 
 
 void
-Player::Create(Vec2f _pos, Player_State _state)
+Player::Create(Vec2f _pos)
 {
     // *this = Player;
-    Player plr; //REQUIRED: dont 0 init
+    Player plr = {};
     plr.sprite = &GSPRITE->sPlayer_idle;
-    plr.state = _state;
-    state_perform(_state, State_Function::Enter);
+    state_perform(plr.state, State_Function::Enter);
     //
     plr.pos   = _pos;
     plr.physics = plr.ground_physics;

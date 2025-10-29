@@ -5,9 +5,6 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 #pragma once
-
-
-
 enum struct Game_Input_Device
 {
     Keyboard_Mouse,
@@ -57,7 +54,7 @@ struct Game_Input_Map
     int32 mouse_scroll;
     
     union {
-        Game_Input_Button buttons[40 + 1];
+        Game_Input_Button buttons[42 + 1];
         struct {
             //gameplay
             Game_Input_Button up;
@@ -72,6 +69,8 @@ struct Game_Input_Map
             Game_Input_Button edit_level_save;
             Game_Input_Button edit_level_load;
             Game_Input_Button edit_delete;
+            Game_Input_Button state_load;
+            Game_Input_Button state_save;
             
             //debug
             Game_Input_Button reset;

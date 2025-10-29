@@ -5,7 +5,8 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 #pragma once
-#define LEVEL_FIRST "default"
+
+#define LEVEL_FIRST "ledge"
 #define UNSAVED_BACKUP_NAME "unsaved"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
@@ -26,11 +27,6 @@
 #define Tile(value) (value * TILE_SIZE)
 
 
-#define GMEMORY pointers->memory
-#define GDATA pointers->data
-#define GENTITY pointers->entity
-#define GSETTINGS pointers->settings
-#define GSPRITE pointers->sprite
 
 
 #include "game_platform.h"
@@ -39,15 +35,6 @@
 #include "entity.h"
 #include "text.h"
 #include "player.h"
-
-
-
-//WARNING: global variables without default values will be 0'd when hot-reloading
-struct Game_Pointers;
-globalvar Game_Pointers* pointers;
-globalvar Player* PLAYER;
-//convenience //NOTE: these may be a horrible idea
-
 
 
 
@@ -73,17 +60,15 @@ struct Debug_Message_Queue
 
 
 //////GAME//////
-enum struct Game_State{
+enum struct Game_State{ //TODO: pause
     Edit,
     Play
 };
-
 enum struct Draw_Mode{
     Null = -1,
     World,
     Gui
 };
-
 enum struct Editor_Mode
 {
     Entity,
@@ -92,33 +77,6 @@ enum struct Editor_Mode
 };
 
 
-typedef int32 Tile;
-struct Tilemap
-{
-    Vec2f pos;
-    int32 grid_w;
-    int32 grid_h;
-    int32 tile_w;
-    int32 tile_h;
-    Tile grid[TILEMAP_H][TILEMAP_W];
-};
-struct Game_Entities
-{
-    Player player;
-
-    union {
-        Entity array[ENT_MAX_ALL() + 1];
-        struct {
-            Entity walls  [ ENT_MAX(Ent_Type::Wall) ];
-            Entity enemys [ ENT_MAX(Ent_Type::Enemy) ];
-            
-            Entity bottom_entity; //REQUIRED: to validate union sizes match
-        };
-    };
-
-    int32 nums[Ent_Type::Num];
-    const char* names[Ent_Type::Num];
-};
 struct Game_Sprites
 {
   //Characters
@@ -150,6 +108,36 @@ struct Game_Sprites
   //Items
     //rope
     Sprite sRope;
+};
+
+
+
+typedef int32 Tile;
+struct Tilemap
+{
+    Vec2f pos;
+    int32 grid_w;
+    int32 grid_h;
+    int32 tile_w;
+    int32 tile_h;
+    Tile grid[TILEMAP_H][TILEMAP_W];
+};
+struct Game_Entities
+{
+    Player player;
+
+    union {
+        Entity array[ENT_MAX_ALL() + 1];
+        struct {
+            Entity walls  [ ENT_MAX(Ent_Type::Wall) ];
+            Entity enemys [ ENT_MAX(Ent_Type::Enemy) ];
+            
+            Entity bottom_entity; //REQUIRED: to validate union sizes match
+        };
+    };
+
+    int32 nums[Ent_Type::Num];
+    Entity* pointers[Ent_Type::Num];
 };
 struct Game_Data
 {
@@ -222,3 +210,17 @@ struct Game_Pointers //just all the fuckin data
     Player*             player;
     Typing_Buffer*      console;
 };
+
+
+
+//WARNING: global variables without default values will be 0'd when hot-reloading
+// struct Game_Pointers;
+//NOTE: initialized in game_init
+globalvar Player* PLAYER;
+globalvar Game_Data* GDATA; 
+globalvar Game_Memory* GMEMORY;
+globalvar Game_Input_Map* GIN;
+globalvar Game_Sprites* GSPRITE;
+globalvar Game_Entities* GENTITY;
+globalvar Game_Settings* GSETTING;
+globalvar Game_Pointers* pointers;

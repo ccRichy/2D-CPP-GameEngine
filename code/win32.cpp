@@ -544,6 +544,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                         win32_key_check('S',       in->edit_level_save, key_data);
                         win32_key_check('L',       in->edit_level_load, key_data);
                         win32_key_check(VK_DELETE, in->edit_delete,     key_data);
+                        win32_key_check(VK_OEM_2,  in->state_save,     key_data);
+                        win32_key_check(VK_OEM_5,  in->state_load,     key_data);
 
                         //debug
                         win32_key_check('R',          in->reset,               key_data);

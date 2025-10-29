@@ -4,7 +4,6 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-
 //TODO: factor out c library
 #include <math.h>  //TODO: intrinsics
 #include <stdio.h> //using sprintf
@@ -75,8 +74,8 @@ inline Vec2f
 mouse_get_pos_world()
 {
     Vec2f result =
-        {pointers->input->mouse_pos_gui.x / GSETTINGS->zoom_scale,
-         pointers->input->mouse_pos_gui.y / GSETTINGS->zoom_scale};
+        {pointers->input->mouse_pos_gui.x / GSETTING->zoom_scale,
+         pointers->input->mouse_pos_gui.y / GSETTING->zoom_scale};
     result += GDATA->camera_pos;
     
     return result;
@@ -99,43 +98,28 @@ mouse_get_pos_world_tile()
 void
 camera_zoom()
 {
-    auto input = *pointers->input;
-    
-    if (input.mouse_scroll > 0)
-    {
-        Vec2f mouse_prev = mouse_get_pos_world();
+    auto input = pointers->input;
 
-        if (input.shift.hold) GSETTINGS->zoom_scale *= (float32)(sqrt(2));
-        else GSETTINGS->zoom_scale *= (float32)(sqrt(sqrt(2)));        
-        Vec2f mouse_new = mouse_get_pos_world();
-        Vec2f camera_pos_current = GDATA->camera_pos;
+    if (input->mouse_scroll != 0 || input->mouse_front.press)
+    {
+        V2f mouse_prev = mouse_get_pos_world();
+
+        i32 zoom_amt = input->shift.hold ? 4 : 2;
+        if (input->mouse_front.press)
+            GSETTING->zoom_scale = 1;
+        else if (input->mouse_scroll > 0)
+            GSETTING->zoom_scale *= (f32)(sqrt(sqrt(zoom_amt)));
+        else if (input->mouse_scroll < 0)
+            GSETTING->zoom_scale /= (f32)(sqrt(sqrt(zoom_amt)));
+        
+        V2f mouse_new = mouse_get_pos_world();
+        V2f camera_pos_current = GDATA->camera_pos;
         GDATA->camera_pos =
             {camera_pos_current.x + mouse_prev.x - mouse_new.x,
              camera_pos_current.y + mouse_prev.y - mouse_new.y};
+
+        debug_message("Zoom: %f", GSETTING->zoom_scale);
     }
-    else if (input.mouse_scroll < 0)
-    {
-        Vec2f mouse_prev = mouse_get_pos_world();
-
-        if (input.shift.hold) GSETTINGS->zoom_scale /= (float32)(sqrt(2));
-        else GSETTINGS->zoom_scale /= (float32)(sqrt(sqrt(2)));
-        Vec2f mouse_new = mouse_get_pos_world();
-        Vec2f camera_pos_current = GDATA->camera_pos;
-        GDATA->camera_pos =
-            {camera_pos_current.x + mouse_prev.x - mouse_new.x,
-             camera_pos_current.y + mouse_prev.y - mouse_new.y};
-
-    }
-    else if (input.mouse_front)
-    {
-        Vec2f mouse_prev = mouse_get_pos_world();
-        GSETTINGS->zoom_scale = 1;
-        Vec2f mouse_new = mouse_get_pos_world();
-        Vec2f camera_pos_current = GDATA->camera_pos;
-        GDATA->camera_pos =
-            {camera_pos_current.x + mouse_prev.x - mouse_new.x,
-             camera_pos_current.y + mouse_prev.y - mouse_new.y};
-    }    
 }
 
 
@@ -480,7 +464,8 @@ entity_spawn(Ent_Type type, Vec2f pos)
     return result;
 }
 
-Entity* entity_at_pos(Vec2f pos)
+Entity*
+entity_at_pos(Vec2f pos)
 {
     Entity* result = nullptr;
     Entity* array = pointers->entity->array;
@@ -494,12 +479,14 @@ Entity* entity_at_pos(Vec2f pos)
     return result;    
 }
 
-Entity* entity_at_mouse_pos()
+Entity*
+entity_at_mouse_pos()
 {
     Entity* result = entity_at_pos(mouse_get_pos_world());
     return result;
 }
-void editor_draw_selected()
+void
+editor_draw_selected()
 {
     Entity* ent_hl = global_editor_selected_entity;
     if (!ent_hl) return;
@@ -514,8 +501,42 @@ void editor_draw_selected()
 
 
 
+void
+game_save_state(const char* filename) //this dumps the whole ass raw memory
+{
+    b32 result = false;
+    if (GMEMORY->DEBUG_platform_file_write_entire)
+        result = GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), pointers->data);
+    
+    if (result)
+        debug_message("state saved: \"%s\"", filename);
+    else
+        debug_message("state failed to save: \"%s\"", filename);
+}
+void
+game_load_state(const char* filename) //trying to load old versions is likely to break
+{
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory)
+    {
+        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+    }
+    else
+    {
+        Game_Data* data = (Game_Data*)file.memory;
+        GDATA->tilemap = data->tilemap;
+        GDATA->entity = data->entity;
+        // memcpy(&pointers->data->tilemap, data, sizeof(Game_Data));
 
-bool32 is_level_new(Game_Data* data)
+        // pointers->entity = (Tilemap)file.memory;
+        debug_message("level state loaded: \"%s\"?", filename);
+    }
+}
+
+
+bool32
+is_level_new(Game_Data* data)
 {
     b32 result = (data->level_current[0] == 0 || string_equals(data->level_current, UNSAVED_BACKUP_NAME));
     return result;
@@ -530,34 +551,6 @@ level_clear()
     PLAYER->Create({BASE_W/2, BASE_H/2});
     string_clear(pointers->data->level_current);
 };
-
-
-void
-game_save_state(const char* filename) //this dumps the whole ass raw memory
-{
-    if (GMEMORY->DEBUG_platform_file_write_entire)
-        GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), &pointers->data);
-    debug_message("level state saved: \"%s\"?", filename);
-}
-void
-game_load_state(const char* filename) //trying to load old versions is likely to break
-{
-    //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-    if (!file.memory)
-    {
-        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
-    }
-    else
-    {
-        Tilemap* tilemap = (Tilemap*)file.memory;
-        memcpy(&pointers->data->tilemap, tilemap, sizeof(Tilemap));
-
-        // pointers->entity = (Tilemap)file.memory;
-        debug_message("level state loaded: \"%s\"?", filename);
-    }
-}
-
 
 bool32
 level_save_file(const char* filename)
@@ -777,7 +770,7 @@ level_load_file(const char* filename) //without extension
 void
 level_reload()
 {
-    char current_level_name[64];
+    char current_level_name[64] = {};
     string_append(current_level_name, pointers->data->level_current);
     level_load_file(current_level_name);
 }
@@ -804,9 +797,8 @@ extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
 void
 game_initialize(Game_Pointers* _game_pointers)
 {
-    // game_pointers = _game_pointers;
     pointers->memory->is_initalized = true;
-    
+
     Game_Input_Map* input    = pointers->input;
     Game_Data*      data     = pointers->data;
     Game_Entities*  entity   = &data->entity;
@@ -814,23 +806,25 @@ game_initialize(Game_Pointers* _game_pointers)
     Player*         player   = &entity->player;
     Game_Settings*  settings = pointers->settings;
 
-    Assert( (&input->bottom_button - &input->buttons[0]) == (array_length(input->buttons) - 1) );
+    i64 set_input_array_to_this_value = &input->bottom_button - &input->buttons[0] + 1;
+    i32 button_length = array_length(input->buttons);
+    if (set_input_array_to_this_value != button_length) Assert(false);
     Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space );
     Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) );
-    
-    data->state = GSTATE_DEFAULT;
-    data->draw_mode = GDRAW_MODE_DEFAULT;
+
+    data->state       = GSTATE_DEFAULT;
+    data->draw_mode   = GDRAW_MODE_DEFAULT;
     data->editor_mode = GEDITOR_MODE_DEFAULT;
 
-    data->debug_msg.pos = DEBUG_MESSAGE_POS_DEFAULT;
+    data->debug_msg.pos   = DEBUG_MESSAGE_POS_DEFAULT;
     data->debug_msg.scale = DEBUG_MESSAGE_SCALE_DEFAULT;
-    
+
     data->tilemap.tile_w = TILE_SIZE;
     data->tilemap.tile_h = TILE_SIZE;
     data->tilemap.grid_w = TILEMAP_W;
     data->tilemap.grid_h = TILEMAP_H;
-    data->tilemap.pos = {0, 0};
-    
+    data->tilemap.pos    = {0, 0};
+
     data->camera_yoffset_extra = 4.f;
     data->camera_pos_offset_default = {
         BASE_W/2,
@@ -838,14 +832,17 @@ game_initialize(Game_Pointers* _game_pointers)
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
 
-    
-    //TODO: ENTITIY INIT 
+
+    //TODO: ENTITIY POINTER INIT
     Entity* entity_pointer = pointers->entity->array;
-    for (int i = 0; i < (i32)Ent_Type::Num; ++i)
-    {
-        i32 offset = ENT_INFO[i].max_count;
-        entity_pointer += offset;
-        
+    for (int i = 0; i < (i32)Ent_Type::Num; ++i){
+        if (i == 0){ //player
+            
+        }else{
+            i32 offset = ENT_INFO[i].max_count;
+            entity_pointer += offset;
+            entity->pointers[i] = entity_pointer;
+        }
     }
     
 
@@ -865,8 +862,8 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sPlayer_turn        = sprite_create("sPlayer_turn", 1, 6, PLR_SPR_ORIGIN);
     sprite->sPlayer_walk        = sprite_create("sPlayer_walk", 4, 10, PLR_SPR_ORIGIN);
     sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_idle", 5, 6, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_walk", 4, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_wire_idle", 5, 6, PLR_SPR_ORIGIN);
+    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_wire_walk", 4, 6, PLR_SPR_ORIGIN);
 
     //other
     sprite->sWall_anim   = sprite_create("sWall_anim", 4, 6, {});
@@ -890,7 +887,6 @@ game_initialize(Game_Pointers* _game_pointers)
     font_create(&data->sFont_ASCII_lilliput_vert, 8);
     
     level_load_file(LEVEL_FIRST);
-    // PLAYER->Create({BASE_W/2, BASE_H/2});
 }
 
 
@@ -901,7 +897,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     //NOTE: these are here (updated every frame) so we dont have to worry about reassignment upon hot-reload
     //TODO: assign these at hot-reload/recompiling point
     pointers = __game_pointers;
-    PLAYER = pointers->player;
+    PLAYER   = pointers->player;
+    GSETTING = pointers->settings;
+    GIN      = pointers->input;
+    GDATA    = pointers->data;
+    GMEMORY  = pointers->memory;
+    GENTITY  = &GDATA->entity;
+    GSPRITE  = &GDATA->sprites;
 
     if (!pointers->memory->is_initalized){
         //NOTE: if we assume all default init data is handled by game_initialize,
@@ -921,6 +923,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Typing_Buffer* console    = pointers->console;
 
 
+    if (input->state_save)
+        game_save_state("state.st");
+    if (input->state_load)
+        game_load_state("state.st");
+    
     
     //UPDATE (early)
     camera_zoom();
@@ -1002,8 +1009,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
       //Camera
         float32 cam_speed = (input->shift.hold ? 4.f : 2.f);
         Vec2f move_input =
-            {(float32)(input->right.hold - input->left.hold) / GSETTINGS->zoom_scale,
-             (float32)(input->down.hold - input->up.hold) / GSETTINGS->zoom_scale};
+            {(float32)(input->right.hold - input->left.hold) / GSETTING->zoom_scale,
+             (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
         data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
         
       //Draw coords
@@ -1043,7 +1050,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
         //camera update
         float32 cam_yoffset_extra = 4;
-        Vec2f vec2_zoom = {GSETTINGS->zoom_scale, GSETTINGS->zoom_scale};
+        Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
         data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
         data->camera_pos = player->pos - data->camera_pos_offset;
     }

@@ -10,9 +10,10 @@ pushd %~dp0build
 del *.pdb > NUL 2> NUL
 
 
-REM - compilations
+REM - compile game
 cl @../build-flags.rsp ../code/game.cpp /Fmgame.map /LD /link /PDB:%pdb_name% /OUT:game.dll /INCREMENTAL:NO /EXPORT:game_update_and_draw /EXPORT:game_input_change_device
 
+REM - compile platform
 REM - prevent compiling platform if its running (~20% compile spd boost)(useful for hot reload)
 tasklist /fi "ImageName eq %exe_name%" /fo csv 2>NUL | find /I %exe_name%>NUL
 if "%ERRORLEVEL%"=="1" cl @../build-flags.rsp ../code/win32_main.cpp /Fe:%exe_name% @../build-libs.rsp /Fmwin32_main.map

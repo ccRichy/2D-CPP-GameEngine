@@ -4,30 +4,22 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-struct Sprite;
+
+#define sprite_change(__entity, __sprite_name) __entity->sprite = &pointers->sprite->##__sprite_name
 
 
-
-
+struct State
+{
+    void (*Enter)();
+    void (*Step)(Game_Input_Map input);
+};
 enum struct State_Function {
     Enter,
     Leave,
     Step
 };
 
-enum struct Player_State
-{
-    Idle,
-    Walk,
-    Jump,
-    Fall,
-    Rope
-};
-struct State
-{
-    void (*Enter)();
-    void (*Step)(Game_Input_Map input);
-};
+
 struct Physics
 {
     float32 accel;
@@ -35,6 +27,18 @@ struct Physics
     float32 turn;
     float32 grav;
 };
+
+
+enum struct Player_State
+{
+    Idle,
+    Walk,
+    Jump,
+    Fall,
+    Ledge,
+    Rope
+};
+
 
 #define PLAYER_DEFAULT_STATE Player_State::Idle
 struct Player
@@ -57,18 +61,16 @@ struct Player
     Physics fall_physics =   {0.01f,  0,      0.1f,  0.08f};
     Physics physics; //could become a pointer if it gets too complex?
     
-    float32 ground_speed_max = 1;
-    float32 jump_spd = 1.2f;
+    float32 ground_speed_max  = 1;
+    float32 jump_spd          = 1.2f;
     float32 terminal_velocity = 4;
-    int32 aim_dir;
-    
-    Player_State state = PLAYER_DEFAULT_STATE;
-    State_Function state_function; //do we need this?
+    int32   aim_dir;
 
+    void Create(Vec2f pos);
+    void Update(Game_Input_Map* input);
+    void Draw();
+    
+    Player_State state;
     void state_switch(Player_State new_state);
     void state_perform(Player_State _state, State_Function _function);
-
-    void Create(Vec2f pos, Player_State _state = PLAYER_DEFAULT_STATE);
-    void Update(Game_Input_Map* input);
-    void Draw();   
 };
