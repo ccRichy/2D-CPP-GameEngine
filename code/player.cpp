@@ -5,7 +5,6 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-//TODO: add enemy and wall
 Sprite* entity_sprite_default(Ent_Type type)
 {
     Sprite* result = 0;
@@ -16,7 +15,6 @@ Sprite* entity_sprite_default(Ent_Type type)
         case Ent_Type::Wall: result = &spr->sWall_anim; break;
         case Ent_Type::Enemy: result = &spr->sBlob_small; break;
     }
-
     return result;
 }
 

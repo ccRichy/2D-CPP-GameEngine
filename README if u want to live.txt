@@ -1,6 +1,6 @@
 #todo, elaborate this more but just start with some obvious stuff
 
-1. The program compiles 2 cpp files for the platform/application layers respectively. Each platform is compiled distinctly, separated by their respective 'main' files. We also have a strong 0 Header-Guard, Unity-Build method for keeping compile times as low as possible. See below for elaboration.
+1. The program compiles 2 cpp files for the platform/application layers respectively. Each platform is compiled distinctly, separated by their respective 'main' files. I also use a 0 Header-Guard, Unity-Build method for keep #includes, compile times to a minimum. See below for elaboration.
 
 2. Another philosophy of the program is single source of truth wherever can be reasonable/possible. A number of structs have default values at declaration to avoid separation.
 
@@ -15,16 +15,16 @@ As the programmer, it is intended for you to include headers as needed, per sour
 
 That axis of efficiency, their lack of implementation code, pales in comparison to the overhead of reading the disk at compile time. Every time you create a new source file, 2 new disk-reads at compilation. (creating and linking object files). Every time you #include something in the source code, another disk-read. This is without fail, the #1 cause of compile time overhead.
 
-Ok smart guy, if I cant #include, how the hell do I get the header data where it needs to go?
+YOU: Ok smart guy, if I cant #include, how the hell do I get the header data where it needs to go?
 
 Do this instead: 
 #include all source code in main or otherwise an 'include' file, at the earliest point possible in the program, and keep includes local. By doing this, all of those definitions will exist in the global namespace.
 
-YOU: How horrible! Think of the namespace conflicts!
-ME: No. But you can think about it! Im using words like 'earliest', and 'possible', because this system is not strict about implementation. Compiling more than one file is fine. If you MUST avoid a namespace conflict, just use a separate compilation unit for THAT data. You will still have many of the benefits of 
+YOU: How horrible! Think of the namespace!
+ME: No. But you can think about it! Im using words like 'earliest', and 'possible', because this system is not strict about implementation. Compiling more than one file is fine. If you MUST avoid a namespace conflict, just use a separate compilation unit for THAT data. You will still have many of the benefits of this technique.
 
-YOU: But doesn't this create extra overhead on the developer to sort out the build making sure of these things.
-Yes! How much extra is how willing you are to dedicate to this system. Like I said, I make no guarantees that this system will fit snuggly within your current one. Just because you want to use a bad system, doesn't negate the quality of this one.
+YOU: But doesn't this create extra overhead on the developer to sort out the build?
+ME: Yes! How much extra is proportional to how willing you are to dedicate to this system. Like I said, I make no guarantees that this system will fit snuggly within your current one. Ans just because you want to use a bad system, doesn't negate the quality of this one.
 
 
 #0 Header Guard?

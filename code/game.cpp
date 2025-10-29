@@ -900,8 +900,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     PLAYER   = pointers->player;
     GSETTING = pointers->settings;
     GIN      = pointers->input;
-    GDATA    = pointers->data;
     GMEMORY  = pointers->memory;
+    GDATA    = pointers->data;
     GENTITY  = &GDATA->entity;
     GSPRITE  = &GDATA->sprites;
 
@@ -932,7 +932,8 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     //UPDATE (early)
     camera_zoom();
     if (input->reset)
-        player->pos = {BASE_W/2, 0};
+        level_reload();
+        // player->pos = {BASE_W/2, 0};
         
     if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
