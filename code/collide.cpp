@@ -79,7 +79,7 @@ on_screen(Vec2f pos, Vec2f padding)
 
 // ENTITY //TODO: move to enitity file?
 Entity*
-collide_pixel_get_entity(Vec2f pixel_pos, Vec2f size, Entity* entity_array, int32 entity_num)
+collide_pixel_get_entity(Vec2f pixel_pos, Entity* entity_array, int32 entity_num)
 {
     Entity* result = nullptr;
     for (int i = 0; i < entity_num; ++i)
@@ -92,16 +92,31 @@ collide_pixel_get_entity(Vec2f pixel_pos, Vec2f size, Entity* entity_array, int3
     }
     return result;
 }
+//override
+Entity*
+collide_pixel_get_entity(Vec2f pixel_pos, Ent_Type type)
+{
+    Entity* result = nullptr;
+    Entity* array = ENT_POINT(type);
+    i32 loop_amt = ( (type == Ent_Type::All) ? ENT_MAX_ALL() : ENT_MAX(type));
+    for (int i = 0; i < loop_amt; ++i){
+        Entity* ent = &array[i];
+        if (collide_pixel_rect(pixel_pos, ent->pos, ent->size)){
+            result = ent;
+            break;
+        }
+    }
+    return result;
+}
+
 Entity*
 collide_pixel_get_any_entity(Vec2f pixel_pos)
 {
     Entity* result = nullptr;
     Entity* entity_array = pointers->entity->array;
-    for (int i = 0; i < ENT_MAX_ALL(); ++i)
-    {
+    for (int i = 0; i < ENT_MAX_ALL(); ++i){
         Entity* ent = &entity_array[i];
-        if (collide_pixel_rect(pixel_pos, ent->pos, ent->size))
-        {
+        if (collide_pixel_rect(pixel_pos, ent->pos, ent->size)){
             result = ent;
             break;
         }
@@ -110,16 +125,48 @@ collide_pixel_get_any_entity(Vec2f pixel_pos)
 }
 
 
-Entity*
-collide_rect_get_entity(Vec2f pos, Vec2f size, Entity* entity_array, int32 entity_num)
+bool32 collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type)
 {
-    for (int i = 0; i < entity_num; ++i)
-    {
-        Entity* ent = &entity_array[i];
-        if (collide_rects(pos, size, ent->pos, ent->size))
-            return ent;
+    b32 result = false;
+    Entity* array = ENT_POINT(type);
+    i32 loop_amt = ( (type == Ent_Type::All) ? ENT_MAX_ALL() : ENT_MAX(type));
+    for (int i = 0; i < loop_amt; ++i){
+        Entity* ent = &array[i];
+        if (collide_rects(pos, size, ent->pos, ent->size)){
+            result = true;
+            break;
+        }
     }
-    return nullptr;
+    return result;
+    
+}
+Entity*
+collide_rect_entity_pointer(Vec2f pos, Vec2f size, Entity* entity_array, int32 entity_num)
+{
+    Entity* result = nullptr;
+    for (int i = 0; i < entity_num; ++i){
+        Entity* ent = &entity_array[i];
+        if (collide_rects(pos, size, ent->pos, ent->size)){
+            result = ent;
+            break;
+        }
+    }
+    return result;
+}
+Entity*
+collide_rect_entity_pointer(Vec2f pos, Vec2f size, Ent_Type type)
+{
+    Entity* result = nullptr;
+    Entity* array = ENT_POINT(type);
+    i32 loop_amt = ( (type == Ent_Type::All) ? ENT_MAX_ALL() : ENT_MAX(type));
+    for (int i = 0; i < loop_amt; ++i){
+        Entity* ent = &array[i];
+        if (collide_rects(pos, size, ent->pos, ent->size)){
+            result = ent;
+            break;
+        }
+    }
+    return result;
 }
 
 Collide_Data
@@ -136,12 +183,12 @@ move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size)
     float32 wall_bbox_bottom;
     float32 wall_bbox_left;
     float32 wall_bbox_right;
-
     //
 	pos->y += spd->y;
     caller_bbox_top = pos->y;
     caller_bbox_bottom = caller_bbox_top + size.y;
-    Entity* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, ENT_MAX(Ent_Type::Wall));
+    // Entity* wall = collide_rect_get_entity(*pos, size, ENT_POINT(Ent_Type::Wall), ENT_MAX(Ent_Type::Wall));
+    Entity* wall = collide_rect_entity_pointer(*pos, size, Ent_Type::Wall);
     if (wall)
     {
         wall_bbox_top = wall->pos.y;
@@ -163,7 +210,8 @@ move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size)
 	pos->x += spd->x;
     caller_bbox_left = pos->x;
     caller_bbox_right = caller_bbox_left + size.x;
-    wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, ENT_MAX(Ent_Type::Wall));
+    // wall = collide_rect_get_entity(*pos, size, ENT_POINT(Ent_Type::Wall), ENT_MAX(Ent_Type::Wall));
+    wall = collide_rect_entity_pointer(*pos, size, Ent_Type::Wall);
     if (wall)
     {
         wall_bbox_left = wall->pos.x;

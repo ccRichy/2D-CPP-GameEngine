@@ -4,6 +4,8 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
+
+
 //TODO: factor out c library
 #include <math.h>  //TODO: intrinsics
 #include <stdio.h> //using sprintf
@@ -11,16 +13,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "my_types_constants.h"
-#include "my_math.cpp"
-#include "my_string.cpp"
-#include "array_functions.h"
-
 #include "game.h"
 
 #include "my_color.cpp"
 #include "render.cpp"
 #include "collide.cpp"
+#include "tilemap.cpp"
 #include "player.cpp"
 #include "entity.cpp"
 #include "text.cpp"
@@ -31,7 +29,7 @@
 //TODO: move to debug file?
 void debug_message(const char* fmt, ...)
 {
-    Debug_Message msg = {};
+    Debug_Message msg = {}; //NOTE: maybe overwrite stored debug_msg directly instead
     int32 lifetime = DEBUG_MESSAGE_LIFETIME_DEFAULT;
     msg.lifetime = lifetime;
 
@@ -73,17 +71,16 @@ mouse_get_pos_gui()
 inline Vec2f
 mouse_get_pos_world()
 {
-    Vec2f result =
-        {pointers->input->mouse_pos_gui.x / GSETTING->zoom_scale,
-         pointers->input->mouse_pos_gui.y / GSETTING->zoom_scale};
+    Vec2f result = {pointers->input->mouse_pos_gui.x / GSETTING->zoom_scale,
+                    pointers->input->mouse_pos_gui.y / GSETTING->zoom_scale};
     result += GDATA->camera_pos;
-    
     return result;
 }
 inline Vec2f
-mouse_get_pos_world_tile()
+mouse_get_tile_pos_in_world() //TODO: handle tilemap pos offset!!!
 {
     Vec2f result = {};
+    //TODO: Tilemap* tmap = &pointers->data->tilemap;
     Vec2f mouse_pos_world = mouse_get_pos_world();
     result = {
         (f32)(i32)(mouse_pos_world.x / TILE_SIZE) * TILE_SIZE,
@@ -129,6 +126,7 @@ camera_zoom()
 globalvar int32 global_imgui_hot = -1;
 globalvar int32 global_imgui_active = -1;
 globalvar int32 global_imgui_num = 0;
+
 void
 im_begin()
 {
@@ -176,289 +174,29 @@ im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
 bool32
 im_hot()
 {
-    b32 result = (global_imgui_hot > -1);;
+    b32 result = (global_imgui_hot > -1);
     return result;
 }
-
-
-
-
-
-//TILEMAP
-void
-tilemap_clear_all(Tilemap* tmap)
-{
-    i32 length = tmap->grid_w * tmap->grid_h;
-    Tile* tiles = (i32*)tmap->grid;
-    for (int i = 0; i < length; ++i){
-        tiles[i] = 0;
-    }
-}
-
-inline int32
-tilemap_get_grid_x(Tilemap* tmap, float32 x)
-{
-    x -= tmap->pos.x;
-    int32 result = floor_i32(x / tmap->tile_w);
-    return result;
-}
-inline int32
-tilemap_get_grid_y(Tilemap* tmap, float32 y)
-{
-    y -= tmap->pos.y;
-    int32 result = floor_i32(y / tmap->tile_h);
-    return result;
-}
-inline Vec2i
-tilemap_get_grid_pos(Tilemap* tmap, Vec2f pos)
-{
-    pos -= tmap->pos;
-    V2i result = {
-        floor_i32(pos.x / tmap->tile_w),
-        floor_i32(pos.y / tmap->tile_h)
-    };
-    return result;
-}
-
-inline bool32
-tilemap_grid_pos_within_bounds(Tilemap* tmap, Vec2i grid_pos)
-{
-    bool32 result = (grid_pos.y >= 0 &&
-                     grid_pos.y < TILEMAP_H &&
-                     grid_pos.x >= 0 &&
-                     grid_pos.x < TILEMAP_W);
-    return result;
-}
-inline bool32
-tilemap_world_pos_within_bounds(Tilemap* tmap, Vec2f world_pos)
-{
-    V2i grid_pos = tilemap_get_grid_pos(tmap, world_pos);
-    bool32 result = tilemap_grid_pos_within_bounds(tmap, grid_pos);
-    return result;
-}
-
-inline Tile*
-tilemap_get_tile_at_world_pos(Tilemap* tmap, Vec2f pos)
-{
-    int32* result = 0;
-    V2i tile_pos = tilemap_get_grid_pos(tmap, pos);
-    result = &tmap->grid[tile_pos.y][tile_pos.x];
-    return result;
-}
-inline void
-tilemap_set_tile_at_world_pos(Tilemap* tmap, Vec2f pos, int32 value)
-{
-    if (tilemap_world_pos_within_bounds(tmap, pos))
-    {
-        int32* tile = tilemap_get_tile_at_world_pos(tmap, pos);
-        *tile = value;
-    }
-}
-
-void
-draw_tilemap(Tilemap* tmap)
-{
-    //TILEMAP TEST
-
-    //TODO: only render whats on screen
-    auto dmode = Draw_Mode::World;
-    V2f campos = pointers->data->camera_pos;
-    V2f camsize = {BASE_W * game_get_draw_scale(dmode), BASE_W * game_get_draw_scale(dmode)};
-    V2i gridpos = tilemap_get_grid_pos(tmap, campos);
-
-    V2f tile_size = v2i_to_v2f({tmap->tile_w, tmap->tile_h});
-    
-    for (int Y = 0; Y < tmap->grid_h; ++Y)
-    {
-        for (int X = 0; X < tmap->grid_w; ++X)
-        {
-            if (tmap->grid[Y][X]){
-                draw_rect(
-                    {(f32)X * (tmap->tile_w), (f32)Y * (tmap->tile_h)},
-                    tile_size,
-                    BEIGE
-                );                
-            }
-        }
-    }
-    
-    // int32 tile_amt = tmap->grid_w * tmap->grid_h;
-    // for (i32 tile_index = 0; tile_index < tile_amt; ++tile_index)
-    // {
-    //     i32 tile_x = tile_index % tmap->grid_w;
-    //     i32 tile_y = (int32)tile_index / tmap->grid_h;
-    //     i32 tile = tmap->grid[tile_y][tile_x];
-        
-    //     if (tile == 1)
-    //     {
-    //         V2f final_pos = tmap->pos + V2f{(float32)tile_x * tmap->tile_w, (float32)tile_y * tmap->tile_h};
-    //         draw_rect(
-    //             final_pos,
-    //             {TILE_SIZE, TILE_SIZE},
-    //             BEIGE
-    //         );
-    //     }
-    // }    
-}
-
-bool32
-collide_rect_tilemap(Vec2f pos, Vec2f size, Tilemap* tmap)
-{
-    bool32 result = false;
-
-    float32 bbox_top = pos.y;
-    float32 bbox_bottom = bbox_top + size.y;
-    float32 bbox_left = pos.x;
-    float32 bbox_right = bbox_left + size.x;
-        
-    int32 grid_pos_top = tilemap_get_grid_y(tmap, bbox_top);
-    int32 grid_pos_bottom = tilemap_get_grid_y(tmap, bbox_bottom);
-    int32 grid_pos_left = tilemap_get_grid_x(tmap, bbox_left);
-    int32 grid_pos_right = tilemap_get_grid_x(tmap, bbox_right);
-    
-    if (grid_pos_top < 0) grid_pos_top = 0;
-    if (grid_pos_bottom >= tmap->grid_h) grid_pos_bottom = tmap->grid_h - 1;
-    if (grid_pos_left < 0) grid_pos_left = 0;
-    if (grid_pos_right >= tmap->grid_w) grid_pos_right = tmap->grid_w - 1;
-    
-    for (int Y = grid_pos_top; Y <= grid_pos_bottom; ++Y)
-    {
-        for (int X = grid_pos_left; X <= grid_pos_right; ++X)
-        {
-            int32* tile = &tmap->grid[Y][X];
-            if (*tile){
-                V2f grid_pos_pos = tmap->pos + V2f{(f32)X * TILE_SIZE, (f32)Y * TILE_SIZE};
-                if (collide_rects(pos, size, grid_pos_pos, {8, 8})){
-                    result = true;
-                    break;
-                }
-            }
-        }
-    }
-    return result;
-}
-Vec2i 
-collide_rect_tilemap_pos(Vec2f pos, Vec2f size, Tilemap* tmap)
-{
-    Vec2i result = {-1, -1};
-
-    f32 bbox_top = pos.y;
-    f32 bbox_bottom = bbox_top + size.y;
-    f32 bbox_left = pos.x;
-    f32 bbox_right = bbox_left + size.x;
-        
-    i32 grid_pos_top = tilemap_get_grid_y(tmap, bbox_top);
-    i32 grid_pos_bottom = tilemap_get_grid_y(tmap, bbox_bottom);
-    i32 grid_pos_left = tilemap_get_grid_x(tmap, bbox_left);
-    i32 grid_pos_right = tilemap_get_grid_x(tmap, bbox_right);
-
-    if (grid_pos_top < 0) grid_pos_top = 0;
-    if (grid_pos_bottom >= tmap->grid_h) grid_pos_bottom = tmap->grid_h - 1;
-    if (grid_pos_left < 0) grid_pos_left = 0;
-    if (grid_pos_right >= tmap->grid_w) grid_pos_right = tmap->grid_w - 1;
-    
-    //HACK: maybe theres a better way to handle this?
-        for (i32 Y = grid_pos_top; Y <= grid_pos_bottom; ++Y)
-        {
-            for (i32 X = grid_pos_left; X <= grid_pos_right; ++X)
-            {
-                i32* tile = &tmap->grid[Y][X];
-                if (*tile){
-                    V2f grid_pos_pos = tmap->pos + V2f{(f32)X * TILE_SIZE, (f32)Y * TILE_SIZE};
-                    if (collide_rects(pos, size, grid_pos_pos, {8, 8}))
-                    {
-                        result = {X, Y};
-                        break;
-                    }
-                }
-            }
-        }
-    return result;
-}
-
-//TILE
-Collide_Data
-move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size)
-{
-    Collide_Data coll_data = {};
-
-    f32 caller_bbox_top;
-    f32 caller_bbox_bottom;
-    f32 caller_bbox_left;
-    f32 caller_bbox_right;
-
-    f32 wall_bbox_top;
-    f32 wall_bbox_bottom;
-    f32 wall_bbox_left;
-    f32 wall_bbox_right;
-
-    //
-	pos->y += spd->y;
-    caller_bbox_top = pos->y;
-    caller_bbox_bottom = caller_bbox_top + size.y;
-    //Entity* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, WALL_MAX);
-    V2i tile_pos = collide_rect_tilemap_pos(*pos, size, tmap);
-    if (tile_pos.x > -1)
-    {
-        wall_bbox_top = tmap->pos.y + (tile_pos.y * TILE_SIZE);
-        wall_bbox_bottom = wall_bbox_top + TILE_SIZE;
-
-        f32 y_res = pos->y;
-        if (spd->y > 0)
-            y_res = MIN(y_res, wall_bbox_top - size.y);
-        if (spd->y < 0)
-            y_res = MAX(y_res, wall_bbox_bottom);
-
-        coll_data.vert = true;
-        coll_data.ydir = sign(spd->y);
-        pos->y = y_res;
-        spd->y = 0;
-    }
-
-    //
-	pos->x += spd->x;
-    caller_bbox_left = pos->x;
-    caller_bbox_right = caller_bbox_left + size.x;
-    /* wall = collide_rect_get_entity(*pos, size, pointers->entity->walls, WALL_MAX); */
-    tile_pos = collide_rect_tilemap_pos(*pos, size, tmap);
-    if (tile_pos.x > -1)
-    {
-        wall_bbox_left = tmap->pos.x + (tile_pos.x * TILE_SIZE);
-        wall_bbox_right = wall_bbox_left + TILE_SIZE;
-
-        f32 x_res = pos->x;
-        if (spd->x > 0)
-            x_res = MIN(x_res, wall_bbox_left - size.x);
-        if (spd->x < 0)
-            x_res = MAX(x_res, wall_bbox_right);
-
-        coll_data.hori = true;
-        coll_data.xdir = sign(spd->x);
-        pos->x = round_f32(x_res);
-        spd->x = 0;
-    }
-    
-    return coll_data;
-}
-
 
 
 
 
 //Editor
+globalvar bool32 global_editor_changed_level; //used to keep level changes without commiting them to disk
 globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
 globalvar Entity* global_editor_selected_entity = nullptr;
 
 Entity*
 entity_spawn(Ent_Type type, Vec2f pos)
 {
+    using enum Ent_Type;
     Entity* result = nullptr;
 
-    switch (type)
-    {
-        case Ent_Type::Player:         PLAYER->Create(pos); break;
-        case Ent_Type::Enemy: result = enemy_create(pos); break;
-        case Ent_Type::Wall:  result = wall_create(pos, {Tile(1), Tile(1)}); break;
+    switch (type){
+      case Player: PLAYER->Create(pos); break;
+      case Enemy: result  = enemy_create(pos); break;
+      case Wall:  result  = wall_create(pos, {Tile(1), Tile(1)}); break;
+      case Spike:  result = spike_create(pos); break;
     }
 
     return result;
@@ -469,7 +207,7 @@ entity_at_pos(Vec2f pos)
 {
     Entity* result = nullptr;
     Entity* array = pointers->entity->array;
-    for (int ent_index = 0; ent_index < ENT_MAX(Ent_Type::Enemy); ++ent_index)
+    for (int ent_index = 0; ent_index < ENT_MAX_ALL(); ++ent_index)
     {
         Entity* ent = &array[ent_index];
         if (!ent->is_alive) continue;
@@ -498,51 +236,12 @@ editor_draw_selected()
     draw_rect(ent_hl->pos, ent_hl->size, color);
 }
 
-
-
-
-void
-game_save_state(const char* filename) //this dumps the whole ass raw memory
-{
-    b32 result = false;
-    if (GMEMORY->DEBUG_platform_file_write_entire)
-        result = GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), pointers->data);
-    
-    if (result)
-        debug_message("state saved: \"%s\"", filename);
-    else
-        debug_message("state failed to save: \"%s\"", filename);
-}
-void
-game_load_state(const char* filename) //trying to load old versions is likely to break
-{
-    //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
-    if (!file.memory)
-    {
-        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
-    }
-    else
-    {
-        Game_Data* data = (Game_Data*)file.memory;
-        GDATA->tilemap = data->tilemap;
-        GDATA->entity = data->entity;
-        // memcpy(&pointers->data->tilemap, data, sizeof(Game_Data));
-
-        // pointers->entity = (Tilemap)file.memory;
-        debug_message("level state loaded: \"%s\"?", filename);
-    }
-}
-
-
 bool32
-is_level_new(Game_Data* data)
+is_level_new(char* level_name)
 {
-    b32 result = (data->level_current[0] == 0 || string_equals(data->level_current, UNSAVED_BACKUP_NAME));
+    b32 result = (level_name[0] == 0 || string_equals(level_name, UNSAVED_BACKUP_NAME));
     return result;
 }
-
-
 void 
 level_clear()
 {
@@ -551,12 +250,10 @@ level_clear()
     PLAYER->Create({BASE_W/2, BASE_H/2});
     string_clear(pointers->data->level_current);
 };
-
 bool32
 level_save_file(const char* filename)
 {
-    if (filename[0] == 0)
-    {
+    if (filename[0] == 0){
         debug_message("Level failed to save: empty string");
         return false;
     }
@@ -566,7 +263,7 @@ level_save_file(const char* filename)
     int32 buffer_size_bytes = Megabytes(SAVE_FILE_BUFFER_MB);
     char* buffer = new char[buffer_size_bytes](); // allocated on the heap
     
-    //player
+//player
     Player* player = PLAYER;
     string_append(buffer, "Player\n");
     char player_string[64];
@@ -574,37 +271,30 @@ level_save_file(const char* filename)
            (i32)player->pos.x, (i32)player->pos.y
     );
     string_append(buffer, player_string);
-    string_append(buffer, "!\n\n");
+    string_append(buffer, "!\n\n");    
     
-    
-    //tilemap
+//tilemap
     string_append(buffer, "Tiles\n");
     Tilemap* tmap = &pointers->data->tilemap;
     Tile* grid = (Tile*)&tmap->grid;
-    for (int Y = 0; Y < tmap->grid_h; ++Y)
-    {
-        for (int X = 0; X < tmap->grid_w; ++X)
-        {
+    for (int Y = 0; Y < tmap->grid_h; ++Y){
+        for (int X = 0; X < tmap->grid_w; ++X){
             char tile_string[64];
             Tile* tile = &tmap->grid[Y][X];
-            if (*tile)
-            {
+            if (*tile){
                 sprintf(tile_string, "t%i x%i y%i, ",
                         *tile, X, Y
                 );
-
-                //append
                 string_append(buffer, tile_string);
             }
         }
     }
     string_append(buffer, "\n!\n\n");
     
-    //entities
+//entities
     string_append(buffer, "Entities\n");
     Entity* array = pointers->entity->array;
-    for (int entity_index = 0; entity_index < ENT_MAX_ALL(); ++entity_index)
-    {
+    for (int entity_index = 0; entity_index < ENT_MAX_ALL(); ++entity_index){
         Entity* entity = &array[entity_index];
         if (entity->is_alive){
             char ent_string[64];
@@ -615,8 +305,6 @@ level_save_file(const char* filename)
                     (int32)entity->size.x,
                     (int32)entity->size.y
             );
-            
-            //append
             string_append(buffer, ent_string);
         }
     }
@@ -627,36 +315,38 @@ level_save_file(const char* filename)
     string_append(file_path, filename);
     string_append(file_path, ".lvl");
 
-    //write
+    //save
     int32 buffer_length = string_length(buffer) * sizeof(char);
     pointers->memory->DEBUG_platform_file_write_entire(file_path, buffer_length, (char*)buffer);
 
     //set current level
-    // if (is_level_new(pointers->data)) //new level
-    if (!string_equals(GDATA->level_current, filename))
-    {
+    if (!string_equals(GDATA->level_current, filename)){
         string_clear(GDATA->level_current);
         string_append(GDATA->level_current, filename);
     }
 
     //log
     debug_message("Level Saved: \"%s\"", file_path);
-
     free(buffer);
     return true;
 }
 bool32
-level_load_file(const char* filename) //without extension
+level_load_file(const char* filename) //filename without extension
 {
-    //construct filepath
+    //TODO: REQUIRED: 
+    // Currently to get the string for the specific type of data, we use string_get_delimiter() on the file's allocated memory.
+    // The problem is we treat the raw file memory as the string AND the buffer, so the function appends 0 to it to null-terminate. 
+    // The layout of our strings *just so happens* to allow this to work anyway.
+    // Fix: dont rely on chunking out the data with string_get_delimiter()
+
+//construct filepath
     char file_path[256] = "levels\\";
     string_append(file_path, filename);
     string_append(file_path, ".lvl");
     
     //load file
     DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(file_path);
-    if (!file.memory)
-    {
+    if (!file.memory){
         debug_message("Level couldn't load: \"%s\" doesn't exist", file_path);
         return false;
     }
@@ -681,7 +371,7 @@ level_load_file(const char* filename) //without extension
     i32 file_mem_offset = 0;
     char word_buffer[64] = {};
 
-    //PLAYER
+//PLAYER
     char* player_buff = file_mem;
     buff_len = string_get_until_delimiter(player_buff, file_mem, '!');
     while ( buff_offset < buff_len )
@@ -700,7 +390,7 @@ level_load_file(const char* filename) //without extension
     buff_offset = 0;
 
 
-    //TILES
+//TILES
     char* tiles_buff = file_mem + file_mem_offset;
     // char tiles_buff[SAVE_BUFFER_MAX] = {};
     buff_len = string_get_until_delimiter(tiles_buff, file_mem + file_mem_offset, '!');
@@ -711,17 +401,15 @@ level_load_file(const char* filename) //without extension
 
         auto var = word_buffer[0];
         i32 value = string_get_i32(word_buffer);
-        switch (var)
-        {
-            case 't': tile_value = value; break;
-            case 'x': tile_pos.x = value; break;
-            case 'y': tile_pos.y = value; break;
+        switch (var){
+          case 't': tile_value = value; break;
+          case 'x': tile_pos.x = value; break;
+          case 'y': tile_pos.y = value; break;
         }
 
         buff_offset += word_len+1;
         
-        if (string_contains(word_buffer, ',')) //end of single tile read
-        {
+        if (string_contains(word_buffer, ',')){ //end of single tile read
             tmap->grid[tile_pos.y][tile_pos.x] = tile_value;
         }
     }
@@ -729,8 +417,7 @@ level_load_file(const char* filename) //without extension
     buff_offset = 0;
 
 
-    //ENTITY
-    // char entity_buff[1024];
+//ENTITY
     char* entity_buff = file_mem + file_mem_offset;
     buff_len = string_get_until_delimiter(entity_buff, file_mem + file_mem_offset, '!');
     while ( buff_offset < buff_len )
@@ -739,32 +426,33 @@ level_load_file(const char* filename) //without extension
 
         auto var = word_buffer[0];
         i32 value = string_get_i32(word_buffer);
-        switch (var)
-        {
-            case 'e': ent_type   = (Ent_Type)value; break;
-            case 'x': ent_pos.x  = (f32)value; break;
-            case 'y': ent_pos.y  = (f32)value; break;
-            case 'w': ent_size.x = (f32)value; break;
-            case 'h': ent_size.y = (f32)value; break;
+        switch (var){
+          case 'e': ent_type   = (Ent_Type)value; break;
+          case 'x': ent_pos.x  = (f32)value; break;
+          case 'y': ent_pos.y  = (f32)value; break;
+          case 'w': ent_size.w = (f32)value; break;
+          case 'h': ent_size.h = (f32)value; break;
         }            
 
         buff_offset += word_len+1;
 
-        if (string_contains(word_buffer, ',')) //end of single entity
-        {
+        if (string_contains(word_buffer, ',')){
             Entity* entity_spawned = entity_spawn(ent_type, ent_pos);
-            entity_spawned->size = ent_size; //HACK:
+            //HACK:
+            if (ent_type == Ent_Type::Wall)
+                entity_spawned->size = ent_size; 
+            //TODO: dont save unneccesary size data for entities
         }
     }
 
     //change current level string
-    // pointers->data->level_current[0] = 0; //HACK: zero out first character so string_append will overwrite the original
-    if (!string_equals(pointers->data->level_current, filename)){
+    if (!string_equals(pointers->data->level_current, filename))
+    {
         string_clear(pointers->data->level_current);
         string_append(pointers->data->level_current, filename);
     }
     debug_message("Level Loaded: \"%s\"", filename);
-
+    GMEMORY->DEBUG_platform_file_free_memory(file.memory);
     return true;
 }
 void
@@ -777,8 +465,160 @@ level_reload()
 
 
 
+void
+game_save_state(const char* filename) //this dumps the whole ass raw memory
+{
+    b32 result = false;
+    if (GMEMORY->DEBUG_platform_file_write_entire)
+        result = GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), pointers->data);
+    
+    if (result)
+        debug_message("state saved: \"%s\"", filename);
+    else
+        debug_message("state failed to save: \"%s\"", filename);
+}
+void
+game_load_state(const char* filename) //trying to load old versions is likely to break
+{
+    //load file
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    if (!file.memory){
+        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+    }else{
+        Game_Data* data = (Game_Data*)file.memory;
+        GDATA->tilemap = data->tilemap;
+        GDATA->entity = data->entity;
+        debug_message("level state loaded: \"%s\"?", filename);
+    }
+
+    GMEMORY->DEBUG_platform_file_free_memory(file.memory);
+}
+
+void game_state_editor_update()
+{
+    auto input = GINPUT;
+    auto data = GDATA;
+    auto edit_mode = GDATA->editor_mode;
+    auto tmap = &GDATA->tilemap;
+
+//Controls
+    if (input->edit_toggle){
+        if (is_level_new(GDATA->level_current))
+            level_save_file(UNSAVED_BACKUP_NAME);
+        
+        GDATA->state = Game_State::Play;
+        debug_message("Game State: Playing \"%s\"", GDATA->level_current);
+    }
+
+    //save/load
+    if (input->edit_save && input->ctrl.hold){
+        if (is_level_new(data->level_current)){
+            debug_message("Level Save: Save new level with `console: \"save [name]\"");
+        }else{
+            level_save_file(data->level_current);
+        }
+    }
+    if (input->edit_load && input->ctrl.hold)
+        level_reload();
+
+    
+//Modes
+    if (edit_mode == Editor_Mode::Entity){
+        //DEBUG Entity Editor Functions
+        if (!im_hot()){
+            if (input->mouse_left){
+                if (input->alt.hold){
+                    //spawn
+                    Vec2f spawn_pos = mouse_get_tile_pos_in_world(); //round to tile
+                    if (input->shift.hold)
+                        spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel
+                    entity_spawn(global_editor_entity_to_spawn, spawn_pos);
+                }else{
+                    //select
+                    global_editor_selected_entity = entity_at_mouse_pos();
+                }
+            }
+        }
+        //delete entity from room
+        if (input->mouse_right.release){
+            entity_destroy(global_editor_selected_entity);
+            global_editor_selected_entity = nullptr;
+        }            
+    }
+    else if (edit_mode == Editor_Mode::Tile)
+    {
+        if (!im_hot()){
+            //set tiles with mouse
+            if (input->mouse_left.hold){
+                tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);
+            }
+            if (input->mouse_right.hold){
+                tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 0);
+            }
+        }
+    }
+
+//Camera
+    f32 cam_speed = 2;
+    if (input->ctrl.hold) cam_speed = 1;
+    if (input->shift.hold) cam_speed = 4;
+        
+    V2f move_input =
+        {(float32)(input->right.hold - input->left.hold) / GSETTING->zoom_scale,
+         (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
+    data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
+        
+    data->draw_mode = Draw_Mode::World;
+//Draw 0,0 (x,y) lines
+    f32 static_size = scale_get_zoom_agnostic(0.5);
+    draw_rect({0, 0}, {static_size, 999999.f}, WHITE);
+    draw_rect({0, 0}, {999999.f, static_size}, WHITE);
+
+//Draw grid //TODO: make straight line functions for this use case
+    V2i   grid_length_max = {1000, 1000};
+    i32   grid_spacing    = TILE_SIZE;
+    f32   grid_line_size  = (1.f/pointers->settings->window_scale) * static_size;
+    u8    color_val = 50;
+    Color color_faded     = {color_val, color_val, color_val, 255};
+    for (int grid_x = 0; grid_x < grid_length_max.x; ++grid_x){
+        draw_rect(
+            {(float32)grid_x * grid_spacing, 0},
+            {grid_line_size, (f32)grid_length_max.x * grid_spacing},
+            color_faded);
+    }
+    for (int grid_y = 0; grid_y < grid_length_max.y; ++grid_y){
+        draw_rect(
+            {0, (float32)grid_y * grid_spacing},
+            {(f32)grid_length_max.x * grid_spacing, grid_line_size},
+            color_faded);
+    }
+}
 
 
+
+void
+game_state_play_update()
+{
+    auto input = GINPUT;
+    auto data = GDATA;
+    
+    //controls
+    if (input->edit_toggle){
+        level_reload();
+        data->state = Game_State::Edit;
+        debug_message("Game State: Editor");
+    }
+
+    //entity update
+    PLAYER->Update(input);
+    enemy_update();
+
+    //camera update
+    float32 cam_yoffset_extra = 4;
+    Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
+    data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
+    data->camera_pos = PLAYER->pos - data->camera_pos_offset;
+}
 
 
 
@@ -786,7 +626,7 @@ level_reload()
 
 
 extern "C" GAME_INPUT_CHANGE_DEVICE(game_input_change_device)
-{ //TODO: this should most likely be platform code
+{ //TODO: this should be on the platform layer
     input_map_clear_all(input_map);
     input_map->input_device = input_device_current;
 }
@@ -808,9 +648,9 @@ game_initialize(Game_Pointers* _game_pointers)
 
     i64 set_input_array_to_this_value = &input->bottom_button - &input->buttons[0] + 1;
     i32 button_length = array_length(input->buttons);
-    if (set_input_array_to_this_value != button_length) Assert(false);
-    Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space );
-    Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) );
+    if (set_input_array_to_this_value != button_length) Assert(false); //input union
+    Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space ); //memory bounds
+    // Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) ); //entity union
 
     data->state       = GSTATE_DEFAULT;
     data->draw_mode   = GDRAW_MODE_DEFAULT;
@@ -831,26 +671,31 @@ game_initialize(Game_Pointers* _game_pointers)
         BASE_H/2 + pointers->data->camera_yoffset_extra};
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
-
-
     //TODO: ENTITIY POINTER INIT
     Entity* entity_pointer = pointers->entity->array;
     for (int i = 0; i < (i32)Ent_Type::Num; ++i){
         if (i == 0){ //player
-            
+            // entity->pointers[i] = nullptr;
         }else{
-            i32 offset = ENT_INFO[i].max_count;
-            entity_pointer += offset;
+            i32 current_entity_max = ENT_INFO[i].max_count;
             entity->pointers[i] = entity_pointer;
+
+            //DEBUG: set type for validation
+            for (int jj = 0; jj < current_entity_max; ++jj){
+                entity_pointer[jj].type = (Ent_Type)i;
+            }
+
+            entity_pointer += current_entity_max;
         }
     }
-    
-
 
 #define SPR_LOAD(name, frame_num, fps, origin) sprite->##name = sprite_create(#name, frame_num, fps, origin)
-    //player
+#define SPR_LOAD_N(varname, filename, frame_num, fps, origin) sprite->##varname = sprite_create(#filename, frame_num, fps, origin)
+
+//player
 #define PLR_SPR_ORIGIN {6.f, 5.f}
-    sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
+    SPR_LOAD_N(sPlayer_air, sPlayer_air2, 7, 15, PLR_SPR_ORIGIN);
+    // sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
     sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  
     sprite->sPlayer_idle        = sprite_create("sPlayer_idle", 2, 0, PLR_SPR_ORIGIN);               
     sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge", 4, 10, PLR_SPR_ORIGIN);
@@ -864,16 +709,17 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach", 4, 10, PLR_SPR_ORIGIN);
     sprite->sPlayer_wire_idle   = sprite_create("sPlayer_wire_idle", 5, 6, PLR_SPR_ORIGIN);
     sprite->sPlayer_wire_walk   = sprite_create("sPlayer_wire_walk", 4, 6, PLR_SPR_ORIGIN);
-
+    SPR_LOAD(sPlayer_hurt, 1, 0, PLR_SPR_ORIGIN);
+    
     //other
     sprite->sWall_anim   = sprite_create("sWall_anim", 4, 6, {});
     sprite->sBlob_small   = sprite_create("sBlob_small", 4, 6, {});
-    
-    
+    sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {16, 4});
+
     //meta
     sprite->sDebug   = sprite_create("sTest", 1, 0, {});
     sprite->sMouse_cursors   = sprite_create("sMouse_cursors2", 4, 0, {2, 2});
-
+    sprite->sSpike   = sprite_create("sSpike", 1, 0, {});
         
 #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name)
     BMP_LOAD(sTest);
@@ -892,6 +738,7 @@ game_initialize(Game_Pointers* _game_pointers)
 
 
 
+
 extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 {
     //NOTE: these are here (updated every frame) so we dont have to worry about reassignment upon hot-reload
@@ -899,7 +746,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     pointers = __game_pointers;
     PLAYER   = pointers->player;
     GSETTING = pointers->settings;
-    GIN      = pointers->input;
+    GINPUT   = pointers->input;
     GMEMORY  = pointers->memory;
     GDATA    = pointers->data;
     GENTITY  = &GDATA->entity;
@@ -912,164 +759,49 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         game_initialize(pointers);
     }
 
-    Game_Settings* settings = pointers->settings;
-    Game_Data*     data     = pointers->data;
-    Game_Sprites*  sprite   = &data->sprites;
-    Game_Entities* entity   = &data->entity;
-    Player*        player   = &entity->player;
+    Game_Data*     data = GDATA;
     Tilemap*       tmap      = &data->tilemap;
     Game_State     state     = data->state;
     Editor_Mode    edit_mode = data->editor_mode;
     Typing_Buffer* console    = pointers->console;
 
 
-    if (input->state_save)
+    
+    
+//DEBUG INPUTS
+    if (input->edit_save && !input->ctrl.hold)
         game_save_state("state.st");
-    if (input->state_load)
+    if (input->edit_load && !input->ctrl.hold)
         game_load_state("state.st");
-    
-    
-    //UPDATE (early)
-    camera_zoom();
+
     if (input->reset)
         level_reload();
-        // player->pos = {BASE_W/2, 0};
         
     if (input->debug_mode_toggle)
         data->debug_mode_enabled = !data->debug_mode_enabled;
-    //STATE UPDATE
-    if (state == Game_State::Edit)
-    {
-        if (input->edit_toggle){
-            if (is_level_new(data))
-                level_save_file(UNSAVED_BACKUP_NAME);
-            
-            data->state = Game_State::Play;
-            debug_message("Game State: Playing \"%s\"", data->level_current);
-        }
 
-        //save/load hotkeys
-        if (input->ctrl.hold && input->edit_level_save){
-            if (is_level_new(data)){
-                debug_message("Level Save: Save new level with `console: \"save [name]\"");
-            }else{
-                level_save_file(data->level_current);
-            }
-        }
-        if (input->ctrl.hold && input->edit_level_load)
-            level_reload();
+    camera_zoom();
 
-
-        if (edit_mode == Editor_Mode::Entity)
-        {
-            //DEBUG Entity Editor Functions
-            if (!im_hot())
-            {
-                if (input->mouse_left)
-                {
-                    if (input->alt.hold)
-                    {
-                        Vec2f mouse_pos_world = mouse_get_pos_world();
-                        Vec2f pos_spawn = {
-                            round_f32(mouse_pos_world.x),
-                            round_f32(mouse_pos_world.y)
-                        };
-                        if (input->shift.hold)
-                            pos_spawn = mouse_get_pos_world_tile();
-
-                        entity_spawn(global_editor_entity_to_spawn, pos_spawn);                    
-                    }
-                    else
-                    {
-                        global_editor_selected_entity = entity_at_mouse_pos();
-                    }
-                }
-            }
-            //delete entity from room
-            if (input->mouse_right.release){
-                entity_destroy(global_editor_selected_entity);
-                global_editor_selected_entity = nullptr;
-            }            
-        }
-        else if (edit_mode == Editor_Mode::Tile)
-        {
-            if (!im_hot())
-            {
-                //set tiles with mouse
-                if (input->mouse_left.hold){
-                    tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);
-                }
-                if (input->mouse_right.hold){
-                    tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 0);
-                }
-            }
-            
-        }
-
-        
-      //Camera
-        float32 cam_speed = (input->shift.hold ? 4.f : 2.f);
-        Vec2f move_input =
-            {(float32)(input->right.hold - input->left.hold) / GSETTING->zoom_scale,
-             (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
-        data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
-        
-      //Draw coords
-        data->draw_mode = Draw_Mode::World;
-        float32 static_size = game_get_static_size(0.5);
-        draw_rect({0, 0}, {static_size, 999999.f}, WHITE);
-        draw_rect({0, 0}, {999999.f, static_size}, WHITE);
-
-      //Draw grid //TODO: make straight line functions for this use case
-        int32 grid_spacing = TILE_SIZE;
-        float32 grid_line_size = (1.f/pointers->settings->window_scale) * static_size;
-        Color color_faded = {255, 255, 255, 50};
-        for (int grid_x = 0; grid_x < 1000; ++grid_x)
-        {
-            if (grid_x - data->camera_pos.x > BASE_W) break;
-            draw_rect({(float32)grid_x * grid_spacing, 0}, {grid_line_size, 1000}, color_faded);
-        }
-        for (int grid_y = 0; grid_y < 1000; ++grid_y)
-        {
-            if (grid_y - data->camera_pos.y > BASE_H) break;
-            draw_rect({0, (float32)grid_y * grid_spacing}, {1000, grid_line_size}, color_faded);
-        }
-
-    }
-    else if (state == Game_State::Play)
-    {
-        //controls
-        if (input->edit_toggle){
-            level_reload();
-            data->state = Game_State::Edit;
-            debug_message("Game State: Editor");
-        }
-
-        //entity update
-        PLAYER->Update(input);
-        enemy_update();
-
-        //camera update
-        float32 cam_yoffset_extra = 4;
-        Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
-        data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
-        data->camera_pos = player->pos - data->camera_pos_offset;
-    }
-
-
+    
+//Game State
+    if (state == Game_State::Edit)      game_state_editor_update();
+    else if (state == Game_State::Play) game_state_play_update();
+    
                              
-    //AGNOSTIC RENDERING
+//DRAW WORLD
     data->draw_mode = Draw_Mode::World;
     {
         draw_tilemap(tmap);
         
         wall_draw();
+        spike_draw();
         enemy_draw();
         PLAYER->Draw();
         
         editor_draw_selected();
     }
-    
+
+//DRAW GUI
     data->draw_mode = Draw_Mode::Gui;
     im_begin();
     Vec2f eb_pos = {40, 10};
@@ -1079,23 +811,22 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         "editor mode: %i", (i32)data->editor_mode
     );
 
-    //change edit mode
-    for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index)
-    {
+    //edit mode buttons
+    for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index){
         Vec2f final_pos = {eb_pos.x + (eb_size.x + 2) * edit_index, eb_pos.y};
         if (im_button(final_pos, eb_size))
             data->editor_mode = (Editor_Mode)edit_index;
         draw_text("mode", final_pos, {0.5, 0.5});
     }
 
-    //select entities
+    //entity buttons
     if (data->editor_mode == Editor_Mode::Entity)
     {
         Vec2f button_pos = {10, 40};
         Vec2f button_size = {16, 6};
         draw_text_buffer(
             {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f}, {5, 8},
-            "selected:%s", entity_name(global_editor_entity_to_spawn)
+            "selected:%s", ENT_NAME(global_editor_entity_to_spawn)
         );
 
         for (int ent_index = 0; ent_index < (int32)Ent_Type::Num; ++ent_index)
@@ -1109,7 +840,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
     else if (data->editor_mode == Editor_Mode::Tile)
     {
-            
+        //TODO: move tile buttons in here
     }
 
 
@@ -1127,12 +858,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
 
 
+//Console
+    
     //TODO:
     //- show typing cursor
-    //- handle commands
-    //- render little console window
         
-    //draw typing buffer
     persist char cmd_string[64];
     persist char args_string[64];
     persist i32 args_index;
@@ -1147,11 +877,9 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         V2f console_pos = {50, 50};
         draw_rect(console_pos, {BASE_W, 10}, MAGENTA);
         draw_text(console->items, console_pos);
-        
 
         //confirm input
-        if (input->enter.press)
-        {
+        if (input->enter.press){
             //get command and argument(s) strings
             //args_index gives us the offset to the start of the args_string
             args_index = 1 + string_get_until_space(cmd_string, console->items);
@@ -1174,10 +902,9 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             console->length = 0;
             input_set_mode(input, Input_Mode::Play);
         }
-
     }
 
     //draw mouse
     if (data->state == Game_State::Edit || data->debug_mode_enabled)
-        draw_sprite_frame(&sprite->sMouse_cursors, input->mouse_pos_gui, 0);
+        draw_sprite_frame(&GSPRITE->sMouse_cursors, input->mouse_pos_gui, 0);
 }

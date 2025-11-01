@@ -2,12 +2,12 @@
 #include <math.h>
 #include <stdio.h>
 
-#include "my_types_constants.h"
-#include "array_functions.h"
-#include "my_math.cpp"
-#include "my_string.cpp"
+//#include "array_functions.h"
 #include "game.h"
 
+// #include "my_types_constants.h"
+// #include "my_string.cpp"
+// #include "my_math.cpp"
 #include <windows.h>
 #include <xinput.h>
 #include <xaudio2.h>

@@ -4,6 +4,7 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
+
 #define Kilobytes(Value) ((Value)*1024LL)
 #define Megabytes(Value) (Kilobytes(Value)*1024LL)
 #define Gigabytes(Value) (Megabytes(Value)*1024LL)
@@ -19,8 +20,10 @@
 //types
 struct Vec2i
 {
-    int32 x;
-    int32 y;
+    union {
+        struct { int32 x, y; };
+        struct { int32 w, h; };
+    };
 
     Vec2i& operator+=(const Vec2i& other) {
         x += other.x;
@@ -67,8 +70,10 @@ struct Vec2i
 };
 struct Vec2f
 {
-    float32 x;
-    float32 y;
+    union {
+        struct { float32 x, y; };
+        struct { float32 w, h; };
+    };
 
     Vec2f& operator+=(const Vec2f& other) {
         x += other.x;
@@ -133,6 +138,15 @@ typedef Rectangle Rect;
 
 
 //funcs
+inline uint32 //TODO: move to math
+safe_truncate_uint64(uint64 value)
+{
+    Assert(value <= 0xFFFFFFFF);
+    return (uint32)value;
+}
+
+
+
 inline int32
 sign(int32 value)
 {
@@ -254,12 +268,30 @@ lerp(float32 value, float32 dest, float32 spd)
 
 
 //vector functions
+inline Vec2f round_v2f(Vec2f vector)
+{
+    Vec2f result = {
+        round_f32(vector.x),
+        round_f32(vector.y)
+    };
+    return result;
+}
+inline Vec2i round_v2i(Vec2f vector)
+{
+    Vec2i result = {
+        round_i32(vector.x),
+        round_i32(vector.y)
+    };
+    return result;
+}
+
 inline Vec2i
 v2f_to_v2i(Vec2f vector)
 {
     Vec2i result = {(i32)vector.x, (i32)vector.y};
     return result;
 }
+
 inline Vec2f
 v2i_to_v2f(Vec2i vector)
 {

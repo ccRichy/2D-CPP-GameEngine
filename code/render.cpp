@@ -5,19 +5,22 @@
 BMP_Data
 DEBUG_load_bmp(const char* filename)
 {
+    BMP_Data result = {};
+
     char file_path[64] = {};
     string_append(file_path, "images\\");
     string_append(file_path, filename);
     string_append(file_path, ".bmp");
     auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(file_path).memory;
-    BMP_Data result = {};
+    
     result.size_bytes = file->size;
     result.width = file->width;
     result.height = file->height;
-    result.pixels = (uint32*)((uint8*)file + file->offset);
+    result.pixels = (u32*)((u8*)file + file->offset);
     result.bits_per_pixel = file->bits_per_pixel;
         
     Assert(result.size_bytes > 0);
+    // GMEMORY->DEBUG_platform_file_free_memory(file);
     return result;
 };
 
@@ -38,23 +41,28 @@ sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f ori
     return result;
 }
 
-
-
 //helper
-inline float32 //NOTE: used to scale things in the world agnostic with the zoom
-game_get_static_size(float32 value)
+inline float32 //NOTE: use to keep a scale value the same regardless of zoom
+scale_get_zoom_agnostic(float32 scale_value)
 {
-    float32 result = value / pointers->settings->zoom_scale;
+    float32 result = scale_value / pointers->settings->zoom_scale;
     return result;
 }
+
+float32
+scale_get_screen_agnostic(float32 scale_value)
+{
+    float32 result = scale_value / pointers->settings->window_scale;
+    return result;    
+}
+
 inline float32
 game_get_draw_scale(Draw_Mode override_mode = Draw_Mode::Null)
 {
+    float32 result = -1.0f;
     auto draw_mode = pointers->data->draw_mode;
     if (override_mode != Draw_Mode::Null)
         draw_mode = override_mode;
-        
-    float32 result = -1.0f;
     
     if (draw_mode == Draw_Mode::World)
         result = pointers->settings->window_scale * pointers->settings->zoom_scale;
@@ -64,10 +72,12 @@ game_get_draw_scale(Draw_Mode override_mode = Draw_Mode::Null)
     return result;
 }
 inline Vec2f
-game_get_draw_pos()
+game_get_draw_pos(Draw_Mode override_mode = Draw_Mode::Null)
 {
-    auto draw_mode = pointers->data->draw_mode;
     Vec2f result = {};
+    auto draw_mode = pointers->data->draw_mode;
+    if (override_mode != Draw_Mode::Null)
+        draw_mode = override_mode;
 
     if (draw_mode == Draw_Mode::World)
         result = pointers->data->camera_pos * Vec2f{-1, -1};
@@ -245,10 +255,11 @@ draw_line(Vec2f pos_start, Vec2f pos_end, Color color)
     else
         draw_line_vert(pos_start, pos_end, color);
 }
-//less efficent but simpler? NOTE: benchmark performance
+
 void
 draw_line_old(Vec2f pos_start, Vec2f pos_end)
 {
+    //less efficent but simpler? NOTE: benchmark performance
     int32 scale = (int32)pointers->settings->window_scale;
 
     float32 deltaX = pos_end.x - pos_start.x;

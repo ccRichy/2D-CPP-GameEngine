@@ -278,7 +278,8 @@ string_get_until_space(char* buffer, char* string)
     i32 ci = 0;
     while( string[ci] != 0 ){
         if (string[ci] == ' ' || string[ci] == '\n') break;
-        buffer[ci] = string[ci++];
+        buffer[ci] = string[ci];
+        ci++;
     }
     buffer[ci] = 0;
     return ci; //string length

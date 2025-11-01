@@ -5,26 +5,19 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-Sprite* entity_sprite_default(Ent_Type type)
+void state_enter_default(
+    Player* plr, Sprite* sprite, float32 anim_index = 0, float32 anim_speed = 1)
 {
-    Sprite* result = 0;
-    Game_Sprites* spr = GSPRITE;
-    switch (type)
-    {
-        case Ent_Type::Player: result = &spr->sPlayer_idle; break;
-        case Ent_Type::Wall: result = &spr->sWall_anim; break;
-        case Ent_Type::Enemy: result = &spr->sBlob_small; break;
-    }
-    return result;
+    plr->sprite = sprite;
+    plr->anim_index = anim_index;
+    plr->anim_speed = anim_speed;
 }
-
-
 
 
 void
 player_move_hori(Player* plr, bool32 is_airborne)
 {
-    float32 spd_target = plr->move_input.x * plr->ground_speed_max;
+    float32 spd_target = plr->move_input.x * plr->physics.maxspd;
     if (!is_airborne)
     {
         float32 spd = plr->move_input.x != 0 ? plr->physics.accel : plr->physics.decel;
@@ -37,21 +30,15 @@ player_move_hori(Player* plr, bool32 is_airborne)
     }
 }
 void
-player_gravity(Player* plr)
+player_move_vert(Player* plr)
 {
     plr->spd.y += plr->physics.grav;
+    if (plr->spd.y > plr->terminal_velocity)
+        plr->spd.y = plr->terminal_velocity;
 }
 
 
 
-void state_enter_default(Player* plr,
-                         Sprite* sprite, float32 anim_index = 0, float32 anim_speed = 1,
-                         Physics physics = {})
-{
-    plr->sprite = sprite;
-    plr->anim_index = anim_index;
-    plr->anim_speed = anim_speed;
-}
 
 
 
@@ -69,39 +56,47 @@ Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size
 void
 Player::state_perform(Player_State _state, State_Function _function)
 {
+    using enum Player_State;
+    using enum State_Function;
+    
     auto input = pointers->input;
+    auto tmap = &pointers->data->tilemap;
+    
     switch (_state){
-      case Player_State::Idle:{
-          switch (_function){
-            case State_Function::Enter:{
+      case Idle:{
+          
+          switch (_function){   
+            case Enter:{
                 state_enter_default(this, &GSPRITE->sPlayer_idle, 0, 0);
                 physics = ground_physics;
             }break;
-            case State_Function::Step:{
+              
+            case Step:{
                 //anim
                 anim_index = (float32)input->up.hold;
                 //speed
-                player_gravity(this);
+                player_move_vert(this);
                 player_move_hori(this, false);
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
 
                 if (input->jump)
-                    state_switch(Player_State::Jump);
+                    state_switch(Jump);
                 else if (spd.y != 0)
-                    state_switch(Player_State::Fall);
+                    state_switch(Fall);
                 else if (move_input.x != 0 && spd.x != 0)
-                    state_switch(Player_State::Walk);
+                    state_switch(Walk);
             }break;
           }
       }break;
             
-      case Player_State::Walk:{
+      case Walk:{
           switch (_function){
-            case State_Function::Enter:{
+            case Enter:{
                 state_enter_default(this, &GSPRITE->sPlayer_walk);
                 physics = ground_physics;
             }break;
-            case State_Function::Step:{
+              
+            case Step:{
                 spd.y += physics.grav;
                 player_move_hori(this, false);
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
@@ -120,28 +115,25 @@ Player::state_perform(Player_State _state, State_Function _function)
 
                 //state
                 if (input->jump)
-                    state_switch(Player_State::Jump);
+                    state_switch(Jump);
                 else if (spd.y != 0)
-                    state_switch(Player_State::Fall);
+                    state_switch(Fall);
                 else if (spd.x == 0)
-                    state_switch(Player_State::Idle);
+                    state_switch(Idle);
             }break;
           }
       }break;
 
 //Air
-      case Player_State::Jump:{
+      case Jump:{
           switch (_function){
-            case State_Function::Enter:{
-                
+            case Enter:{
                 state_enter_default(this, &GSPRITE->sPlayer_air, 0, 0);
-
                 physics = jump_physics;
                 spd.y = -jump_spd;
             }break;
-            case State_Function::Step:{
-                
 
+            case Step:{
                 //anim
                 float32 yspd_threshold = 0.4f;
                 if (abs_f32(spd.y) > yspd_threshold){
@@ -154,25 +146,36 @@ Player::state_perform(Player_State _state, State_Function _function)
                 }else{
                     anim_speed = abs_f32(spd.y) * 1.6f;
                 }
-        
+
                 //speed
-                player_gravity(this);
+                player_move_vert(this);
                 player_move_hori(this, true);
                 if (!input->jump.hold) spd.y *= 0.9f;
-                Collide_Data coll = move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
+                Collide_Data coll = move_collide_tile( &GDATA->tilemap, &pos, &spd, size );
 
-                // state
+                //try to hard code ledge grabbing:
+                //step 1a: find the tile where we are aiming
+                i32 aimdir = sign(move_input.x);
+                // if (aimdir == 1)
+                //step 1b determine which tile we are trying to ledge grab with
+                V2f worldpos_to_check = {};
+                V2i tile_pos_at_ledge = tilemap_get_grid_pos(tmap, worldpos_to_check);
+                
+                // if (){
+                    
+                // }
+
+                //state
                 if (spd.y > 0)
-                    state_switch(Player_State::Fall);
+                    state_switch(Fall);
 
             }break;
           }
       }break;
-      case Player_State::Fall:
-      {
+
+      case Fall:{
           switch (_function){
-            case State_Function::Enter:
-            {
+            case Enter:{
                 Sprite* spr = pointers->input->up.hold ? &GSPRITE->sPlayer_air_reach : &GSPRITE->sPlayer_air;
                 float32 index = pointers->input->up.hold ? anim_index : 0;
                 state_enter_default(this, spr, index, 0);
@@ -180,8 +183,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                 physics = fall_physics;
             }
             break;
-            case State_Function::Step:
-            {
+            
+            case Step:{
                 //anim
                 if (input->up.hold){
                     sprite = &GSPRITE->sPlayer_air_reach;
@@ -190,41 +193,61 @@ Player::state_perform(Player_State _state, State_Function _function)
                     sprite = &GSPRITE->sPlayer_air;
                 }
                 anim_speed = abs_f32(spd.y) * 0.8f;
-
         
                 player_move_hori(this, true);
-                player_gravity(this);
+                player_move_vert(this);
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, size);
 
-                auto st = (spd.x != 0 ? Player_State::Walk : Player_State::Idle);
+                auto st = (spd.x != 0 ? Walk : Idle);
                 if (coll.ydir == 1)
                     state_switch(st);
             }break;
           }
       }break;
-      case Player_State::Ledge:{
+      
+      case Ledge:
+      {
           switch (_function){
-            case State_Function::Enter:{
-                
+            case Enter:{
+                sprite_set(this, sPlayer_ledge);
             }break;
-            case State_Function::Step:{
+              
+            case Step:{
             }break;
-            case State_Function::Leave:{
+              
+            case Leave:{
             }break;
           }
       }break;
 
-        
+      case Hurt:
+      {
+          switch (_function){
+            case Enter:{
+                sprite_set(this, sPlayer_hurt);
+            }break;
+              
+            case Step:{
+                if (input->jump) state_switch(Idle);
+            }break;
+              
+            case Leave:{
+            }break;
+          }
+      }break;
     }
 }
 //STATE TEMPLATE
-// case Player_State::Jump:{
+// case Player_State::Jump:
+// {
 //     switch (_function){
-//       case State_Function::Enter:{
+//       case Enter:{
 //       }break;
-//       case State_Function::Step:{
+//
+//       case Step:{
 //       }break;
-//       case State_Function::Leave:{
+//
+//       case Leave:{
 //       }break;
 //     }
 // }break;
@@ -237,7 +260,7 @@ Player::Create(Vec2f _pos)
     // *this = Player;
     Player plr = {};
     plr.sprite = &GSPRITE->sPlayer_idle;
-    state_perform(plr.state, State_Function::Enter);
+    state_perform(plr.state, State_Function::Create);
     //
     plr.pos   = _pos;
     plr.physics = plr.ground_physics;
@@ -268,8 +291,24 @@ Player::Update(Game_Input_Map* input)
     move_input = {(float32)(input->right.hold - input->left.hold),
                   (float32)(input->down.hold - input->up.hold)};
 
+
+    debug_physics =   {1, 0.1f,  0.1f,   0.1f,  0.07f};
+    Physics phys_save = physics;
+    IF_DEBUG physics = debug_physics;
+
     state_perform(state, State_Function::Step);
 
+    //collide with spike
+    b32 spiked = collide_rect_entity(pos, size, Ent_Type::Spike);
+    if (spiked) state_switch(Player_State::Hurt);
+
+    
+    IF_DEBUG {
+        physics = phys_save;
+        if (GINPUT->jump)
+            spd.y = -3;
+    }
+    
 //movecollide
     // spd.y += physics.grav;
     //  if (spd.y > terminal_velocity)

@@ -1,3 +1,4 @@
+/std:c++20
 /D MY_DEBUG=1 /D MY_INTERNAL=1 /D MY_WIN32=1
 /nologo /MTd /FC /EHa- /Oi /Od /Z7 /Gm- /Y-
 /WX /W4 /wd4201 /wd4189 /wd4505 /wd4100 /wd4996

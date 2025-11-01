@@ -3,10 +3,9 @@ p x180 y81
 !
 
 Tiles
-t1 x25 y9, t1 x26 y9, t1 x27 y9, t1 x22 y11, t1 x17 y12, t1 x6 y14, t1 x7 y14, t1 x8 y14, t1 x9 y14, t1 x10 y14, t1 x11 y14, t1 x12 y14, t1 x13 y14, t1 x14 y14, t1 x15 y14, t1 x16 y14, t1 x17 y14, t1 x18 y14, t1 x19 y14, t1 x20 y14, t1 x21 y14, t1 x22 y14, t1 x23 y14, t1 x24 y14, t1 x25 y14, t1 x26 y14, t1 x27 y14, t1 x28 y14, t1 x29 y14, t1 x30 y14, t1 x31 y14, t1 x8 y15, t1 x9 y15, t1 x10 y15, t1 x11 y15, t1 x12 y15, t1 x13 y15, t1 x14 y15, t1 x15 y15, t1 x16 y15, t1 x17 y15, t1 x18 y15, t1 x19 y15, t1 x20 y15, t1 x21 y15, t1 x22 y15, t1 x23 y15, t1 x24 y15, t1 x25 y15, t1 x26 y15, t1 x27 y15, t1 x28 y15, t1 x29 y15, 
+t1 x25 y9, t1 x26 y9, t1 x27 y9, t1 x22 y11, t1 x16 y12, t1 x17 y12, t1 x18 y12, t1 x6 y14, t1 x7 y14, t1 x8 y14, t1 x9 y14, t1 x10 y14, t1 x11 y14, t1 x12 y14, t1 x13 y14, t1 x14 y14, t1 x15 y14, t1 x16 y14, t1 x17 y14, t1 x18 y14, t1 x19 y14, t1 x20 y14, t1 x21 y14, t1 x22 y14, t1 x23 y14, t1 x24 y14, t1 x25 y14, t1 x26 y14, t1 x27 y14, t1 x28 y14, t1 x29 y14, t1 x30 y14, t1 x31 y14, t1 x8 y15, t1 x9 y15, t1 x10 y15, t1 x11 y15, t1 x12 y15, t1 x13 y15, t1 x14 y15, t1 x15 y15, t1 x16 y15, t1 x17 y15, t1 x18 y15, t1 x19 y15, t1 x20 y15, t1 x21 y15, t1 x22 y15, t1 x23 y15, t1 x24 y15, t1 x25 y15, t1 x26 y15, t1 x27 y15, t1 x28 y15, t1 x29 y15, 
 !
 
 Entities
-e1 x86 y54 w8 h8,
-e2 x88 y73 w8 h16,
+e3 x136 y88 w8 h8,
 !
