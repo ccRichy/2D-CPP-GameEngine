@@ -92,7 +92,8 @@ struct Entity
     Vec2f   scale = {1, 1};
 
     //bbox
-    Vec2f size;
+    Rectangle bbox; //.pos is treated as an offset
+    // Vec2f size;
 
     //movement
     Vec2f move_input;

@@ -177,6 +177,11 @@ draw_rect(Rectangle rect, Color color)
     draw_rect(rect.pos, rect.size, color);
 }
 
+void draw_rect_outline()
+{
+    
+}
+
 
 
 void

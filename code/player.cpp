@@ -302,6 +302,7 @@ Player::Update(Game_Input_Map* input)
     b32 spiked = collide_rect_entity(pos, size, Ent_Type::Spike);
     if (spiked) state_switch(Player_State::Hurt);
 
+    //TODO: test bbox offsets with some entity
     
     IF_DEBUG {
         physics = phys_save;

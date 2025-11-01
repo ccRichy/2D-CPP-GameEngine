@@ -99,7 +99,7 @@ wall_create(Vec2f pos, Vec2f size)
 {
     Entity* ent = entity_init(Ent_Type::Wall, pos);
     if (ent){
-        ent->size = size;
+        ent->bbox = { {}, size };
         ent->color = RAYWHITE;
     }
     return ent;
@@ -111,7 +111,7 @@ wall_draw()
     {
         Entity* ent = &ENT_POINT(Ent_Type::Wall)[i];
         if (!ent->is_alive) continue;
-        draw_rect(ent->pos, ent->size, ent->color);
+        draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
     }
 }
 
@@ -122,7 +122,7 @@ enemy_create(Vec2f pos)
 {
     Entity* ent = entity_init(Ent_Type::Enemy, pos);
     if (ent){
-        ent->size = {Tile(1), Tile(2)};
+        ent->bbox = { {}, {Tile(1), Tile(2)} };
         ent->color = RED;
     }
     return ent;
@@ -135,7 +135,7 @@ enemy_update()
         Entity* ent = &ENT_POINT(Ent_Type::Enemy)[i];
         if (!ent->is_alive) continue;
         
-        float32 coll_xoffset = (ent->size.x * sign(ent->spd.x) + ent->spd.x);
+        // float32 coll_xoffset = (ent->size.x * sign(ent->spd.x) + ent->spd.x);
         ent->pos += ent->spd;
         ent->pos.x++;
 
@@ -154,7 +154,7 @@ enemy_draw()
         Entity* ent = &ENT_POINT(Ent_Type::Enemy)[i];
         if (!ent->is_alive) continue;
         
-        draw_rect(ent->pos, ent->size, ent->color);
+        draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
     }
 }
 
@@ -165,7 +165,10 @@ spike_create(Vec2f pos)
     Entity* ent = entity_init(Ent_Type::Spike, pos);
     if (ent){
         sprite_set(ent, sSpike);
-        ent->size = {8, 8};
+        ent->bbox = {
+            .pos = {2, 0},
+            .size = {3, 8}
+        };
     }
     return ent;
 }
@@ -178,7 +181,7 @@ void spike_draw()
         entity_draw_default(ent);
 
         IF_DEBUG {
-            draw_rect(ent->pos, ent->size, RED);
+            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, RED);
         }
     }
 }

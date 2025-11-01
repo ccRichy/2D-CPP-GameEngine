@@ -196,6 +196,7 @@ struct Game_Sprites
     Sprite sPlayer_wire_idle;
     Sprite sPlayer_wire_walk;
     Sprite sPlayer_hurt;
+    Sprite sPlayer_bounce;
     
   //Entities
     Sprite sWall_anim;

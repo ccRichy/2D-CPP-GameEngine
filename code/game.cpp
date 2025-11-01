@@ -203,24 +203,9 @@ entity_spawn(Ent_Type type, Vec2f pos)
 }
 
 Entity*
-entity_at_pos(Vec2f pos)
-{
-    Entity* result = nullptr;
-    Entity* array = pointers->entity->array;
-    for (int ent_index = 0; ent_index < ENT_MAX_ALL(); ++ent_index)
-    {
-        Entity* ent = &array[ent_index];
-        if (!ent->is_alive) continue;
-        if (collide_pixel_rect(pos, ent->pos, ent->size))
-            result = ent;
-    }
-    return result;    
-}
-
-Entity*
 entity_at_mouse_pos()
 {
-    Entity* result = entity_at_pos(mouse_get_pos_world());
+    Entity* result = collide_pixel_entity_pointer(mouse_get_pos_world(), Ent_Type::All);
     return result;
 }
 void
@@ -233,7 +218,7 @@ editor_draw_selected()
     
     Color color = GREEN;
     color.a = (u8)alpha;
-    draw_rect(ent_hl->pos, ent_hl->size, color);
+    draw_rect(ent_hl->pos, ent_hl->bbox.size, color);
 }
 
 bool32
@@ -302,8 +287,8 @@ level_save_file(const char* filename)
                     (int32)entity->type,
                     (int32)entity->pos.x,
                     (int32)entity->pos.y,
-                    (int32)entity->size.x,
-                    (int32)entity->size.y
+                    (int32)entity->bbox.size.x,
+                    (int32)entity->bbox.size.y
             );
             string_append(buffer, ent_string);
         }
@@ -440,7 +425,7 @@ level_load_file(const char* filename) //filename without extension
             Entity* entity_spawned = entity_spawn(ent_type, ent_pos);
             //HACK:
             if (ent_type == Ent_Type::Wall)
-                entity_spawned->size = ent_size; 
+                entity_spawned->bbox.size = ent_size;
             //TODO: dont save unneccesary size data for entities
         }
     }
@@ -710,8 +695,9 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sPlayer_wire_idle   = sprite_create("sPlayer_wire_idle", 5, 6, PLR_SPR_ORIGIN);
     sprite->sPlayer_wire_walk   = sprite_create("sPlayer_wire_walk", 4, 6, PLR_SPR_ORIGIN);
     SPR_LOAD(sPlayer_hurt, 1, 0, PLR_SPR_ORIGIN);
+    SPR_LOAD(sPlayer_bounce, 1, 0, PLR_SPR_ORIGIN);
     
-    //other
+    //entity
     sprite->sWall_anim   = sprite_create("sWall_anim", 4, 6, {});
     sprite->sBlob_small   = sprite_create("sBlob_small", 4, 6, {});
     sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {16, 4});
@@ -792,7 +778,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     data->draw_mode = Draw_Mode::World;
     {
         draw_tilemap(tmap);
-        
+
         wall_draw();
         spike_draw();
         enemy_draw();
