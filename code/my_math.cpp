@@ -18,6 +18,10 @@
 
 
 //types
+//NOTE: used inside of a struct declaration to "inherit" the names
+#define Vec2fUnion(__pos_name, __xname, __yname) union { Vec2f pos; float32 x, y; }
+#define Vec2iUnion(__pos_name, __xname, __yname) union { Vec2i pos; int32 x, y; }
+
 struct Vec2i
 {
     union {
@@ -119,10 +123,14 @@ struct Vec2f
     }
 };
 
-struct Rectangle
+
+
+struct Rectangle 
 {
-    Vec2f pos;
-    Vec2f size;
+    union {
+        struct { Vec2f pos, size; };
+        struct { float32 x, y, w, h; };
+    };
 };
 
 //Alternate Names

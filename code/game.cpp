@@ -678,7 +678,7 @@ game_initialize(Game_Pointers* _game_pointers)
 #define SPR_LOAD_N(varname, filename, frame_num, fps, origin) sprite->##varname = sprite_create(#filename, frame_num, fps, origin)
 
 //player
-#define PLR_SPR_ORIGIN {6.f, 5.f}
+#define PLR_SPR_ORIGIN {8.f, 12.f}
     SPR_LOAD_N(sPlayer_air, sPlayer_air2, 7, 15, PLR_SPR_ORIGIN);
     // sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
     sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  

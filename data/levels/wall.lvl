@@ -1,0 +1,10 @@
+Player
+p x160 y90
+!
+
+Tiles
+t1 x17 y3, t1 x18 y3, t1 x19 y3, t1 x20 y3, t1 x21 y3, t1 x22 y3, t1 x17 y6, t1 x18 y6, t1 x19 y6, t1 x20 y6, t1 x21 y6, t1 x22 y6, t1 x17 y9, t1 x18 y9, t1 x19 y9, t1 x20 y9, t1 x21 y9, t1 x22 y9, t1 x17 y12, t1 x23 y12, t1 x15 y13, t1 x16 y13, t1 x17 y13, t1 x18 y13, t1 x19 y13, t1 x20 y13, t1 x21 y13, t1 x22 y13, t1 x23 y13, t1 x24 y13, t1 x25 y13, t1 x17 y16, t1 x23 y16, t1 x17 y17, t1 x23 y17, t1 x15 y18, t1 x16 y18, t1 x17 y18, t1 x18 y18, t1 x19 y18, t1 x20 y18, t1 x21 y18, t1 x22 y18, t1 x23 y18, t1 x24 y18, t1 x25 y18, 
+!
+
+Entities
+!

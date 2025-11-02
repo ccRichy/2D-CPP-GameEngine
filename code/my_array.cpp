@@ -9,9 +9,13 @@
 
 
 
+#define array_clear(__array, __length, __nullval)\
+for (int __it = 0; __it < __length; ++__it){     \
+    __array[__it] = __nullval;                   \
+}                                                \
+
 #define array_shift_left(array, length, nullvalue)\
-for (int __it = 0; __it < length; ++__it)         \
-{                                                 \
+for (int __it = 0; __it < length; ++__it){        \
     if (__it+1 < length)                          \
         array[__it] = array[__it+1];              \
     else                                          \
@@ -20,7 +24,6 @@ for (int __it = 0; __it < length; ++__it)         \
 
 #define array_erase_index(array, length, index, nullvalue)\
 for (int __it = index; __it < length; ++__it)             \
-{                                                         \
     if (__it+1 < length)                                  \
         array[__it] = array[__it+1];                      \
     else                                                  \

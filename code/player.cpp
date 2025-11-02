@@ -51,7 +51,7 @@ void Player::state_switch(Player_State new_state)
 
 
 //forward declaration for following functions
-Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size); //HACK:
+Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset = {}); //HACK:
 
 void
 Player::state_perform(Player_State _state, State_Function _function)
@@ -77,7 +77,7 @@ Player::state_perform(Player_State _state, State_Function _function)
                 //speed
                 player_move_vert(this);
                 player_move_hori(this, false);
-                move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
+                move_collide_tile(&GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (input->jump)
                     state_switch(Jump);
@@ -99,7 +99,7 @@ Player::state_perform(Player_State _state, State_Function _function)
             case Step:{
                 spd.y += physics.grav;
                 player_move_hori(this, false);
-                move_collide_tile(&GDATA->tilemap, &pos, &spd, size);
+                move_collide_tile(&GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 //anim
                 if (sign(move_input.x) != sign(spd.x) && move_input.x != 0)
@@ -151,7 +151,7 @@ Player::state_perform(Player_State _state, State_Function _function)
                 player_move_vert(this);
                 player_move_hori(this, true);
                 if (!input->jump.hold) spd.y *= 0.9f;
-                Collide_Data coll = move_collide_tile( &GDATA->tilemap, &pos, &spd, size );
+                Collide_Data coll = move_collide_tile( &GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 //try to hard code ledge grabbing:
                 //step 1a: find the tile where we are aiming
@@ -196,7 +196,7 @@ Player::state_perform(Player_State _state, State_Function _function)
         
                 player_move_hori(this, true);
                 player_move_vert(this);
-                Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, size);
+                Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 auto st = (spd.x != 0 ? Walk : Idle);
                 if (coll.ydir == 1)
@@ -263,24 +263,9 @@ Player::Create(Vec2f _pos)
     state_perform(plr.state, State_Function::Create);
     //
     plr.pos   = _pos;
+    plr.bbox = { -2, -7, 4, Tile(1)-1};
     plr.physics = plr.ground_physics;
-    // plr.grav = plr.grav_default;
-
     *this = plr;
-
-// #if 0
-    // plr->st_idle.Enter = player_idle_enter;
-    // plr->st_idle.Step = player_idle_step;
-    // plr->st_walk.Enter = player_walk_enter;
-    // plr->st_walk.Step = player_walk_step;
-    // plr->st_jump.Enter = player_jump_enter;
-    // plr->st_jump.Step = player_jump_step;
-    // plr->st_fall.Enter = player_fall_enter;
-    // plr->st_fall.Step = player_fall_step;
-    
-    // plr->state = &plr->st_idle;
-    // plr->state->Enter();
-//#endif
 }
 
 
@@ -292,35 +277,22 @@ Player::Update(Game_Input_Map* input)
                   (float32)(input->down.hold - input->up.hold)};
 
 
-    debug_physics =   {1, 0.1f,  0.1f,   0.1f,  0.07f};
+    debug_physics =   {2, 0.1f,  0.1f,   0.1f,  0.07f};
     Physics phys_save = physics;
     IF_DEBUG physics = debug_physics;
 
     state_perform(state, State_Function::Step);
 
     //collide with spike
-    b32 spiked = collide_rect_entity(pos, size, Ent_Type::Spike);
+    b32 spiked = collide_entity_type(Entity* ent_caller, Ent_Type type)
+    // b32 spiked = collide_rect_entity(pos + bbox.pos, bbox.size, Ent_Type::Spike);
     if (spiked) state_switch(Player_State::Hurt);
-
-    //TODO: test bbox offsets with some entity
     
     IF_DEBUG {
         physics = phys_save;
         if (GINPUT->jump)
             spd.y = -3;
     }
-    
-//movecollide
-    // spd.y += physics.grav;
-    //  if (spd.y > terminal_velocity)
-    //     spd.y = terminal_velocity;
-
-    // Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, size);
-    // Collide_Data coll = move_collide_wall(&plr->pos, &plr->spd, plr->size);
-
-//proto sprint
-    // if (input->shift.hold) ground_speed_max = 2;
-    // else ground_speed_max = 1;
 }
 
 void
@@ -334,9 +306,14 @@ Player::Draw()
 
     //NOTE: should we do this afterwards? If we dont then anim_index will never be 0 unless the math happens to work out between sprite fps and anim_speed
 
+    // sprite->origin = {8, 12};
+    // bbox = { {-2, -7}, {4, Tile(1)-1} };
+    
     //DRAW bbox & origin
-    // draw_rect(pos, size, RED);    
-    // draw_pixel(pos, WHITE);
+    Color col = RED;
+    col.a = 170;
+    draw_rect(pos + bbox.pos, bbox.size, col);
+    draw_pixel(pos, WHITE);
 
 
     IF_DEBUG{

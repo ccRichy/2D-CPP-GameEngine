@@ -99,7 +99,7 @@ wall_create(Vec2f pos, Vec2f size)
 {
     Entity* ent = entity_init(Ent_Type::Wall, pos);
     if (ent){
-        ent->bbox = { {}, size };
+        ent->bbox = Rect{ .pos ={}, .size = size };
         ent->color = RAYWHITE;
     }
     return ent;
@@ -122,7 +122,7 @@ enemy_create(Vec2f pos)
 {
     Entity* ent = entity_init(Ent_Type::Enemy, pos);
     if (ent){
-        ent->bbox = { {}, {Tile(1), Tile(2)} };
+        ent->bbox = { .pos = {}, .size = {Tile(1), Tile(2)} };
         ent->color = RED;
     }
     return ent;
@@ -165,10 +165,7 @@ spike_create(Vec2f pos)
     Entity* ent = entity_init(Ent_Type::Spike, pos);
     if (ent){
         sprite_set(ent, sSpike);
-        ent->bbox = {
-            .pos = {2, 0},
-            .size = {3, 8}
-        };
+        ent->bbox = { .pos = {2, 0}, .size = {3, 8} };
     }
     return ent;
 }
