@@ -172,6 +172,14 @@ im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
     return result;
 }
 bool32
+im_button_text(Vec2f button_pos, Vec2f button_size, const char* text, V2f text_offset = {})
+{
+    b32 result = im_button(button_pos, button_size);
+    draw_text(text, button_pos + text_offset);
+    return result;
+}
+
+bool32
 im_hot()
 {
     b32 result = (global_imgui_hot > -1);
@@ -479,13 +487,35 @@ game_load_state(const char* filename) //trying to load old versions is likely to
     GMEMORY->DEBUG_platform_file_free_memory(file.memory);
 }
 
-void game_state_editor_update()
+
+
+
+void draw_mode(Draw_Mode new_mode);
+
+//important stuff
+void
+game_draw_world()
+{
+    GDATA->draw_mode = Draw_Mode::World;
+    draw_tilemap(&GDATA->tilemap);
+    
+    wall_draw();
+    spike_draw();
+    enemy_draw();
+    PLAYER->Draw();
+}
+
+
+void
+game_state_editor_update()
 {
     auto input = GINPUT;
     auto data = GDATA;
     auto edit_mode = GDATA->editor_mode;
     auto tmap = &GDATA->tilemap;
 
+    game_draw_world();
+    
 //Controls
     if (input->edit_toggle){
         if (is_level_new(GDATA->level_current))
@@ -507,7 +537,7 @@ void game_state_editor_update()
         level_reload();
 
     
-//Modes
+//perform actions based on the editor mode
     if (edit_mode == Editor_Mode::Entity){
         //DEBUG Entity Editor Functions
         if (!im_hot()){
@@ -553,8 +583,8 @@ void game_state_editor_update()
          (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
     data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
         
-    data->draw_mode = Draw_Mode::World;
 //Draw 0,0 (x,y) lines
+    data->draw_mode = Draw_Mode::World;
     f32 static_size = scale_get_zoom_agnostic(0.5);
     draw_rect({0, 0}, {static_size, 999999.f}, WHITE);
     draw_rect({0, 0}, {999999.f, static_size}, WHITE);
@@ -577,6 +607,48 @@ void game_state_editor_update()
             {(f32)grid_length_max.x * grid_spacing, grid_line_size},
             color_faded);
     }
+
+//Draw GUI
+    data->draw_mode = Draw_Mode::Gui;
+    im_begin();
+    Vec2f eb_pos = {40, 10};
+    Vec2f eb_size = {16, 6};
+    draw_text_buffer(
+        {eb_pos.x, eb_pos.y - eb_size.y}, {0.5f, 0.5f}, {5, 8},
+        "editor mode: %i", (i32)data->editor_mode
+    );
+
+    //edit mode buttons
+    for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index){
+        Vec2f final_pos = {eb_pos.x + (eb_size.x + 2) * edit_index, eb_pos.y};
+        if (im_button(final_pos, eb_size))
+            data->editor_mode = (Editor_Mode)edit_index;
+        draw_text("mode", final_pos, {0.5, 0.5});
+    }
+
+    //entity buttons
+    if (data->editor_mode == Editor_Mode::Entity)
+    {
+        Vec2f button_pos = {10, 40};
+        Vec2f button_size = {16, 6};
+        draw_text_buffer(
+            {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f}, {5, 8},
+            "selected:%s", ENT_NAME(global_editor_entity_to_spawn)
+        );
+
+        for (int ent_index = 0; ent_index < (int32)Ent_Type::Num; ++ent_index)
+        {
+            Vec2f final_pos = {button_pos.x, button_pos.y + ((button_size.y + 1) * ent_index)};
+            if (im_button(final_pos, button_size))
+                global_editor_entity_to_spawn = (Ent_Type)ent_index;
+            draw_text(ENT_INFO[ent_index].name, final_pos, {0.5, 0.5});
+        }
+            
+    }
+    else if (data->editor_mode == Editor_Mode::Tile)
+    {
+        //TODO: move tile buttons in here
+    }
 }
 
 
@@ -593,7 +665,23 @@ game_state_play_update()
         data->state = Game_State::Edit;
         debug_message("Game State: Editor");
     }
+    if (input->escape.press)
+        data->state = Game_State::Pause;
 
+    
+
+//teleport player to mouse
+    IF_DEBUG {
+        if (input->mouse_right.hold){
+            data->draw_mode = Draw_Mode::World;
+            draw_sprite_frame(&GSPRITE->sPlayer_idle, mouse_get_pos_world(), 0);
+        }
+        if (input->mouse_right.release){
+            PLAYER->pos = mouse_get_pos_world();
+        }
+    }
+
+    
     //entity update
     PLAYER->Update(input);
     enemy_update();
@@ -603,6 +691,34 @@ game_state_play_update()
     Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
     data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
     data->camera_pos = PLAYER->pos - data->camera_pos_offset;
+
+    game_draw_world();
+}
+
+void
+game_state_pause_update()
+{
+    auto input = GINPUT;
+    auto data = GDATA;
+
+//controls
+    if (input->escape.press)
+        data->state = Game_State::Play;
+    
+//world
+    game_draw_world();
+
+//gui
+    data->draw_mode = Draw_Mode::Gui;
+    draw_text("PAUSED", {BASE_W/2 - 20, 20}, {4, 4});
+
+    V2f buttpos = BASE_CENTER_V2F;
+    V2f buttsize = {80, 8};
+    f32 spacing = 12;
+    for (int button_index = 0; button_index < 4; ++button_index)
+    {
+        im_button_text(buttpos + V2f{0, button_index * spacing}, buttsize, "poop", {30, 0});
+    }
 }
 
 
@@ -772,65 +888,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 //Game State
     if (state == Game_State::Edit)      game_state_editor_update();
     else if (state == Game_State::Play) game_state_play_update();
-    
-                             
-//DRAW WORLD
-    data->draw_mode = Draw_Mode::World;
-    {
-        draw_tilemap(tmap);
+    else if (state == Game_State::Pause) game_state_pause_update();
 
-        wall_draw();
-        spike_draw();
-        enemy_draw();
-        PLAYER->Draw();
-        
-        editor_draw_selected();
-    }
-
-//DRAW GUI
-    data->draw_mode = Draw_Mode::Gui;
-    im_begin();
-    Vec2f eb_pos = {40, 10};
-    Vec2f eb_size = {16, 6};
-    draw_text_buffer(
-        {eb_pos.x, eb_pos.y - eb_size.y}, {0.5f, 0.5f}, {5, 8},
-        "editor mode: %i", (i32)data->editor_mode
-    );
-
-    //edit mode buttons
-    for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index){
-        Vec2f final_pos = {eb_pos.x + (eb_size.x + 2) * edit_index, eb_pos.y};
-        if (im_button(final_pos, eb_size))
-            data->editor_mode = (Editor_Mode)edit_index;
-        draw_text("mode", final_pos, {0.5, 0.5});
-    }
-
-    //entity buttons
-    if (data->editor_mode == Editor_Mode::Entity)
-    {
-        Vec2f button_pos = {10, 40};
-        Vec2f button_size = {16, 6};
-        draw_text_buffer(
-            {button_pos.x, button_pos.y - button_size.y}, {0.5f, 0.5f}, {5, 8},
-            "selected:%s", ENT_NAME(global_editor_entity_to_spawn)
-        );
-
-        for (int ent_index = 0; ent_index < (int32)Ent_Type::Num; ++ent_index)
-        {
-            Vec2f final_pos = {button_pos.x, button_pos.y + ((button_size.y + 1) * ent_index)};
-            if (im_button(final_pos, button_size))
-                global_editor_entity_to_spawn = (Ent_Type)ent_index;
-            draw_text(ENT_INFO[ent_index].name, final_pos, {0.5, 0.5});
-        }
-            
-    }
-    else if (data->editor_mode == Editor_Mode::Tile)
-    {
-        //TODO: move tile buttons in here
-    }
-
+    //
+    editor_draw_selected();
 
     //debug
+    data->draw_mode = Draw_Mode::Gui;
     debug_message_queue_update();
     IF_DEBUG
     {
@@ -891,6 +955,5 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     }
 
     //draw mouse
-    if (data->state == Game_State::Edit || data->debug_mode_enabled)
         draw_sprite_frame(&GSPRITE->sMouse_cursors, input->mouse_pos_gui, 0);
 }

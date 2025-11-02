@@ -14,6 +14,17 @@ enum struct Player_State
     Rope,
     Hurt,
 };
+enum struct Goober_State
+{
+    Idle,
+    Walk,
+    Jump,
+    Fall,
+    Ledge,
+    Rope,
+    Hurt,
+};
+
 
 
 #define PLAYER_DEFAULT_STATE Player_State::Idle
@@ -27,7 +38,7 @@ struct Player
     Vec2fUnion(pos, x, y);
     Vec2f spd;
     Vec2f move_input;
-    Rect bbox = { 0, 0, 4, Tile(1)-1 };
+    Rect bbox;
     // Rect bbox = { {}, {4, Tile(1)-1} };
     // Vec2f size  = {4, Tile(1)-1};
     Vec2f scale = {1, 1};

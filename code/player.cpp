@@ -5,6 +5,8 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
+
+
 void state_enter_default(
     Player* plr, Sprite* sprite, float32 anim_index = 0, float32 anim_speed = 1)
 {
@@ -36,7 +38,6 @@ player_move_vert(Player* plr)
     if (plr->spd.y > plr->terminal_velocity)
         plr->spd.y = plr->terminal_velocity;
 }
-
 
 
 
@@ -284,8 +285,7 @@ Player::Update(Game_Input_Map* input)
     state_perform(state, State_Function::Step);
 
     //collide with spike
-    b32 spiked = collide_entity_type(Entity* ent_caller, Ent_Type type)
-    // b32 spiked = collide_rect_entity(pos + bbox.pos, bbox.size, Ent_Type::Spike);
+    b32 spiked = collide_rect_entity(pos + bbox.pos, bbox.size, Ent_Type::Spike);
     if (spiked) state_switch(Player_State::Hurt);
     
     IF_DEBUG {

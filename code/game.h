@@ -33,6 +33,7 @@
 
 #define BASE_W 320
 #define BASE_H 180
+#define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
 #define WINDOW_SCALE_DEFAULT 4
  
 #define GSTATE_DEFAULT Game_State::Edit
@@ -162,9 +163,10 @@ struct Debug_Message_Queue
 //////GAME//////
 enum struct Game_State{ //TODO: pause
     Edit,
-    Play
+    Play,
+    Pause,
 };
-enum struct Draw_Mode{
+enum struct Draw_Mode{ //REQUIRED: draw calls are responsible for setting draw_mode
     Null = -1,
     World,
     Gui

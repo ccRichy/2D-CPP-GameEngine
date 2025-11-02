@@ -22,106 +22,110 @@
 #define Vec2fUnion(__pos_name, __xname, __yname) union { Vec2f pos; float32 x, y; }
 #define Vec2iUnion(__pos_name, __xname, __yname) union { Vec2i pos; int32 x, y; }
 
-struct Vec2i
+struct Vector2i
 {
     union {
         struct { int32 x, y; };
         struct { int32 w, h; };
     };
 
-    Vec2i& operator+=(const Vec2i& other) {
+    Vector2i& operator+=(const Vector2i& other) {
         x += other.x;
         y += other.y;
         return *this; 
     }
-    Vec2i operator+(const Vec2i& other) const {
-        Vec2i result = *this;
+    Vector2i operator+(const Vector2i& other) const {
+        Vector2i result = *this;
         result += other;
         return result;
     }
     
-    Vec2i& operator-=(const Vec2i& other) {
+    Vector2i& operator-=(const Vector2i& other) {
         x -= other.x;
         y -= other.y;
         return *this; 
     }
-    Vec2i operator-(const Vec2i& other) const {
-        Vec2i result = *this;
+    Vector2i operator-(const Vector2i& other) const {
+        Vector2i result = *this;
         result -= other;
         return result;
     }
 
-    Vec2i& operator*=(const Vec2i& other) {
+    Vector2i& operator*=(const Vector2i& other) {
         x *= other.x;
         y *= other.y;
         return *this; 
     }
-    Vec2i operator*(const Vec2i& other) const {
-        Vec2i result = *this;
+    Vector2i operator*(const Vector2i& other) const {
+        Vector2i result = *this;
         result *= other;
         return result;
     }
-    Vec2i& operator/=(const Vec2i& other) {
+    Vector2i& operator/=(const Vector2i& other) {
         x /= other.x;
         y /= other.y;
         return *this; 
     }
-    Vec2i operator/(const Vec2i& other) const {
-        Vec2i result = *this;
+    Vector2i operator/(const Vector2i& other) const {
+        Vector2i result = *this;
         result /= other;
         return result;
     }
 };
-struct Vec2f
+struct Vector2f
 {
     union {
         struct { float32 x, y; };
         struct { float32 w, h; };
     };
 
-    Vec2f& operator+=(const Vec2f& other) {
+    Vector2f& operator+=(const Vector2f& other) {
         x += other.x;
         y += other.y;
         return *this; 
     }
-    Vec2f operator+(const Vec2f& other) const {
-        Vec2f result = *this;
+    Vector2f operator+(const Vector2f& other) const {
+        Vector2f result = *this;
         result += other;
         return result;
     }
     
-    Vec2f& operator-=(const Vec2f& other) {
+    Vector2f& operator-=(const Vector2f& other) {
         x -= other.x;
         y -= other.y;
         return *this; 
     }
-    Vec2f operator-(const Vec2f& other) const {
-        Vec2f result = *this;
+    Vector2f operator-(const Vector2f& other) const {
+        Vector2f result = *this;
         result -= other;
         return result;
     }
 
-    Vec2f& operator*=(const Vec2f& other) {
+    Vector2f& operator*=(const Vector2f& other) {
         x *= other.x;
         y *= other.y;
         return *this; 
     }
-    Vec2f operator*(const Vec2f& other) const {
-        Vec2f result = *this;
+    Vector2f operator*(const Vector2f& other) const {
+        Vector2f result = *this;
         result *= other;
         return result;
     }
-    Vec2f& operator/=(const Vec2f& other) {
+    Vector2f& operator/=(const Vector2f& other) {
         x /= other.x;
         y /= other.y;
         return *this; 
     }
-    Vec2f operator/(const Vec2f& other) const {
-        Vec2f result = *this;
+    Vector2f operator/(const Vector2f& other) const {
+        Vector2f result = *this;
         result /= other;
         return result;
     }
 };
+typedef Vector2f V2f;
+typedef Vector2f Vec2f;
+typedef Vector2i V2i;
+typedef Vector2i Vec2i;
 
 
 
@@ -134,12 +138,6 @@ struct Rectangle
 };
 
 //Alternate Names
-typedef Vec2f V2f;
-typedef Vec2f Vec2f;
-typedef Vec2f Vector2f;
-typedef Vec2i V2i;
-typedef Vec2i Vec2i;
-typedef Vec2i Vector2i;
 typedef Rectangle Rect;
 
 
