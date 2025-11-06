@@ -11,15 +11,23 @@
 #define sprite_set(__entity, __sprite_name) __entity->sprite = &pointers->sprite->##__sprite_name
 
 
+#define bbox_top(__entity) (__entity->y + __entity->bbox.y)
+#define bbox_bottom(__entity) (__entity->y + __entity->bbox.y + __entity->bbox.h)
+#define bbox_left(__entity) (__entity->x + __entity->bbox.x)
+#define bbox_right(__entity) (__entity->x + __entity->bbox.x + __entity->bbox.w)
+
 //
 enum class Ent_Type
 {
     Null = -1,
     
     Player,
+    
     Wall,
     Enemy,
     Spike,
+    Goal,
+    Orb,
     
     Num,
     All,
@@ -35,6 +43,8 @@ constexpr Ent_Info ENT_INFO[] = {
     { "wall",   8 },
     { "enemy",  6 },
     { "spike",  2 },
+    { "goal",   1 },
+    { "orb",    4 },
 };
 
 constexpr i32 ENT_MAX_ALL(){

@@ -11,16 +11,21 @@
 #define Terabytes(Value) (Gigabytes(Value)*1024LL)
 
 //TODO: 64-bit versions of functions where appropriate
-#define in_range(value, min, max) (value >= min && value <= max)
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
+
+#define in_range(value, min, max) (value >= min && value <= max)
+#define dist(value1, value2) (abs_f32(value1 - value2))
 
 
 
 //types
 //NOTE: used inside of a struct declaration to "inherit" the names
-#define Vec2fUnion(__pos_name, __xname, __yname) union { Vec2f pos; float32 x, y; }
-#define Vec2iUnion(__pos_name, __xname, __yname) union { Vec2i pos; int32 x, y; }
+#define Vec2fUnion(__pos_name, __xname, __yname)\
+    union { struct {Vec2f pos;}; struct {float32 x, y; }; }
+
+#define Vec2iUnion(__pos_name, __xname, __yname)\
+    union { struct {Vec2f pos;}; struct {float32 x, y; }; }
 
 struct Vector2i
 {
@@ -198,19 +203,6 @@ round_f32(float32 value)
     float32 result = roundf(value);
     return result;
 }
-// inline float64
-// round_arbitrary(float64 input, float64 round_point)
-// {
-//     float64 result = input;
-//     float64 remainder = fmod(input, round_point);
-//     result -= remainder;
-
-//     bool32 should_round_up = (remainder > round_point / 2);
-//     if (should_round_up) result += round_point;
-
-//     return result;
-// }
-
 
 inline int32
 floor_i32(float32 value)
@@ -227,15 +219,28 @@ floor_f32(float32 value)
 inline int32
 ceil_i32(float32 value)
 {
-    int32 result = (int32)floorf(value + 1);
+    int32 result = (int32)ceilf(value);
     return result;
 }
 inline float32
 ceil_f32(float32 value)
 {
-    float32 result = floorf(value + 1);
+    float32 result = ceilf(value);
     return result;
 }
+// inline float64
+// round_arbitrary(float64 input, float64 round_point)
+// {
+//     float64 result = input;
+//     float64 remainder = fmod(input, round_point);
+//     result -= remainder;
+
+//     bool32 should_round_up = (remainder > round_point / 2);
+//     if (should_round_up) result += round_point;
+
+//     return result;
+// }
+
 
 
 inline float

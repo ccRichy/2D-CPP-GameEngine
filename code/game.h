@@ -15,7 +15,7 @@
 
 //TODO: move to a debug file?
 #define GAME_MEMORY_MB_PERMANENT  8
-#define GAME_MEMORY_MB_TRANSIENT  16
+#define GAME_MEMORY_MB_TRANSIENT  128
 #define SAVE_FILE_BUFFER_MB       10
 
 #define SND_CHANNELS          2
@@ -49,7 +49,42 @@
 
 
 
+
+
+
+
 #include "my_types_constants.h"
+
+//1. use an existing piece of allocated memory
+//2. allocate arbitrarily out of it
+//3. auto bounds check
+struct MemAlloc
+{
+    void* root_pointer; //NOTE: default
+    int32 size_bytes;
+    int32 bytes_used;
+
+    void* init(void* memory_location, i32 size_of_chunk){
+        size_bytes = size_of_chunk;
+        root_pointer = memory_location;
+        return root_pointer;
+    }
+    
+    void* end(){
+        return (u8*)root_pointer + size_bytes;
+    }
+    
+    void* alloc(i32 size){
+        u8* new_ptr = (u8*)root_pointer + size;
+        //bounds check
+        if (new_ptr > end())
+        bytes_used += size;
+        return new_ptr;
+    }
+
+};
+
+
 #include "my_array.cpp"
 #include "my_string.cpp"
 #include "my_math.cpp"
@@ -137,7 +172,6 @@ struct Game_Sound_Buffer
     int32  sample_rate;
     int16* memory;
 };
-//PLATFORM
 
 
 
@@ -186,6 +220,7 @@ struct Game_Sprites
     Sprite sPlayer_air;
     Sprite sPlayer_air_reach;
     Sprite sPlayer_idle;
+    Sprite sPlayer_ledge_grab;
     Sprite sPlayer_ledge;
     Sprite sPlayer_ledge_reach;
     Sprite sPlayer_rope_climb;
@@ -201,11 +236,17 @@ struct Game_Sprites
     Sprite sPlayer_bounce;
     
   //Entities
+    //movers
     Sprite sWall_anim;
     Sprite sBlob_small;
+    //idlers
+    Sprite sGoal;
     Sprite sSpike;
-    
-  //Meta
+    //item
+    Sprite sItem_rope;
+    Sprite sItem_orb;
+
+//Meta
     Sprite sMouse_cursors;
     Sprite sDebug;
     
@@ -231,6 +272,8 @@ struct Game_Entities
 struct Game_Data
 {
     //settings
+    MemAlloc memory_map;
+    
     Game_State state;
     Draw_Mode draw_mode;
     Editor_Mode editor_mode;

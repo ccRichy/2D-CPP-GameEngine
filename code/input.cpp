@@ -31,9 +31,18 @@ struct Typing_Buffer
 
 struct Game_Input_Button
 {
-    bool32 press;
-    bool32 hold;
-    bool32 release;
+    union {
+        struct {
+            bool32 press;
+            bool32 hold;
+            bool32 release;
+        };
+        struct {
+            bool32 p;
+            bool32 h;
+            bool32 r;            
+        };
+    };
 
     //TODO: remove this? the ambiguity upon calling has lead to confusion
     explicit operator bool() const noexcept {

@@ -38,8 +38,12 @@ struct Sprite
 {
     BMP_Data bmp;
 	Vec2f origin;
-    int32 width;
-    int32 height;
+    union {
+        struct { Vec2i size; };
+        struct { int32 width, height; };
+    };
+    // int32 width;
+    // int32 height;
     int32 frame_width;
     int32 frame_height;    
     float32 fps;

@@ -10,7 +10,7 @@ struct Collide_Data
     bool32 vert;
     int32 xdir;
     int32 ydir;
-    Vec2f spd;
+    Vec2f spd_save;
 };
 
 
@@ -116,10 +116,11 @@ collide_pixel_get_any_entity(Vec2f pixel_pos)
 }
 
 
-bool32 collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type)
+bool32
+collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type)
 {
     b32 result = false;
-    Entity* array = ( (type == Ent_Type::All) ? GENTITY->array : ENT_POINT(type) ); 
+    Entity* array = ( (type == Ent_Type::All) ? GENTITY->array : ENT_POINT(type) );
     i32 loop_amt = ( (type == Ent_Type::All) ? ENT_MAX_ALL() : ENT_MAX(type));
     for (int i = 0; i < loop_amt; ++i){
         Entity* ent = &array[i];
@@ -129,10 +130,11 @@ bool32 collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type)
             break;
         }
     }
-    return result;    
+    return result;
 }
 
-bool32 collide_entitys(Entity* ent1, Entity* ent2)
+bool32
+collide_entitys(Entity* ent1, Entity* ent2)
 {
     b32 result = collide_rects(
         ent1->pos + ent1->bbox.pos, ent1->bbox.size,
@@ -140,10 +142,11 @@ bool32 collide_entitys(Entity* ent1, Entity* ent2)
     );
     return result;
 }
-bool32 collide_entity_type(Entity* ent_caller, Ent_Type type)
+bool32
+collide_entity_type(Entity* ent_caller, Ent_Type type)
 {
     b32 result = false;
-    Entity* array = ( (type == Ent_Type::All) ? GENTITY->array : ENT_POINT(type) ); 
+    Entity* array = ( (type == Ent_Type::All) ? GENTITY->array : ENT_POINT(type) );
     i32 loop_amt = ( (type == Ent_Type::All) ? ENT_MAX_ALL() : ENT_MAX(type));
     for (int i = 0; i < loop_amt; ++i) {
         Entity* ent = &array[i];

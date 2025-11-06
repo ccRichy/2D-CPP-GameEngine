@@ -76,12 +76,19 @@ tilemap_set_tile_at_world_pos(Tilemap* tmap,  Vec2f pos, int32 value)
 }
 
 Rectangle
-tilemap_get_tile_rect(Tilemap* tmap, V2i tile_pos)
+tilemap_get_tile_rect(Tilemap* tmap, Vec2i tile_pos)
 {
     Rect result;
-    result.pos = v2i_to_v2f(tilemap_get_grid_pos(tmap, v2i_to_v2f(tile_pos)));
-    result.size = {(f32)tmap->tile_w, (f32)tmap->tile_h};
-    return {};
+    result.pos = { tmap->pos.x + (tile_pos.x * tmap->tile_w), tmap->pos.y + (tile_pos.y * tmap->tile_h) };
+    result.size = { (f32)tmap->tile_w, (f32)tmap->tile_h };
+    return result;
+}
+Rectangle
+tilemap_get_tile_rect(Tilemap* tmap, Vec2f world_pos)
+{
+    V2i tile_pos = tilemap_get_grid_pos(tmap, world_pos);
+    Rect result = tilemap_get_tile_rect(tmap, tile_pos);
+    return result;
 }
 
 void
@@ -112,6 +119,15 @@ draw_tilemap(Tilemap* tmap)
             }
         }
     }
+}
+
+
+
+bool32
+collide_pixel_tilemap(Vec2f pos, Tilemap* tmap)
+{
+    b32 result = *tilemap_get_tile_at_world_pos(tmap, pos) > 0;
+    return result;
 }
 
 bool32
@@ -186,6 +202,7 @@ collide_rect_tilemap_pos(Vec2f pos, Vec2f size, Tilemap* tmap)
     return result;
 }
 
+
 //TILE
 Collide_Data
 move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset)
@@ -219,6 +236,7 @@ move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_o
         result.vert = true;
         result.ydir = sign(spd->y);
         pos->y = round_f32(y_res);
+        result.spd_save.y = spd->y;
         spd->y = 0;
     }
 
@@ -244,6 +262,7 @@ move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_o
 
         result.hori = true;
         result.xdir = sign(spd->x);
+        result.spd_save.x = spd->x;
         pos->x = round_f32(x_res);
         spd->x = 0;
     }

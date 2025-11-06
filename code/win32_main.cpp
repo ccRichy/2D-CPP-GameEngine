@@ -2,12 +2,8 @@
 #include <math.h>
 #include <stdio.h>
 
-//#include "array_functions.h"
 #include "game.h"
 
-// #include "my_types_constants.h"
-// #include "my_string.cpp"
-// #include "my_math.cpp"
 #include <windows.h>
 #include <xinput.h>
 #include <xaudio2.h>
@@ -301,6 +297,9 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     if (input.debug_win_minus)
                         window_set_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
 
+                    //TODO: hotkey to move window into corner, make smaller, turn on bgmode
+                    // if (input->ctrl.h && input->shift. )
+                    
 
                     
                 //GAME LOOP

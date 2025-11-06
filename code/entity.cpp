@@ -5,29 +5,58 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
+// inline int32
+// entity_get_num(Ent_Type type)
+// {
+//     int32 result = pointers->entity->nums[(i32)type];
+//     return result;
+// }
 
-
-
-inline int32
-entity_get_num(Ent_Type type)
-{
-    int32 result = pointers->entity->nums[(i32)type];
-    return result;
-}
-
-Sprite* entity_sprite_default(Ent_Type type)
+Sprite*
+entity_sprite_default(Ent_Type type)
 {
     Sprite* result = nullptr;
     Game_Sprites* spr = GSPRITE;
-    switch (type)
-    {
-        case Ent_Type::Player: result = &spr->sPlayer_idle; break;
-        case Ent_Type::Wall: result = &spr->sWall_anim; break;
-        case Ent_Type::Enemy: result = &spr->sBlob_small; break;
+    switch (type){
+      case Ent_Type::Player: result = &spr->sPlayer_idle; break;
+      case Ent_Type::Wall: result = &spr->sWall_anim; break;
+      case Ent_Type::Enemy: result = &spr->sBlob_small; break;
+      case Ent_Type::Goal: result = &spr->sGoal; break;
     }
     return result;
 }
 
+Entity*
+entity_init(Ent_Type type, Vec2f pos)
+{
+    Entity* array = ENT_POINT(type);
+    i32 num_of_alive = ENT_NUM(type);//pointers->entity->nums[(int32)type];
+    i32 array_max = ENT_MAX(type); 
+    if (num_of_alive >= array_max) return nullptr;
+    
+    Entity* result = nullptr;
+    for (int i = 0; i < array_max; ++i){
+        int32 looped_index = (num_of_alive+i) % array_max;
+        if (!array[looped_index].is_alive){
+            result = &array[looped_index]; 
+            result->sprite = entity_sprite_default(type); //set default sprite
+            result->type = type;
+            result->pos = pos;
+            result->is_alive = true;
+            pointers->entity->nums[(i32)type]++;
+            break;
+        }
+    }    
+    return result;
+}
+void
+entity_destroy(Entity* entity)
+{
+    if (entity){
+        entity->is_alive = false;
+        pointers->entity->nums[(int32)entity->type] -= 1;
+    }
+}
 void
 entity_clear_all()
 {
@@ -44,6 +73,15 @@ entity_clear_all()
         pointers->entity->nums[ent_num_index] = 0;
 }
 
+
+Entity*
+entity_create_default(Ent_Type type, Vec2f pos)
+{
+    Entity* ent = entity_init(type, pos);
+    ent->sprite = entity_sprite_default(type);
+    ent->bbox.size = v2i_to_v2f(ent->sprite->size);
+    return ent;
+}
 inline void
 entity_draw_default(Entity* entity)
 {
@@ -56,44 +94,9 @@ entity_draw_default(Entity* entity)
 }
 
 
-void
-entity_destroy(Entity* entity)
-{
-    if (entity)
-    {
-        entity->is_alive = false;
-        pointers->entity->nums[(int32)entity->type] -= 1;
-    }
-}
 
 
-Entity*
-entity_init(Ent_Type type, Vec2f pos)
-{
-    Entity* array = ENT_POINT(type);
-    i32 num_of_alive = entity_get_num(type);//pointers->entity->nums[(int32)type];
-    i32 array_max = ENT_MAX(type); 
-    if (num_of_alive >= array_max) return nullptr;
-    
-    Entity* result = nullptr;
-    for (int i = 0; i < array_max; ++i)
-    {
-        int32 looped_index = (num_of_alive+i) % array_max;
-        if (!array[looped_index].is_alive)
-        {
-            result = &array[looped_index]; 
-            result->sprite = entity_sprite_default(type); //set default sprite
-            result->type = type;
-            result->pos = pos;
-            result->is_alive = true;
-            pointers->entity->nums[(i32)type]++;
-            break;
-        }
-    }    
-    return result;
-}
-
-//
+//ENTITY SPECIFIC
 Entity*
 wall_create(Vec2f pos, Vec2f size)
 {
@@ -165,7 +168,7 @@ spike_create(Vec2f pos)
     Entity* ent = entity_init(Ent_Type::Spike, pos);
     if (ent){
         sprite_set(ent, sSpike);
-        ent->bbox = { .pos = {2, 0}, .size = {3, 8} };
+        ent->bbox = { .pos = {2, 2}, .size = {3, 6} };
     }
     return ent;
 }
@@ -174,11 +177,27 @@ void spike_draw()
     for (int i = 0; i < ENT_MAX(Ent_Type::Spike); ++i){
         Entity* ent = &ENT_POINT(Ent_Type::Spike)[i];
         if (!ent->is_alive) continue;
+        // ent->bbox = { .pos = {2, 1}, .size = {3, 7} };
         
         entity_draw_default(ent);
 
         IF_DEBUG {
-            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, RED);
+            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
+        }
+    }
+}
+
+void
+goal_draw()
+{
+    for (int i = 0; i < ENT_MAX(Ent_Type::Goal); ++i){
+        Entity* ent = &ENT_POINT(Ent_Type::Goal)[i];
+        if (!ent->is_alive) continue;
+        
+        entity_draw_default(ent);
+
+        IF_DEBUG {
+            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
         }
     }
 }

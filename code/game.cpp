@@ -5,7 +5,6 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-
 //TODO: factor out c library
 #include <math.h>  //TODO: intrinsics
 #include <stdio.h> //using sprintf
@@ -22,7 +21,6 @@
 #include "player.cpp"
 #include "entity.cpp"
 #include "text.cpp"
-
 
 
 
@@ -194,6 +192,7 @@ globalvar bool32 global_editor_changed_level; //used to keep level changes witho
 globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
 globalvar Entity* global_editor_selected_entity = nullptr;
 
+
 Entity*
 entity_spawn(Ent_Type type, Vec2f pos)
 {
@@ -205,6 +204,9 @@ entity_spawn(Ent_Type type, Vec2f pos)
       case Enemy: result  = enemy_create(pos); break;
       case Wall:  result  = wall_create(pos, {Tile(1), Tile(1)}); break;
       case Spike:  result = spike_create(pos); break;
+      // case Goal:  result  = goal_create(pos); break;
+      // case Orb:  result   = orb_create(pos); break;
+      default: entity_create_default(type, pos);
     }
 
     return result;
@@ -221,6 +223,7 @@ editor_draw_selected()
 {
     Entity* ent_hl = global_editor_selected_entity;
     if (!ent_hl) return;
+    GDATA->draw_mode = Draw_Mode::World;
     
     int32 alpha = 150;
     
@@ -525,7 +528,7 @@ game_state_editor_update()
         debug_message("Game State: Playing \"%s\"", GDATA->level_current);
     }
 
-    //save/load
+//save/load
     if (input->edit_save && input->ctrl.hold){
         if (is_level_new(data->level_current)){
             debug_message("Level Save: Save new level with `console: \"save [name]\"");
@@ -537,8 +540,11 @@ game_state_editor_update()
         level_reload();
 
     
-//perform actions based on the editor mode
-    if (edit_mode == Editor_Mode::Entity){
+//Edit states
+    if (edit_mode == Editor_Mode::Entity)
+    {
+        editor_draw_selected();
+        
         //DEBUG Entity Editor Functions
         if (!im_hot()){
             if (input->mouse_left){
@@ -648,6 +654,7 @@ game_state_editor_update()
     else if (data->editor_mode == Editor_Mode::Tile)
     {
         //TODO: move tile buttons in here
+        
     }
 }
 
@@ -753,6 +760,8 @@ game_initialize(Game_Pointers* _game_pointers)
     Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space ); //memory bounds
     // Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) ); //entity union
 
+    // data->memory_map.init(null[t]);
+    
     data->state       = GSTATE_DEFAULT;
     data->draw_mode   = GDRAW_MODE_DEFAULT;
     data->editor_mode = GEDITOR_MODE_DEFAULT;
@@ -799,6 +808,7 @@ game_initialize(Game_Pointers* _game_pointers)
     // sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
     sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  
     sprite->sPlayer_idle        = sprite_create("sPlayer_idle", 2, 0, PLR_SPR_ORIGIN);               
+    SPR_LOAD(sPlayer_ledge_grab, 1, 0, PLR_SPR_ORIGIN);
     sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge", 4, 10, PLR_SPR_ORIGIN);
     sprite->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach", 3, 0, PLR_SPR_ORIGIN);
     sprite->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb", 2, 10, PLR_SPR_ORIGIN); 
@@ -814,9 +824,9 @@ game_initialize(Game_Pointers* _game_pointers)
     SPR_LOAD(sPlayer_bounce, 1, 0, PLR_SPR_ORIGIN);
     
     //entity
-    sprite->sWall_anim   = sprite_create("sWall_anim", 4, 6, {});
-    sprite->sBlob_small   = sprite_create("sBlob_small", 4, 6, {});
-    sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {16, 4});
+    sprite->sWall_anim  = sprite_create("sWall_anim", 4, 6, {});
+    sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {});
+    sprite->sGoal       = sprite_create("sGoal", 1, 0, {});
 
     //meta
     sprite->sDebug   = sprite_create("sTest", 1, 0, {});
@@ -866,11 +876,11 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     Game_State     state     = data->state;
     Editor_Mode    edit_mode = data->editor_mode;
     Typing_Buffer* console    = pointers->console;
-
-
     
     
 //DEBUG INPUTS
+    camera_zoom();
+    
     if (input->edit_save && !input->ctrl.hold)
         game_save_state("state.st");
     if (input->edit_load && !input->ctrl.hold)
@@ -879,25 +889,26 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     if (input->reset)
         level_reload();
         
-    if (input->debug_mode_toggle)
-        data->debug_mode_enabled = !data->debug_mode_enabled;
+    if (input->debug_mode_toggle){
+        data->debug_mode_enabled = !data->debug_mode_enabled;\
+        const char* dbm_str = data->debug_mode_enabled ? "Enabled" : "Disabled";
+        debug_message("Debug Mode: %s", dbm_str);
+    }
 
-    camera_zoom();
 
-    
+
 //Game State
-    if (state == Game_State::Edit)      game_state_editor_update();
-    else if (state == Game_State::Play) game_state_play_update();
+    if (state == Game_State::Edit)       game_state_editor_update();
+    else if (state == Game_State::Play)  game_state_play_update();
     else if (state == Game_State::Pause) game_state_pause_update();
 
-    //
-    editor_draw_selected();
+    //TODO: move this into editor update
+    // editor_draw_selected();
 
     //debug
     data->draw_mode = Draw_Mode::Gui;
     debug_message_queue_update();
-    IF_DEBUG
-    {
+    IF_DEBUG {
         //draw performance
         auto perf = pointers->performance;
         draw_text_buffer({0, 0}, {0.5f, 0.5f}, {7, 8},
@@ -912,7 +923,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     
     //TODO:
     //- show typing cursor
-        
     persist char cmd_string[64];
     persist char args_string[64];
     persist i32 args_index;
@@ -943,6 +953,9 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
             }
             else if (string_equals(cmd_string, "clear")){
                 level_clear();
+            }
+            else if (string_equals(cmd_string, ">:)")){
+                PLAYER->state_switch(Player_State::Hurt);
             }
             
             //reset

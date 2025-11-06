@@ -19,7 +19,7 @@ struct Color
 };
 
 
-//bgra
+//NOTE: BGRA
 #define LIGHTGRAY  Color{ 200, 200, 200, 255 }
 #define GRAY       Color{ 130, 130, 130, 255 }
 #define DARKGRAY   Color{ 80, 80, 80, 255 }   
@@ -28,7 +28,7 @@ struct Color
 #define ORANGE     Color{ 0, 161, 255, 255 }  
 #define PINK       Color{ 194, 109, 255, 255 }
 #define RED        Color{ 55, 41, 230, 255 }  
-#define MAROON     Color{ 55, 33, 190, 255 }  
+#define MAROON     Color{ 55, 33, 190, 255 }
 #define GREEN      Color{ 48, 228, 0, 255 }   
 #define LIME       Color{ 47, 158, 0, 255 }   
 #define DARKGREEN  Color{ 44, 117, 0, 255 }   
@@ -47,6 +47,9 @@ struct Color
 #define BLANK      Color{ 0, 0, 0, 0 }        
 #define MAGENTA    Color{ 255, 0, 255, 255 }  
 #define RAYWHITE   Color{ 245, 245, 245, 255 }
+
+
+#define BBOXRED   Color{ 55, 41, 230, 150 }
 
 
 
