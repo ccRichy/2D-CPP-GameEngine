@@ -124,8 +124,14 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     void* snd_buffer_test = VirtualAlloc(0, SND_BUFFER_SIZE_BYTES, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     
     //game code file paths
-    char exe_path[300];
+    char exe_path[128];
     win32_exe_path(exe_path, false);
+    //set working directory
+    char workdir[128];
+    string_cat(workdir, exe_path, "data\\");
+    BOOL setdirresult = SetCurrentDirectory(workdir); //looks for data folder in exe, if ruyn thru VS it uses the project's Working Directory
+
+    //set dll path
     char dll_filename[] =       "game.dll";
     char dll_temp_filename[] =  "game_temp.dll";
     char dll_path[MAX_PATH];
@@ -247,7 +253,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     FILETIME filetime = win32_file_get_write_time(dll_path);
                     if (0 != CompareFileTime(&filetime, &game_code.game_dll_last_write_time))
                     {
-                        dll_flip = !dll_flip; //NOTE: HACK - see dll_flip
+                        dll_flip = !dll_flip; //HACK: - see dll_flip var declaration
                         if (!dll_flip){
                             game_code.game_dll_last_write_time = filetime;
                             win32_unload_game_code(&game_code);

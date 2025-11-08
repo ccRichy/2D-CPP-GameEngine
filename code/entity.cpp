@@ -22,6 +22,7 @@ entity_sprite_default(Ent_Type type)
       case Ent_Type::Wall: result = &spr->sWall_anim; break;
       case Ent_Type::Enemy: result = &spr->sBlob_small; break;
       case Ent_Type::Goal: result = &spr->sGoal; break;
+      case Ent_Type::Orb: result = &spr->sItem_orb; break;
     }
     return result;
 }

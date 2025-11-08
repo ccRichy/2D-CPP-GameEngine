@@ -14,6 +14,9 @@
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
+#define DO(expr) ({ expr; })
+
+#define repeat(times, expr) for (int __it = 0; __it < N; ++__it){ ({ expr; }) }
 #define in_range(value, min, max) (value >= min && value <= max)
 #define dist(value1, value2) (abs_f32(value1 - value2))
 

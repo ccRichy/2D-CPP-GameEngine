@@ -6,20 +6,7 @@
    ======================================================================== */
 
 //NOTE: //REQUIRED: these functions assume null termination strings
-// #pragma once
-
-
-
-
 #define To_String(x) #x
-
-// #define String_Clear(string)  \
-// int __iteration = 0;          \
-// while (string[__iteration]){   \
-//     string[__iteration] = 0;  \
-//     ++count;                  \     
-// }                             
-
 
 
 enum struct Char_Type

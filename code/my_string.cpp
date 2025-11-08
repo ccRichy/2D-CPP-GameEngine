@@ -4,9 +4,8 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-#include "my_string.h"
-#define LOOP_MAX 1024 //NOTE: increase this number as needed
 
+#include "my_string.h"
 
 
 //special
@@ -70,16 +69,13 @@ void string_append(char* charbuff, const char* string_to_append)
 //standard
 void string_cat(char* buffer, char* string_pre, char* string_post)
 {
-    for (int i = 0; i < LOOP_MAX; ++i)
-    {
-        if (string_pre[i] != 0)
-        {
+    i32 string_pre_length = string_length(string_pre) + 1;
+    for (int i = 0; i < string_pre_length; ++i){
+        if (string_pre[i] != 0){
             buffer[i] = string_pre[i];
-        }
-        else
-        {
-            for (int it = 0; it < LOOP_MAX; ++it)
-            {
+        }else{
+            i32 string_post_length = string_length(string_post) + 1;
+            for (int it = 0; it < string_post_length; ++it){
                 buffer[i + it] = string_post[it];
                 if (string_post[it] == 0)
                     break;
@@ -91,16 +87,13 @@ void string_cat(char* buffer, char* string_pre, char* string_post)
 void
 string_cat(char* buffer, const char* string_pre, const char* string_post)
 {
-    for (int i = 0; i < LOOP_MAX; ++i)
-    {
-        if (string_pre[i] != 0)
-        {
+    i32 string_pre_length = string_length(string_pre) + 1;
+    for (int i = 0; i < string_pre_length; ++i){
+        if (string_pre[i] != 0){
             buffer[i] = string_pre[i];
-        }
-        else
-        {
-            for (int it = 0; it < LOOP_MAX; ++it)
-            {
+        }else{
+            i32 string_post_length = string_length(string_post) + 1;
+            for (int it = 0; it < string_post_length; ++it){
                 buffer[i + it] = string_post[it];
                 if (string_post[it] == 0)
                     break;

@@ -62,7 +62,7 @@ struct Game_Input_Map
     int32 mouse_scroll;
     
     union {
-        Game_Input_Button buttons[40 + 1];
+        Game_Input_Button buttons[41 + 1];
         struct {
             //gameplay
             Game_Input_Button up;
@@ -84,6 +84,7 @@ struct Game_Input_Map
             Game_Input_Button debug_bgmode_toggle;
             Game_Input_Button debug_win_plus;
             Game_Input_Button debug_win_minus;
+            Game_Input_Button debug_window_change;
             Game_Input_Button console;
 
             Game_Input_Button debug_hotkey1;

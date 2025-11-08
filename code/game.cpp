@@ -59,7 +59,6 @@ void debug_message_queue_update()
 
 
 
-
 inline Vec2f
 mouse_get_pos_gui()
 {
@@ -86,7 +85,6 @@ mouse_get_tile_pos_in_world() //TODO: handle tilemap pos offset!!!
     };
     return result;
 }
-
 
 
 
@@ -464,9 +462,11 @@ level_reload()
 void
 game_save_state(const char* filename) //this dumps the whole ass raw memory
 {
+    char dirbuf[128] = "misc\\";
+    string_append(dirbuf, filename);
     b32 result = false;
     if (GMEMORY->DEBUG_platform_file_write_entire)
-        result = GMEMORY->DEBUG_platform_file_write_entire(filename, sizeof(Game_Data), pointers->data);
+        result = GMEMORY->DEBUG_platform_file_write_entire(dirbuf, sizeof(Game_Data), pointers->data);
     
     if (result)
         debug_message("state saved: \"%s\"", filename);
@@ -476,15 +476,18 @@ game_save_state(const char* filename) //this dumps the whole ass raw memory
 void
 game_load_state(const char* filename) //trying to load old versions is likely to break
 {
+    char dirbuf[128] = "misc\\";
+    string_append(dirbuf, filename);
+
     //load file
-    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(filename);
+    DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(dirbuf);
     if (!file.memory){
         debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
     }else{
         Game_Data* data = (Game_Data*)file.memory;
         GDATA->tilemap = data->tilemap;
         GDATA->entity = data->entity;
-        debug_message("level state loaded: \"%s\"?", filename);
+        debug_message("level state loaded: \"%s\"?", dirbuf);
     }
 
     GMEMORY->DEBUG_platform_file_free_memory(file.memory);
@@ -616,7 +619,6 @@ game_state_editor_update()
 
 //Draw GUI
     data->draw_mode = Draw_Mode::Gui;
-    im_begin();
     Vec2f eb_pos = {40, 10};
     Vec2f eb_size = {16, 6};
     draw_text_buffer(
@@ -625,6 +627,7 @@ game_state_editor_update()
     );
 
     //edit mode buttons
+    im_begin();
     for (int edit_index = 0; edit_index < (int32)Editor_Mode::Num; ++edit_index){
         Vec2f final_pos = {eb_pos.x + (eb_size.x + 2) * edit_index, eb_pos.y};
         if (im_button(final_pos, eb_size))
@@ -827,6 +830,7 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sWall_anim  = sprite_create("sWall_anim", 4, 6, {});
     sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {});
     sprite->sGoal       = sprite_create("sGoal", 1, 0, {});
+    SPR_LOAD(sGoal, 1, 0, {});
 
     //meta
     sprite->sDebug   = sprite_create("sTest", 1, 0, {});
@@ -894,7 +898,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         const char* dbm_str = data->debug_mode_enabled ? "Enabled" : "Disabled";
         debug_message("Debug Mode: %s", dbm_str);
     }
-
 
 
 //Game State

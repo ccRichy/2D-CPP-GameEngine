@@ -87,10 +87,15 @@ Player::Draw()
 
         draw_text_buffer(pos, {0.5, 0.5}, {5, 8},
                          "state: %i" "\n"
-                         "pos:\nx:%.2f\ny:%.2f" "\n"
+                         "x:%.2f" "\n"
+                         "y:%.2f" "\n"
+                         "xsp:%.2f" "\n"
+                         "ysp:%.2f" "\n"
                          , state
                          , x
                          , y
+                         , spd.x
+                         , spd.y
         );
     }
 }
@@ -164,7 +169,7 @@ V2f Player::ledge_check_pos(i32* aimdir_return_var, i32 aimdir_override, f32 led
 //NOTE: some hacky edgecases were handling to get the desired behavior:
 //player can be max of 1 pixel away from the ledge to attach
 bool32
-Player::ledge_grab()
+Player::ledge_check()
 {
     b32 result = false;
     auto tmap = &GDATA->tilemap;
@@ -277,7 +282,9 @@ Player::state_perform(Player_State _state, State_Function _function)
                     state_switch(Jump);
                 else if (spd.y != 0){
                     state_switch(Fall);
-                    if (spd.x < 0.35f && !input->shift.hold) physics = fall_physics_slow;
+                    // f32 slow_physics_spd_threshold = 0.45f;
+                    // if (abs_f32(spd.x) < slow_physics_spd_threshold && !input->shift.hold)
+                    //     physics = fall_physics_slow;
                 }else if (spd.x == 0)
                     state_switch(Idle);
             }break;
@@ -317,7 +324,7 @@ Player::state_perform(Player_State _state, State_Function _function)
                 Collide_Data coll = move_collide_tile( &GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 //state
-                if (input->up.hold && ledge_grab())
+                if (move_input.y < 0 && ledge_check())
                     state_switch(Ledge);
                 else if (spd.y > 0)
                     state_switch(Fall);
@@ -332,8 +339,13 @@ Player::state_perform(Player_State _state, State_Function _function)
                 Sprite* spr = pointers->input->up.hold ? &GSPRITE->sPlayer_air_reach : &GSPRITE->sPlayer_air;
                 float32 index = pointers->input->up.hold ? anim_index : 0;
                 state_enter_default(spr, index, 0);
-        
-                physics = fall_physics;
+
+                f32 slow_physics_spd_threshold = 0.45f;
+                if (!input->shift.hold){ //if not sprinting TODO: name the input damnit!
+                    if (abs_f32(spd.x) < slow_physics_spd_threshold){
+                        physics = fall_physics_slow;
+                    }
+                }else physics = fall_physics;
             }break;
             
             case Step:{
@@ -345,18 +357,34 @@ Player::state_perform(Player_State _state, State_Function _function)
                     sprite = &GSPRITE->sPlayer_air;
                 }
                 anim_speed = abs_f32(spd.y) * 0.8f;
-        
+                
+                //movecollide
+                if (input->shift.press){
+                    f32 spd_add = 0.25f;
+                    if (abs_f32(spd.x) < physics.maxspd - spd_add)
+                        spd.x += (spd_add * sign(spd.x));
+                    physics = fall_physics;
+                }                
                 move_hori(true);
                 move_vert();
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
-                b32 hit_ground = coll.ydir == 1;
-                
-                if (input->up.hold && ledge_grab())
+                b32 hit_ground = (coll.ydir == 1);
+
+                //states
+                i32 coyote_time_max = 4;
+                f32 yspd_highland_threshold = 3.2f;
+                if (state_timer++ <= coyote_time_max && input->jump)
+                    state_switch(Jump);
+                else if (input->up.hold && ledge_check())
                     state_switch(Ledge);
                 else if (hit_ground){ //land
                     //TODO: more landing states
-                    // if ()
                     auto ground_st = (spd.x != 0 ? Walk : Idle);
+                    b32 roll_input = false; //TODO: real logic instead of this stub
+                    if (coll.spd_save.y >= yspd_highland_threshold){
+                        if (roll_input) ground_st = Roll;
+                        else ground_st = Splat;
+                    }
                     state_switch(ground_st);
                 }
             }break;
@@ -384,10 +412,11 @@ Player::state_perform(Player_State _state, State_Function _function)
                 b32 can_reach = state_timer >= time_to_reach_up;
                 if (trying2aim){
                     if (can_reach){
+                        //NOTE: ledge aim sprite:
                         sprite = &GSPRITE->sPlayer_ledge_reach;
                         if (move_input.y > 0) anim_index = 2;
                         else if (sign(movex) == -sign(scale.x)) anim_index = 1;
-                        else if (input->up.hold) anim_index = 0;
+                        else if (move_input.y < 0) anim_index = 0;
                     }
                 }else{
                     sprite = &GSPRITE->sPlayer_ledge;
@@ -396,9 +425,15 @@ Player::state_perform(Player_State _state, State_Function _function)
                 //state
                 if (input->jump){
                     state_switch(Jump);
-                    if (move_input.y > 0) spd.y = 0.1f;
-                    else if (move_input.x) spd.x = move_input.x * 0.85f;
-                    if (spd.x != 0)
+                    //speed
+                    if (move_input.y > 0)
+                        spd.y = 0.1f;
+                    else if (sign(move_input.x) == -sign(scale.x)) {
+                        spd.x = move_input.x * 0.85f;
+                        spd.y = -jump_spd * 0.76f;
+                    }
+                    //visual
+                    if (spd.x != 0) 
                         scale.x = (f32)sign(spd.x);
                 }
             }break;
@@ -430,6 +465,26 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
           }
       }break;
+
+      case Splat:{
+          switch (_function){
+            case Enter:{
+                state_enter_default(&GSPRITE->sPlayer_splat_swift, 0, 0);
+            }break;
+              
+            case Step:{
+                if (input->jump.press)
+                    anim_speed = 1;
+
+                //TODO: animation end
+            }break;
+          }
+      }break;
+
+        
+      default: {
+          int neat = true;
+      };
     }
 }
 //STATE TEMPLATE
