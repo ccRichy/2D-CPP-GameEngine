@@ -26,7 +26,7 @@ void Player::state_switch(Player_State new_state)
 
 
 void
-Player::Create(Vec2f _pos)
+Player::create(Vec2f _pos)
 {
     *this = {};
     sprite = &GSPRITE->sPlayer_idle;
@@ -36,8 +36,9 @@ Player::Create(Vec2f _pos)
 
 
 void
-Player::Update(Game_Input_Map* input)
+Player::update()
 {
+    auto input = GINPUT;
     move_input = {(float32)(input->right.hold - input->left.hold),
                   (float32)(input->down.hold - input->up.hold)};
     // IF_DEBUG { //HACK: overwrites our physics til we change state
@@ -58,25 +59,39 @@ Player::Update(Game_Input_Map* input)
             hurt_buffer_enabled = false;
             hurt_buffer_tick = 0;
         }
-    }
-    
+    }    
     // IF_DEBUG {
     //     if (GINPUT->jump)
     //         spd.y = -2.5;
     // }
 }
 
+bool32 Player::anim_update() 
+{
+    b32 result = false;
+    f32 index_add = (f32)sprite->fps/FPS_TARGET;
+    anim_index += index_add * anim_speed;
+    
+    anim_ended_this_frame = false;
+    if (anim_index + index_add >= sprite->frame_num) anim_ended_this_frame = true;
+    anim_index = mod_f32(anim_index, (f32)sprite->frame_num);
+    
+//method2
+    // if (anim_index >= sprite->frame_num) {
+    //     result = true;
+    //     anim_index = 0;
+    // }
+    return result;
+}
 
 void
-Player::Draw()
+Player::draw()
 {
-    //NOTE: should we do this afterwards? If we dont then anim_index will never be 0 unless the math happens to work out between sprite fps and anim_speed
-    anim_index += ((float32)sprite->fps/FPS_TARGET) * anim_speed;
-    if (anim_index >= sprite->frame_num) anim_index = 0;
-
+    anim_update(); //NOTE: run before draw calls to keep index in bounds
+    
     if (hurt_buffer_tick % 2 == 0)
-    draw_sprite_frame(sprite, pos, anim_index, scale);
-
+        draw_sprite_frame(sprite, pos, anim_index, scale);
+    
     IF_DEBUG{
         //draw ledge check pos
         draw_pixel(ledge_check_pos(), GREEN);
@@ -85,17 +100,18 @@ Player::Draw()
         draw_rect(pos + bbox.pos, bbox.size, BBOXRED); //bbox
         draw_pixel(pos, WHITE); //origin
 
-        draw_text_buffer(pos, {0.5, 0.5}, {5, 8},
-                         "state: %i" "\n"
-                         "x:%.2f" "\n"
-                         "y:%.2f" "\n"
-                         "xsp:%.2f" "\n"
-                         "ysp:%.2f" "\n"
-                         , state
-                         , x
-                         , y
-                         , spd.x
-                         , spd.y
+        draw_text_buffer(
+            pos, {0.5, 0.5}, {5, 8},
+            "state: %i" "\n"
+            "x: %.2f"   "\n"
+            "y: %.2f"   "\n"
+            "xsp: %.2f" "\n"
+            "ysp: %.2f" "\n"
+            , state
+            , x
+            , y
+            , spd.x
+            , spd.y
         );
     }
 }
@@ -147,7 +163,7 @@ Player::move_vert()
 Collide_Data move_collide_tile(Tilemap* tmap, Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset = {}); //HACK:
 
 
-V2f Player::ledge_check_pos(i32* aimdir_return_var, i32 aimdir_override, f32 ledge_xmargin_override)
+V2f Player::ledge_check_pos(i32* aimdir_return_var, i32 aimdir_override, f32 xmargin_override)
 {    
     i32 aimdir = sign(move_input.x);
     if (aimdir == 0) aimdir = sign(spd.x);
@@ -159,7 +175,7 @@ V2f Player::ledge_check_pos(i32* aimdir_return_var, i32 aimdir_override, f32 led
         bbox_top(this) - 1
     };
     f32 xmargin = ledge_xmargin;
-    if (ledge_xmargin_override != 0) xmargin = ledge_xmargin_override;
+    if (xmargin_override != 0) xmargin = xmargin_override;
     result.x += xmargin * aimdir;
     if (aimdir_return_var) *aimdir_return_var = aimdir;
     return result;
@@ -173,18 +189,14 @@ Player::ledge_check()
 {
     b32 result = false;
     auto tmap = &GDATA->tilemap;
-
     b32 ledge_grab_either_side = true;
-
     i32 aimdir;
     V2f tilecheck_pos = ledge_check_pos(&aimdir);
-    // b32 moving_away_from_aimdir = (sign(spd.x) == -sign(aimdir));
-    // if (moving_away_from_aimdir)
-        // tilecheck_pos = ledge_check_pos(&aimdir);
-    
+    f32 xmargin_final = ledge_xmargin;
     b32 tile_at_corner = *tilemap_get_tile_at_world_pos(tmap, tilecheck_pos);
     if (!tile_at_corner && ledge_grab_either_side){ //grab either side regardless of aim
-        tilecheck_pos = ledge_check_pos(&aimdir, -sign(scale.x));
+        xmargin_final = ledge_xmargin + 2;
+        tilecheck_pos = ledge_check_pos(&aimdir, -sign(scale.x), xmargin_final);
         tile_at_corner = *tilemap_get_tile_at_world_pos(tmap, tilecheck_pos);
     }
 
@@ -196,7 +208,7 @@ Player::ledge_check()
         
         f32 xdist = dist(tile_corner.x, tilecheck_pos.x);
         f32 ydist = dist(tile_corner.y, tilecheck_pos.y);
-        b32 x_aligned = (xdist <= ledge_xmargin + (aimdir < 0));
+        b32 x_aligned = (xdist <= xmargin_final + (aimdir < 0));
         b32 y_aligned = (ydist <= abs_f32(spd.y));
         b32 corners_aligned = x_aligned && y_aligned;
         b32 tile_above_is_open = !collide_rect_tilemap(tile_corner + V2f{(f32)aimdir, -1}, {1, 1}, tmap);
@@ -282,9 +294,10 @@ Player::state_perform(Player_State _state, State_Function _function)
                     state_switch(Jump);
                 else if (spd.y != 0){
                     state_switch(Fall);
-                    // f32 slow_physics_spd_threshold = 0.45f;
-                    // if (abs_f32(spd.x) < slow_physics_spd_threshold && !input->shift.hold)
-                    //     physics = fall_physics_slow;
+                    f32 slow_physics_spd_threshold = 0.45f;
+                    if (abs_f32(spd.x) < slow_physics_spd_threshold && !input->shift.hold)
+                        physics = fall_physics_slow;
+                    coyote_timer.start();
                 }else if (spd.x == 0)
                     state_switch(Idle);
             }break;
@@ -349,6 +362,13 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
             
             case Step:{
+                coyote_timer.update();
+
+                if (input->space)
+                    if (!roll_buffer_timer.is_active)
+                        roll_buffer_timer.start();
+                roll_buffer_timer.update();
+                
                 //anim
                 if (input->up.hold){
                     sprite = &GSPRITE->sPlayer_air_reach;
@@ -370,19 +390,20 @@ Player::state_perform(Player_State _state, State_Function _function)
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
                 b32 hit_ground = (coll.ydir == 1);
 
+                
                 //states
-                i32 coyote_time_max = 4;
-                f32 yspd_highland_threshold = 3.2f;
-                if (state_timer++ <= coyote_time_max && input->jump)
+                if (coyote_timer.is_active && input->jump)
                     state_switch(Jump);
                 else if (input->up.hold && ledge_check())
                     state_switch(Ledge);
-                else if (hit_ground){ //land
-                    //TODO: more landing states
+                else if (hit_ground)
+                {
                     auto ground_st = (spd.x != 0 ? Walk : Idle);
-                    b32 roll_input = false; //TODO: real logic instead of this stub
+                    f32 yspd_highland_threshold = 3.2f;
+                    
                     if (coll.spd_save.y >= yspd_highland_threshold){
-                        if (roll_input) ground_st = Roll;
+                        b32 roll_buffered = roll_buffer_timer.is_active;
+                        if (roll_buffered) ground_st = Roll;
                         else ground_st = Splat;
                     }
                     state_switch(ground_st);
@@ -400,7 +421,7 @@ Player::state_perform(Player_State _state, State_Function _function)
             case Step:{
                 state_timer++;
 
-                x = lerp(x, ledge_xtarget, 0.25f);
+                x = lerp(x, ledge_xtarget, 0.32f);
                 
                 f32 ledgegrab_anim_time = (spd.y*2);
                 if (state_timer >= ledgegrab_anim_time)
@@ -476,11 +497,40 @@ Player::state_perform(Player_State _state, State_Function _function)
                 if (input->jump.press)
                     anim_speed = 1;
 
-                //TODO: animation end
+                f32 lerp_spd = f32(state_timer++ / 10);
+                spd.x = approach(spd.x, 0, 0.06f);
+                Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
+
+                if (anim_ended_this_frame)
+                    state_switch(Idle);
             }break;
           }
       }break;
 
+      case Roll:{
+          switch (_function){
+            case Enter:{
+                state_enter_default(&GSPRITE->sPlayer_roll);
+                scale.x = (f32)sign(spd.x);
+                i32 roll_remaining = roll_buffer_timer.remaining();
+                f32 roll_norm = (f32)roll_remaining / roll_buffer_timer.max;
+                f32 roll_spd_target = roll_norm * 1.25f;
+                spd.x = roll_spd_target * (f32)sign(scale.x);
+            }break;
+              
+            case Step:{
+                if (input->jump.press)
+                    anim_speed = 1;
+
+                f32 lerp_spd = f32(state_timer++ / 10);
+                spd.x = approach(spd.x, 0, 0.01f);
+                Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
+
+                if (anim_ended_this_frame)
+                    state_switch(Idle);
+            }break;
+          }
+      }break;
         
       default: {
           int neat = true;

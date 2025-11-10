@@ -8,8 +8,8 @@
 #define ENT_NAME(type) ENT_INFO[(i32)type].name
 #define ENT_NUM(type) pointers->entity->nums[(i32)type]
 #define ENT_POINT(type) pointers->entity->pointers[(i32)type]
-#define sprite_set(__entity, __sprite_name) __entity->sprite = &pointers->sprite->##__sprite_name
 
+#define sprite_set(__entity, __sprite_name) __entity->sprite = &pointers->sprite->##__sprite_name
 
 #define bbox_top(__entity) (__entity->y + __entity->bbox.y)
 #define bbox_bottom(__entity) (__entity->y + __entity->bbox.y + __entity->bbox.h)

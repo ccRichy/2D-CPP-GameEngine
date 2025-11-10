@@ -14,7 +14,7 @@
 #define MAX(a, b) ((a)>(b)? (a) : (b))
 #define MIN(a, b) ((a)<(b)? (a) : (b))
 
-#define DO(expr) ({ expr; })
+#define DO(expr) ({ expr; }) //TEST:
 
 #define repeat(times, expr) for (int __it = 0; __it < N; ++__it){ ({ expr; }) }
 #define in_range(value, min, max) (value >= min && value <= max)
@@ -23,12 +23,13 @@
 
 
 //types
-//NOTE: used inside of a struct declaration to "inherit" the names
+//NOTE: declare as a struct member to "inherit" the names and keep under one name
+//Q: why not hard-code the names? A: so we can see at a glance the names we made in this struct, and for expressiveness :)
 #define Vec2fUnion(__pos_name, __xname, __yname)\
-    union { struct {Vec2f pos;}; struct {float32 x, y; }; }
+    union { struct {Vec2f pos;}; struct {float32 __xname, __yname; }; }
 
 #define Vec2iUnion(__pos_name, __xname, __yname)\
-    union { struct {Vec2f pos;}; struct {float32 x, y; }; }
+    union { struct {Vec2f pos;}; struct {float32 __xname, __yname; }; }
 
 struct Vector2i
 {
@@ -161,6 +162,14 @@ safe_truncate_uint64(uint64 value)
 
 
 
+inline float32
+mod_f32(f32 dividend, f32 divisor)
+{
+    f32 result = (f32)fmod((f64)dividend, (f64)divisor);
+    return result;
+}
+
+
 inline int32
 sign(int32 value)
 {
@@ -282,7 +291,8 @@ lerp(float32 value, float32 dest, float32 spd)
 
 
 //vector functions
-inline Vec2f round_v2f(Vec2f vector)
+inline Vec2f
+round_v2f(Vec2f vector)
 {
     Vec2f result = {
         round_f32(vector.x),
@@ -290,7 +300,8 @@ inline Vec2f round_v2f(Vec2f vector)
     };
     return result;
 }
-inline Vec2i round_v2i(Vec2f vector)
+inline Vec2i
+round_v2i(Vec2f vector)
 {
     Vec2i result = {
         round_i32(vector.x),

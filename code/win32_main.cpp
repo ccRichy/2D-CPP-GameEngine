@@ -45,6 +45,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
         case WM_ACTIVATEAPP:{
             if (!wparam) //out of focus
             {
+                //TODO: 0 out inputs here
                 ShowCursor(TRUE);
                 //BGMODE
                 if (Global_BGMode_Enabled)

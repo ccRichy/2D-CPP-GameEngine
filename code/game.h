@@ -235,6 +235,7 @@ struct Game_Sprites
     Sprite sPlayer_wire_walk;
     Sprite sPlayer_hurt;
     Sprite sPlayer_bounce;
+    Sprite sPlayer_roll;
     
   //Entities
     //movers

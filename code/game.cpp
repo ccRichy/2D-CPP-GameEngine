@@ -45,14 +45,11 @@ void debug_message(const char* fmt, ...)
 void debug_message_queue_update()
 {
     Debug_Message_Queue* queue = &pointers->data->debug_msg;
-    if (queue->is_active)
-    {
+    if (queue->is_active){
         Debug_Message* msg = &queue->current_message;
-        if (msg->lifetime-- <= 0)
-        {
+        if (msg->lifetime-- <= 0){
             queue->is_active = false;
         }
-
         draw_text(msg->text, queue->pos, queue->scale);
     }
 }
@@ -74,14 +71,14 @@ mouse_get_pos_world()
     return result;
 }
 inline Vec2f
-mouse_get_tile_pos_in_world() //TODO: handle tilemap pos offset!!!
+mouse_get_tile_pos_in_world(Tilemap* tmap) //TODO: handle tilemap pos offset!!!
 {
     Vec2f result = {};
     //TODO: Tilemap* tmap = &pointers->data->tilemap;
     Vec2f mouse_pos_world = mouse_get_pos_world();
     result = {
-        (f32)(i32)(mouse_pos_world.x / TILE_SIZE) * TILE_SIZE,
-        (f32)(i32)(mouse_pos_world.y / TILE_SIZE) * TILE_SIZE,
+        (f32)(i32)(mouse_pos_world.x / tmap->tile_w) * tmap->tile_w,
+        (f32)(i32)(mouse_pos_world.y / tmap->tile_h) * tmap->tile_h,
     };
     return result;
 }
@@ -198,7 +195,7 @@ entity_spawn(Ent_Type type, Vec2f pos)
     Entity* result = nullptr;
 
     switch (type){
-      case Player: PLAYER->Create(pos); break;
+      case Player: PLAYER->create(pos); break;
       case Enemy: result  = enemy_create(pos); break;
       case Wall:  result  = wall_create(pos, {Tile(1), Tile(1)}); break;
       case Spike:  result = spike_create(pos); break;
@@ -241,7 +238,7 @@ level_clear()
 {
     entity_clear_all();
     tilemap_clear_all(&pointers->data->tilemap);
-    PLAYER->Create({BASE_W/2, BASE_H/2});
+    PLAYER->create({BASE_W/2, BASE_H/2});
     string_clear(pointers->data->level_current);
 };
 bool32
@@ -379,7 +376,7 @@ level_load_file(const char* filename) //filename without extension
 
         buff_offset += word_len+1;
     }
-    PLAYER->Create(v2i_to_v2f(player_pos));
+    PLAYER->create(v2i_to_v2f(player_pos));
     file_mem_offset += buff_len;
     buff_offset = 0;
 
@@ -508,7 +505,7 @@ game_draw_world()
     wall_draw();
     spike_draw();
     enemy_draw();
-    PLAYER->Draw();
+    PLAYER->draw();
 }
 
 
@@ -553,7 +550,7 @@ game_state_editor_update()
             if (input->mouse_left){
                 if (input->alt.hold){
                     //spawn
-                    Vec2f spawn_pos = mouse_get_tile_pos_in_world(); //round to tile
+                    Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap); //round to tile
                     if (input->shift.hold)
                         spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel
                     entity_spawn(global_editor_entity_to_spawn, spawn_pos);
@@ -693,7 +690,7 @@ game_state_play_update()
 
     
     //entity update
-    PLAYER->Update(input);
+    PLAYER->update();
     enemy_update();
 
     //camera update
@@ -806,7 +803,7 @@ game_initialize(Game_Pointers* _game_pointers)
 #define SPR_LOAD_N(varname, filename, frame_num, fps, origin) sprite->##varname = sprite_create(#filename, frame_num, fps, origin)
 
 //player
-#define PLR_SPR_ORIGIN {8.f, 12.f}
+    #define PLR_SPR_ORIGIN {8.f, 12.f}
     SPR_LOAD_N(sPlayer_air, sPlayer_air2, 7, 15, PLR_SPR_ORIGIN);
     // sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
     sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  
@@ -825,6 +822,7 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sPlayer_wire_walk   = sprite_create("sPlayer_wire_walk", 4, 6, PLR_SPR_ORIGIN);
     SPR_LOAD(sPlayer_hurt, 1, 0, PLR_SPR_ORIGIN);
     SPR_LOAD(sPlayer_bounce, 1, 0, PLR_SPR_ORIGIN);
+    SPR_LOAD(sPlayer_roll, 6, 15, PLR_SPR_ORIGIN);
     
     //entity
     sprite->sWall_anim  = sprite_create("sWall_anim", 4, 6, {});
