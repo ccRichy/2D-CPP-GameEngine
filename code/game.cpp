@@ -466,9 +466,9 @@ game_save_state(const char* filename) //this dumps the whole ass raw memory
         result = GMEMORY->DEBUG_platform_file_write_entire(dirbuf, sizeof(Game_Data), pointers->data);
     
     if (result)
-        debug_message("state saved: \"%s\"", filename);
+        debug_message("game state saved: \"%s\"", filename);
     else
-        debug_message("state failed to save: \"%s\"", filename);
+        debug_message("game state failed to save: \"%s\"", filename);
 }
 void
 game_load_state(const char* filename) //trying to load old versions is likely to break
@@ -479,12 +479,12 @@ game_load_state(const char* filename) //trying to load old versions is likely to
     //load file
     DEBUG_File file = pointers->memory->DEBUG_platform_file_read_entire(dirbuf);
     if (!file.memory){
-        debug_message("couldnt load entity state: \"%s\" doesn't exist?", filename);
+        debug_message("couldnt load game state: \"%s\" doesn't exist?", filename);
     }else{
         Game_Data* data = (Game_Data*)file.memory;
         GDATA->tilemap = data->tilemap;
         GDATA->entity = data->entity;
-        debug_message("level state loaded: \"%s\"?", dirbuf);
+        debug_message("level state loaded: \"%s\"", dirbuf);
     }
 
     GMEMORY->DEBUG_platform_file_free_memory(file.memory);
@@ -493,13 +493,13 @@ game_load_state(const char* filename) //trying to load old versions is likely to
 
 
 
-void draw_mode(Draw_Mode new_mode);
-
 //important stuff
 void
 game_draw_world()
 {
     GDATA->draw_mode = Draw_Mode::World;
+    draw_sprite(&GSPRITE->sBG_test, {});
+    
     draw_tilemap(&GDATA->tilemap);
     
     wall_draw();
@@ -830,10 +830,14 @@ game_initialize(Game_Pointers* _game_pointers)
     sprite->sGoal       = sprite_create("sGoal", 1, 0, {});
     SPR_LOAD(sGoal, 1, 0, {});
 
+    //backgrounds
+    SPR_LOAD(sBG_test, 1, 0, {});
+    
     //meta
     sprite->sDebug   = sprite_create("sTest", 1, 0, {});
     sprite->sMouse_cursors   = sprite_create("sMouse_cursors2", 4, 0, {2, 2});
     sprite->sSpike   = sprite_create("sSpike", 1, 0, {});
+
         
 #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name)
     BMP_LOAD(sTest);

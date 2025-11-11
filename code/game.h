@@ -216,7 +216,7 @@ enum struct Editor_Mode
 
 struct Game_Sprites
 {
-  //Characters
+//Characters
     //player
     Sprite sPlayer_air;
     Sprite sPlayer_air_reach;
@@ -237,7 +237,7 @@ struct Game_Sprites
     Sprite sPlayer_bounce;
     Sprite sPlayer_roll;
     
-  //Entities
+//Entities
     //movers
     Sprite sWall_anim;
     Sprite sBlob_small;
@@ -248,13 +248,14 @@ struct Game_Sprites
     Sprite sItem_rope;
     Sprite sItem_orb;
 
+//Backgrounds
+    Sprite sBG_test;
+    
 //Meta
     Sprite sMouse_cursors;
-    Sprite sDebug;
-    
+    Sprite sDebug;    
     
   //Items
-    //rope
     Sprite sRope;
 };
 

@@ -307,9 +307,12 @@ draw_bmp(BMP_Data* bmp, Vec2f pos, Vec2f scale)
     int32 y_end   = round_i32(y_start - (bmp->height * yscale_final));
     int32 y_offscreen_amt = 0;
     
-    if (x_start < 0)              x_start = 0;
-    if (x_end > render->width)    x_end = render->width;
-    if (y_end < 0)                y_end = 0;
+    if (x_start < 0)
+        x_start = 0;
+    if (x_end > render->width)
+        x_end = render->width;
+    if (y_end < 0)
+        y_end = 0;
     if (y_start > render->height){
         y_offscreen_amt = y_start - render->height;
         y_start = render->height;

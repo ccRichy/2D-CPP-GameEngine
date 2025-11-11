@@ -39,8 +39,8 @@ void
 Player::update()
 {
     auto input = GINPUT;
-    move_input = {(float32)(input->right.hold - input->left.hold),
-                  (float32)(input->down.hold - input->up.hold)};
+    move_input = {(f32)(input->right.hold - input->left.hold),
+                  (f32)(input->down.hold - input->up.hold)};
     // IF_DEBUG { //HACK: overwrites our physics til we change state
     //     physics = debug_physics;
     // }
@@ -415,7 +415,8 @@ Player::state_perform(Player_State _state, State_Function _function)
       case Ledge:{ 
           switch (_function){
             case Enter:{
-                state_enter_default(&GSPRITE->sPlayer_ledge_grab);
+                Sprite* spr = (spd.y > 0 ? &GSPRITE->sPlayer_ledge_grab : &GSPRITE->sPlayer_ledge);
+                state_enter_default(spr);
             }break;
               
             case Step:{
@@ -427,16 +428,21 @@ Player::state_perform(Player_State _state, State_Function _function)
                 if (state_timer >= ledgegrab_anim_time)
                     sprite = &GSPRITE->sPlayer_ledge;
 
-                f32 movex = move_input.x;
                 f32 time_to_reach_up = 5 + ledgegrab_anim_time;
-                b32 trying2aim = move_input.y != 0 || (movex != 0 && movex != scale.x);
                 b32 can_reach = state_timer >= time_to_reach_up;
+
+                f32 movex = move_input.x;
+                b32 trying2aim = move_input.y != 0 || (movex != 0 && movex != scale.x);
+                b32 reaching_up = move_input.y > 0;
+                b32 reaching_down = move_input.y > 0;
+                b32 reaching_away = sign(movex) == -sign(scale.x);
+                
                 if (trying2aim){
                     if (can_reach){
                         //NOTE: ledge aim sprite:
                         sprite = &GSPRITE->sPlayer_ledge_reach;
-                        if (move_input.y > 0) anim_index = 2;
-                        else if (sign(movex) == -sign(scale.x)) anim_index = 1;
+                        if (reaching_down) anim_index = 2;
+                        else if (reaching_away) anim_index = 1;
                         else if (move_input.y < 0) anim_index = 0;
                     }
                 }else{
@@ -446,16 +452,14 @@ Player::state_perform(Player_State _state, State_Function _function)
                 //state
                 if (input->jump){
                     state_switch(Jump);
-                    //speed
-                    if (move_input.y > 0)
+                    if (reaching_down)
                         spd.y = 0.1f;
-                    else if (sign(move_input.x) == -sign(scale.x)) {
-                        spd.x = move_input.x * 0.85f;
-                        spd.y = -jump_spd * 0.76f;
+                    else if (reaching_away){
+                        spd.x = movex * 0.85f;
+                        spd.y = -1.1f;
                     }
-                    //visual
-                    if (spd.x != 0) 
-                        scale.x = (f32)sign(spd.x);
+                    
+                    if (spd.x != 0) scale.x = (f32)sign(spd.x);
                 }
             }break;
               
@@ -494,13 +498,14 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
               
             case Step:{
-                if (input->jump.press)
-                    anim_speed = 1;
-
                 f32 lerp_spd = f32(state_timer++ / 10);
                 spd.x = approach(spd.x, 0, 0.06f);
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
+                if (input->jump.press)
+                    if (spd.x == 0)
+                        anim_speed = 1;
+                
                 if (anim_ended_this_frame)
                     state_switch(Idle);
             }break;
@@ -522,8 +527,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                 if (input->jump.press)
                     anim_speed = 1;
 
-                f32 lerp_spd = f32(state_timer++ / 10);
-                spd.x = approach(spd.x, 0, 0.01f);
+                // f32 lerp_spd = f32(state_timer++ / 10);
+                // spd.x = approach(spd.x, 0, 0.01f);
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (anim_ended_this_frame)
