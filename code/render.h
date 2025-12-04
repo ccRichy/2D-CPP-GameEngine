@@ -5,9 +5,42 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-//#pragma once
+//name, frame_num, fps, origin
+#define PLR_SPR_ORIGIN {8.f, 12.f}
+#define SPR_LIST \
+XMAC(sPlayer_air         , 7, 15, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_air_reach   , 2, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_idle        , 2, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_ledge_grab  , 1, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_ledge       , 4, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_ledge_reach , 3, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_rope_climb  , 2, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_rope_slide  , 2, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_splat_slow  , 5, 7, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_splat_swift , 6, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_turn        , 1, 6, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_walk        , 4, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_walk_reach  , 4, 10, PLR_SPR_ORIGIN) \
+XMAC(sPlayer_wire_idle   , 5, 6, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_wire_walk   , 4, 6, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_hurt        , 1, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_bounce      , 1, 0, PLR_SPR_ORIGIN)  \
+XMAC(sPlayer_roll        , 6, 15, PLR_SPR_ORIGIN) \
+                                                  \
+XMAC(sWall_anim          , 4, 6, {})              \
+XMAC(sBlob_small         , 4, 6, {})              \
+XMAC(sGoal)                                       \
+XMAC(sSpike)                                      \
+XMAC(sItem_orb)                                   \
+                                                  \
+XMAC(sBG_test)                                    \
+XMAC(sBG_cave1)                                   \
+                                                  \
+XMAC(sMouse_cursors      , 4, 0, {2, 2})          \
+XMAC(sDebug)                                      \
 
 
+ 
 /////STUFF//////
 #pragma pack(push, 1)
 struct BMP_File_Header
@@ -42,17 +75,16 @@ struct Sprite
         struct { Vec2i size; };
         struct { int32 width, height; };
     };
-    // int32 width;
-    // int32 height;
     int32 frame_width;
     int32 frame_height;    
     float32 fps;
     uint32 frame_num;
     bool32 is_animation;
+    b32 is_initialized;
 };
 
 
-Sprite sprite_create(const char* bmp_filename, uint32 frame_num = 1, float32 fps = 1, Vec2f origin = {});
+Sprite sprite_create(const char* bmp_filename, uint32 frame_num = 1, float32 fps = 0, Vec2f origin = {});
 
 void draw_pixel(Vec2f pos, Color color);
 void draw_rect(Vec2f pos, Vec2f size, Color color);

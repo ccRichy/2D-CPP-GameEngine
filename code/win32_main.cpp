@@ -1,6 +1,9 @@
-//
-#include <math.h>
-#include <stdio.h>
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Connor Ritchotte $
+   ======================================================================== */
 
 #include "game.h"
 
@@ -25,7 +28,7 @@ globalvar bool32 Global_BGMode_Enabled = false;
 globalvar bool32 Global_BGMode_TransOutOfFocus = true;
 
 
-globalvar bool32 dll_flip; //NOTE: hacky solution for game_dll auto hotloading
+globalvar bool32 dll_flip; //HACK: for game_dll auto hotloading
 //BUG: something is preventing the game dll from loading in (majority of the time) without this
 //Upon game dll compilation, we load it into the game by checking its create time vs our stored time.
 //For some reason it still gets loaded twice (even with this hack), however-
@@ -110,6 +113,8 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
+    // _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
+
     //performance query
     LARGE_INTEGER __perf_frequency_result;
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
@@ -130,7 +135,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     //set working directory
     char workdir[128];
     string_cat(workdir, exe_path, "data\\");
-    BOOL setdirresult = SetCurrentDirectory(workdir); //looks for data folder in exe, if ruyn thru VS it uses the project's Working Directory
+    BOOL setdirresult = SetCurrentDirectoryA(workdir);
+    if (!setdirresult) SetCurrentDirectoryA("..\\data");
 
     //set dll path
     char dll_filename[] =       "game.dll";
@@ -177,14 +183,19 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             instance,
             0
         );
-
         
-        if (window) //error
+        if (window)
         {
             OutputDebugStringA("(Win32): window created successfully\n");
             
             BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
-            // DWORD last_error = GetLastError();
+            BOOL use_dark_mode = true;
+            HRESULT dwm_set_attrib_result = DwmSetWindowAttribute(
+                window,
+                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                &use_dark_mode,
+                sizeof(use_dark_mode)
+            );
             
 #if MY_INTERNAL 
             LPVOID game_memory_address = (LPVOID)Terabytes(2);
@@ -305,7 +316,21 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                         window_set_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
 
                     //TODO: hotkey to move window into corner, make smaller, turn on bgmode
-                    // if (input->ctrl.h && input->shift. )
+                    if (input.ctrl.hold && input.shift.hold && input.alt.hold)
+                    if (input.debug_win_setup.press){ //TODO: key
+                        window_set_scale(WINDOW_SCALE_DEFAULT-1, window, &Global_Render_Buffer, &game_render_buffer);
+                        V2i monres = win32_get_monitor_resolution(window);
+                        V2i winsize = window_get_size(window);
+                        window_set_pos(window, monres.x - winsize.x, monres.y - winsize.y);
+
+                        //enable bgmode TODO: make into function
+                        Global_BGMode_Enabled = true;
+                        Global_BGMode_TransOutOfFocus = true;
+                        window_set_topmost(window, Global_BGMode_Enabled);
+                        window_set_trans(window, Global_BGMode_Enabled);
+                        auto bgstatus_string = Global_BGMode_Enabled ? "Enabled\n" :  "Disabled\n";
+                        OutputDebugStringA(bgstatus_string);
+                    }
                     
 
                     
@@ -325,8 +350,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 
                 //RENDER
                     HDC device_context = GetDC(window);
-                    Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
-                    win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.width, dimensions.height);
+                    V2i dimensions = win32_get_client_dimensions(window);
+                    win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.x, dimensions.y);
                     ReleaseDC(window, device_context);
 
                     int64 tick_game_render = win32_get_tick_diff(tick_loop_start);
@@ -352,9 +377,11 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     float64 ms_this_frame = (float64)win32_tick_to_ms( tick_loop_end - tick_loop_start );
                     tick_loop_start = tick_loop_end;
                     cycle_loop_start = __rdtsc(); //TODO: enable with preprocessor define?
-                    // char buffer[256];
-                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
-                    // OutputDebugStringA(buffer);
+
+                    //output 
+                    char buffer[256];
+                    sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
+                    OutputDebugStringA(buffer);
                     
                 }
             }

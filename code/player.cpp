@@ -24,14 +24,13 @@ void Player::state_switch(Player_State new_state)
     state = new_state;
 }
 
-
 void
 Player::create(Vec2f _pos)
 {
     *this = {};
     sprite = &GSPRITE->sPlayer_idle;
     pos   = _pos;
-    state_perform(state, State_Function::Create);
+    state_perform(state, State_Function::Enter);
 }
 
 
@@ -60,33 +59,33 @@ Player::update()
             hurt_buffer_tick = 0;
         }
     }    
-    // IF_DEBUG {
-    //     if (GINPUT->jump)
-    //         spd.y = -2.5;
-    // }
 }
 
-bool32 Player::anim_update() 
+bool32 Player::anim_update()
 {
     b32 result = false;
     f32 index_add = (f32)sprite->fps/FPS_TARGET;
     anim_index += index_add * anim_speed;
-    
+
+//method1
     anim_ended_this_frame = false;
     if (anim_index + index_add >= sprite->frame_num) anim_ended_this_frame = true;
     anim_index = mod_f32(anim_index, (f32)sprite->frame_num);
     
 //method2
     // if (anim_index >= sprite->frame_num) {
+    //     anim_ended_this_frame = true;
     //     result = true;
     //     anim_index = 0;
     // }
+    
     return result;
 }
 
 void
 Player::draw()
 {
+//method1
     anim_update(); //NOTE: run before draw calls to keep index in bounds
     
     if (hurt_buffer_tick % 2 == 0)
@@ -114,6 +113,10 @@ Player::draw()
             , spd.y
         );
     }
+
+//method2
+    // anim_update();
+
 }
 
 
@@ -241,7 +244,7 @@ Player::state_perform(Player_State _state, State_Function _function)
     switch (_state)
     {
       case Idle:{
-          switch (_function){   
+          switch (_function){
             case Enter:{
                 state_enter_default(&GSPRITE->sPlayer_idle, 0, 0);
                 physics = ground_physics;
@@ -281,9 +284,9 @@ Player::state_perform(Player_State _state, State_Function _function)
                 if (is_turning(move_input.x, spd.x))
                     sprite = &GSPRITE->sPlayer_turn;
                 else if (input->up.hold)
-                    sprite = sprite = &GSPRITE->sPlayer_walk_reach;
+                    sprite = &GSPRITE->sPlayer_walk_reach;
                 else
-                    sprite = sprite = &GSPRITE->sPlayer_walk;
+                    sprite = &GSPRITE->sPlayer_walk;
 
                 if (move_input.x != 0)
                     scale.x = (float32)sign(move_input.x);
@@ -294,10 +297,12 @@ Player::state_perform(Player_State _state, State_Function _function)
                     state_switch(Jump);
                 else if (spd.y != 0){
                     state_switch(Fall);
-                    f32 slow_physics_spd_threshold = 0.45f;
-                    if (abs_f32(spd.x) < slow_physics_spd_threshold && !input->shift.hold)
-                        physics = fall_physics_slow;
                     coyote_timer.start();
+                    
+                    f32 slow_physics_spd_threshold = 0.45f;
+                    if (abs_f32(spd.x) < slow_physics_spd_threshold)
+                        if (!input->shift.hold) //TODO: sprint input
+                            physics = fall_physics_slow;
                 }else if (spd.x == 0)
                     state_switch(Idle);
             }break;
@@ -349,16 +354,11 @@ Player::state_perform(Player_State _state, State_Function _function)
       case Fall:{
           switch (_function){
             case Enter:{
-                Sprite* spr = pointers->input->up.hold ? &GSPRITE->sPlayer_air_reach : &GSPRITE->sPlayer_air;
-                float32 index = pointers->input->up.hold ? anim_index : 0;
+                Sprite* spr = input->up.hold ? &GSPRITE->sPlayer_air_reach : &GSPRITE->sPlayer_air;
+                float32 index = input->up.hold ? anim_index : 0;
                 state_enter_default(spr, index, 0);
-
-                f32 slow_physics_spd_threshold = 0.45f;
-                if (!input->shift.hold){ //if not sprinting TODO: name the input damnit!
-                    if (abs_f32(spd.x) < slow_physics_spd_threshold){
-                        physics = fall_physics_slow;
-                    }
-                }else physics = fall_physics;
+                
+                physics = fall_physics;
             }break;
             
             case Step:{
@@ -498,8 +498,9 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
               
             case Step:{
-                f32 lerp_spd = f32(state_timer++ / 10);
-                spd.x = approach(spd.x, 0, 0.06f);
+                f32 lerp_time = 60;
+                f32 lerp_spd = f32(state_timer++ / 20);
+                spd.x = approach(spd.x, 0, lerp_spd);
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (input->jump.press)
@@ -517,18 +518,19 @@ Player::state_perform(Player_State _state, State_Function _function)
             case Enter:{
                 state_enter_default(&GSPRITE->sPlayer_roll);
                 scale.x = (f32)sign(spd.x);
-                i32 roll_remaining = roll_buffer_timer.remaining();
-                f32 roll_norm = (f32)roll_remaining / roll_buffer_timer.max;
+                f32 roll_remaining = roll_buffer_timer.remaining();
+                f32 roll_norm = (f32)roll_remaining / roll_buffer_timer.length;
                 f32 roll_spd_target = roll_norm * 1.25f;
                 spd.x = roll_spd_target * (f32)sign(scale.x);
             }break;
-              
+
             case Step:{
                 if (input->jump.press)
                     anim_speed = 1;
 
                 // f32 lerp_spd = f32(state_timer++ / 10);
                 // spd.x = approach(spd.x, 0, 0.01f);
+                move_vert();
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (anim_ended_this_frame)

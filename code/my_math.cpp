@@ -16,7 +16,8 @@
 
 #define DO(expr) ({ expr; }) //TEST:
 
-#define repeat(times, expr) for (int __it = 0; __it < N; ++__it){ ({ expr; }) }
+#define repeat(__times) for (int __it = 0; __it < __times; ++__it)
+// #define repeat(times, expr) for (int __it = 0; __it < N; ++__it){ ({ expr; }) }
 #define in_range(value, min, max) (value >= min && value <= max)
 #define dist(value1, value2) (abs_f32(value1 - value2))
 
@@ -152,6 +153,7 @@ typedef Rectangle Rect;
 
 
 
+
 //funcs
 inline uint32 //TODO: move to math
 safe_truncate_uint64(uint64 value)
@@ -162,12 +164,74 @@ safe_truncate_uint64(uint64 value)
 
 
 
+//intrinsics
+// #pragma intrinsic(abs, fabs, floor, ceil, fmod, sqrt)
+
+
+inline int32
+abs_i32(int32 value)
+{
+    i32 result = abs(value);
+    return result;
+}
+
+inline float32
+abs_f32(float32 value)
+{
+    f32 result = abs(value);
+    return result;
+}
+
+
 inline float32
 mod_f32(f32 dividend, f32 divisor)
 {
-    f32 result = (f32)fmod((f64)dividend, (f64)divisor);
+    f32 result = fmod(dividend, divisor);
     return result;
 }
+
+
+inline int32
+floor_i32(float32 value)
+{
+    i32 result = (i32)floor(value);
+    return result;
+}
+inline float32
+floor_f32(float32 value)
+{
+    float32 result = floor(value);
+    return result;
+}
+
+inline int32
+ceil_i32(float32 value)
+{
+    int32 result = (int32)ceil(value);
+    return result;
+}
+inline float32
+ceil_f32(float32 value)
+{
+    float32 result = ceil(value);
+    return result;
+}
+
+inline int32
+round_i32(float32 value)
+{
+    // i32 result = _mm_cvtt_ss2si(_mm_set_ss(value));
+    i32 result = (i32)round(value);
+    return result;
+}
+inline float32
+round_f32(float32 value)
+{
+    // f32 result = (f32)_mm_cvtt_ss2si(_mm_set_ss(value));
+    f32 result = round(value);
+    return result;
+}
+
 
 
 inline int32
@@ -188,58 +252,18 @@ sign(float32 value)
 }
 
 
-inline int32
-abs_i32(int32 value)
+inline float32 sqrt_f32(float32 value)
 {
-    int32 result = value;
-    if (value < 0) result = value * -1;
+    f32 result = sqrt(value);
     return result;
 }
-inline float32
-abs_f32(float32 value)
+inline float64 sqrt_f64(float64 value)
 {
-    float32 result = value;
-    if (value < 0) result = value * -1;
+    f64 result = sqrt(value);
     return result;
 }
 
-inline int32
-round_i32(float32 value)
-{
-    int32 result = (int32)roundf(value);
-    return result;
-}
-inline float32
-round_f32(float32 value)
-{
-    float32 result = roundf(value);
-    return result;
-}
 
-inline int32
-floor_i32(float32 value)
-{
-    int32 result = (int32)floorf(value);
-    return result;
-}
-inline float32
-floor_f32(float32 value)
-{
-    float32 result = floorf(value);
-    return result;
-}
-inline int32
-ceil_i32(float32 value)
-{
-    int32 result = (int32)ceilf(value);
-    return result;
-}
-inline float32
-ceil_f32(float32 value)
-{
-    float32 result = ceilf(value);
-    return result;
-}
 // inline float64
 // round_arbitrary(float64 input, float64 round_point)
 // {
@@ -256,7 +280,7 @@ ceil_f32(float32 value)
 
 
 inline float
-clamp(float value, float min, float max)
+clamp_f32(float value, float min, float max)
 {
     float result = (value < min ? min : value);
     if (result > max) result = max;
@@ -291,6 +315,24 @@ lerp(float32 value, float32 dest, float32 spd)
 
 
 //vector functions
+inline Vec2f
+abs_v2f(Vec2f vector)
+{
+    Vec2f result = {
+        abs_f32(vector.x),
+        abs_f32(vector.y)
+    };
+    return result;
+}
+inline Vec2i
+abs_v2i(Vec2i vector)
+{
+    Vec2i result = {
+        abs_i32(vector.x),
+        abs_i32(vector.y)
+    };
+    return result;
+}
 inline Vec2f
 round_v2f(Vec2f vector)
 {

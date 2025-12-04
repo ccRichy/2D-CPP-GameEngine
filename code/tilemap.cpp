@@ -114,7 +114,7 @@ draw_tilemap(Tilemap* tmap)
                 draw_rect(
                     {(f32)X * (tmap->tile_w), (f32)Y * (tmap->tile_h)},
                     tile_size,
-                    BEIGE
+                    DARKBROWN
                 );                
             }
         }

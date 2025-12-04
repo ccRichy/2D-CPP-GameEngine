@@ -14,7 +14,6 @@
 
 
 
-//TODO: move to a debug file?
 #define GAME_MEMORY_MB_PERMANENT  8
 #define GAME_MEMORY_MB_TRANSIENT  128
 #define SAVE_FILE_BUFFER_MB       10
@@ -37,9 +36,8 @@
 #define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
 #define WINDOW_SCALE_DEFAULT 4
  
-#define GSTATE_DEFAULT Game_State::Edit
-#define GDRAW_MODE_DEFAULT Draw_Mode::World
-#define GEDITOR_MODE_DEFAULT Editor_Mode::Entity
+#define GSTATE_DEFAULT       Game_State::Edit
+#define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
 #define BUFF_LEN 256
 
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
@@ -52,40 +50,12 @@
 
 
 
-
+//NOTE: includes here will compile for the app and platform
+//WARNING: cannot be hot-reloaded
+#include <cmath>
+#include <cstdio>
 
 #include "my_types_constants.h"
-
-//1. use an existing piece of allocated memory
-//2. allocate arbitrarily out of it
-//3. auto bounds check
-struct MemAlloc
-{
-    void* root_pointer; //NOTE: default
-    int32 size_bytes;
-    int32 bytes_used;
-
-    void* init(void* memory_location, i32 size_of_chunk){
-        size_bytes = size_of_chunk;
-        root_pointer = memory_location;
-        return root_pointer;
-    }
-    
-    void* end(){
-        return (u8*)root_pointer + size_bytes;
-    }
-    
-    void* alloc(i32 size){
-        u8* new_ptr = (u8*)root_pointer + size;
-        //bounds check
-        if (new_ptr > end())
-        bytes_used += size;
-        return new_ptr;
-    }
-
-};
-
-
 #include "my_array.cpp"
 #include "my_string.cpp"
 #include "my_math.cpp"
@@ -96,6 +66,32 @@ struct MemAlloc
 #include "tilemap.h"
 #include "entity.h"
 #include "player.h"
+
+
+
+struct Mem_Map
+{
+    void* ptr_root;
+    void* ptr_end;
+    int32 bytes_size;
+    int32 bytes_used;
+
+    void* init(void* mem_location, i32 size){
+        bytes_size = size;
+        ptr_root = mem_location;
+        ptr_end = (u8*)ptr_root + size;
+        return ptr_root;
+    }
+    
+    void* chunk(i32 size){
+        u8* ptr_curr = (u8*)ptr_root + bytes_used;
+        u8* ptr_new = ptr_curr + size;
+        bytes_used += size;
+        Assert(ptr_new + size <= ptr_end);
+        return ptr_new;
+    }
+};
+
 
 
 
@@ -140,11 +136,11 @@ struct Game_Memory
 {
     bool32 is_initalized;
     
-    uint64 permanent_storage_space;
     void*  permanent_storage; //REQUIRED: clear to 0 upon allocation
+    uint64 permanent_storage_space;
 
-    uint64 transient_storage_space;
     void*  transient_storage; //REQUIRED: clear to 0 upon allocation
+    uint64 transient_storage_space;
 
 #if MY_INTERNAL
     DEBUG_Platform_File_Free_Memory*  DEBUG_platform_file_free_memory;
@@ -173,8 +169,6 @@ struct Game_Sound_Buffer
     int32  sample_rate;
     int16* memory;
 };
-
-
 
 
 
@@ -218,45 +212,9 @@ struct Game_Sprites
 {
 //Characters
     //player
-    Sprite sPlayer_air;
-    Sprite sPlayer_air_reach;
-    Sprite sPlayer_idle;
-    Sprite sPlayer_ledge_grab;
-    Sprite sPlayer_ledge;
-    Sprite sPlayer_ledge_reach;
-    Sprite sPlayer_rope_climb;
-    Sprite sPlayer_rope_slide;
-    Sprite sPlayer_splat_slow;
-    Sprite sPlayer_splat_swift;
-    Sprite sPlayer_turn;
-    Sprite sPlayer_walk;
-    Sprite sPlayer_walk_reach;
-    Sprite sPlayer_wire_idle;
-    Sprite sPlayer_wire_walk;
-    Sprite sPlayer_hurt;
-    Sprite sPlayer_bounce;
-    Sprite sPlayer_roll;
-    
-//Entities
-    //movers
-    Sprite sWall_anim;
-    Sprite sBlob_small;
-    //idlers
-    Sprite sGoal;
-    Sprite sSpike;
-    //item
-    Sprite sItem_rope;
-    Sprite sItem_orb;
-
-//Backgrounds
-    Sprite sBG_test;
-    
-//Meta
-    Sprite sMouse_cursors;
-    Sprite sDebug;    
-    
-  //Items
-    Sprite sRope;
+#define XMAC(__name, ...) Sprite __name;
+    SPR_LIST
+#undef XMAC
 };
 
 struct Game_Entities
@@ -275,7 +233,7 @@ struct Game_Entities
 struct Game_Data
 {
     //settings
-    MemAlloc memory_map;
+    Mem_Map memory_map;
     
     Game_State state;
     Draw_Mode draw_mode;
@@ -294,8 +252,8 @@ struct Game_Data
     Tilemap tilemap;
 
     
-    //misc //TODO: factor out/move
-    Vec2f camera_pos;
+    //misc 
+    Vec2f camera_pos; //TODO: camera struct
     float32 camera_yoffset_extra;
     Vec2f camera_pos_offset_default;
     Vec2f camera_pos_offset;
@@ -321,10 +279,10 @@ struct Game_Settings //REQUIRED: do not 0 init this struct
 struct Game_Performance //TODO: averages
 {
     float32 fps;
-    
+
     float64 ms_frame;
     float64 megacycles_frame;
-    
+
     float64 ms_update;
     float64 megacycles_update;
 
@@ -370,3 +328,15 @@ GAME_UPDATE_AND_DRAW(Game_Update_And_Draw_Stub) {}
 #define GAME_INPUT_CHANGE_DEVICE(name) void name(Game_Input_Device input_device_current, Game_Input_Map* input_map)
 typedef GAME_INPUT_CHANGE_DEVICE(Game_Input_Change_Device);
 GAME_INPUT_CHANGE_DEVICE(Game_Input_Change_Device_Stub) {}
+
+
+
+// struct Timer
+// {
+//     f32 tick;
+//     f32 length;
+//     f32 interval; //how much gets added per frame TODO: deltatime
+    
+//     b32 is_active;
+//     b32 has_ended;
+// };

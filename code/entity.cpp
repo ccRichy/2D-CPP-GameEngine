@@ -19,10 +19,26 @@ entity_sprite_default(Ent_Type type)
     Game_Sprites* spr = GSPRITE;
     switch (type){
       case Ent_Type::Player: result = &spr->sPlayer_idle; break;
-      case Ent_Type::Wall: result = &spr->sWall_anim; break;
-      case Ent_Type::Enemy: result = &spr->sBlob_small; break;
-      case Ent_Type::Goal: result = &spr->sGoal; break;
-      case Ent_Type::Orb: result = &spr->sItem_orb; break;
+      case Ent_Type::Wall:   result = &spr->sWall_anim; break;
+      case Ent_Type::Enemy:  result = &spr->sBlob_small; break;
+      case Ent_Type::Goal:   result = &spr->sGoal; break;
+      case Ent_Type::Orb:    result = &spr->sItem_orb; break;
+      case Ent_Type::Spike:  result = &spr->sSpike; break;
+    }
+    return result;
+}
+
+Rectangle
+entity_mask_default(Ent_Type type)
+{
+    Rect result = {};
+    switch (type){
+      case Ent_Type::Spike:  result = { .pos = {2, 2}, .size = {3, 6} }; break;
+        
+      default: result = { .size = v2i_to_v2f(entity_sprite_default(type)->size) }; break;
+       // case Ent_Type::Goal:   result = &spr->sGoal; break;
+      // case Ent_Type::Orb:    result = &spr->sItem_orb; break;
+        // case Ent_Type::Enemy:  result = &spr->sBlob_small; break;
     }
     return result;
 }
@@ -41,6 +57,9 @@ entity_init(Ent_Type type, Vec2f pos)
         if (!array[looped_index].is_alive){
             result = &array[looped_index]; 
             result->sprite = entity_sprite_default(type); //set default sprite
+            result->bbox = entity_mask_default(type);
+            // if (result->bbox.size.x == 0)
+            //     result->bbox.size = v2i_to_v2f(result->sprite->size);
             result->type = type;
             result->pos = pos;
             result->is_alive = true;
@@ -75,16 +94,8 @@ entity_clear_all()
 }
 
 
-Entity*
-entity_create_default(Ent_Type type, Vec2f pos)
-{
-    Entity* ent = entity_init(type, pos);
-    ent->sprite = entity_sprite_default(type);
-    ent->bbox.size = v2i_to_v2f(ent->sprite->size);
-    return ent;
-}
 inline void
-entity_draw_default(Entity* entity)
+entity_draw_sprite(Entity* entity)
 {
     draw_sprite_frame(
         entity->sprite,
@@ -93,6 +104,25 @@ entity_draw_default(Entity* entity)
         entity->scale
     );
 }
+
+void entity_draw_type(Ent_Type type)
+{
+    for (int i = 0; i < ENT_MAX(type); ++i){
+        Entity* ent = &ENT_POINT(type)[i];
+        if (!ent->is_alive) continue;
+        if (ent->sprite)
+            entity_draw_sprite(ent);
+        else
+            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
+    }    
+}
+
+
+
+
+
+
+
 
 
 
@@ -163,24 +193,13 @@ enemy_draw()
 }
 
 
-Entity*
-spike_create(Vec2f pos)
-{
-    Entity* ent = entity_init(Ent_Type::Spike, pos);
-    if (ent){
-        sprite_set(ent, sSpike);
-        ent->bbox = { .pos = {2, 2}, .size = {3, 6} };
-    }
-    return ent;
-}
 void spike_draw()
 {
     for (int i = 0; i < ENT_MAX(Ent_Type::Spike); ++i){
         Entity* ent = &ENT_POINT(Ent_Type::Spike)[i];
         if (!ent->is_alive) continue;
-        // ent->bbox = { .pos = {2, 1}, .size = {3, 7} };
         
-        entity_draw_default(ent);
+        entity_draw_sprite(ent);
 
         IF_DEBUG {
             draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
@@ -195,7 +214,7 @@ goal_draw()
         Entity* ent = &ENT_POINT(Ent_Type::Goal)[i];
         if (!ent->is_alive) continue;
         
-        entity_draw_default(ent);
+        entity_draw_sprite(ent);
 
         IF_DEBUG {
             draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);

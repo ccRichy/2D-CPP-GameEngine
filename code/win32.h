@@ -5,15 +5,9 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-#pragma once
-
-
-
-//TODO: REQUIRED:
-//- Connect to internet server.
-//- Upload file
-//- Download file
-
+//TODO:
+//- connect to server.
+//- upload/download file
 
 
 
@@ -21,24 +15,6 @@
 #define BGMODE_TRANSPARENCY_AMT 140
 
 
-
-
-
-//NOTE: unused
-enum struct Win32_Init_Error
-{
-    SUCCESS_NO_ERROR,
-    XINPUT_FAILED_TO_INIT,
-    WINDOW_FAILED_TO_REGISTER,
-    WINDOW_FAILED_TO_CREATE,
-};
-
-
-struct Win32_Client_Dimensions
-{
-    int width;
-    int height;
-};
 
 struct Win32_Render_Buffer
 {

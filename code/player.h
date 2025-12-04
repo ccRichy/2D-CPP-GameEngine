@@ -5,40 +5,6 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-
-//TEST:
-struct Timer
-{
-    int32 max;
-    int32 tick;
-    bool32 is_active;
-    bool32 is_completed;
-    
-    void start(i32 _max = 0){
-        if (_max > 0) max = _max;
-        tick = 0;
-        is_active = true;
-    }
-    void stop(){
-        is_active = false;
-        is_completed = true;
-    }
-    
-    void update(){
-        if (!is_active) return;
-        
-        is_completed = false;
-        if (tick++ >= max){
-            stop();
-        }
-    }
-    i32 remaining(){
-        i32 result = max - tick;
-        return result;
-    }
-};
-
-
 #define PLAYER_DEFAULT_STATE Player_State::Idle
 
 enum struct Player_State
@@ -65,13 +31,16 @@ struct Player
 
     i32 hurt_state_time = 30;
     i32 hurt_buffer_time = 70;
+
+    Timer coyote_timer = {.length = 5};
+    Timer roll_buffer_timer = {.length = 50};
     
     //                          maxspd, accel, decel, turn, grav
-    Physics ground_physics    = {1,  0.03f,  0.045f,  0.025f,  0.1f};
-    Physics jump_physics      = {1,  0.02f,  0,      0.02f,  0.06f};
-    Physics fall_physics      = {1,  0.015f,  0,      0.03f,  0.08f};
-    Physics fall_physics_slow = {0.25f,  0.055f,  0,    0.44f,  0.075f};
-    Physics debug_physics     = {2,  0.1f,  0.2f,   0.1f,  0.06f};
+    Physics ground_physics    = {1,     0.03f,  0.045f, 0.025f, 0.1f};
+    Physics jump_physics      = {1,     0.02f,  0,      0.02f,  0.06f};
+    Physics fall_physics      = {1,     0.015f, 0,      0.03f,  0.08f};
+    Physics fall_physics_slow = {0.25f, 0.055f, 0,      0.44f,  0.075f};
+    Physics debug_physics     = {2,     0.1f,   0.2f,   0.1f,   0.06f};
     Physics physics;
 
     Vec2fUnion(pos, x, y);
@@ -85,9 +54,6 @@ struct Player
     float32 anim_index;
     float32 anim_speed;
     b32 anim_ended_this_frame;
-
-    Timer coyote_timer = {.max = 4};
-    Timer   roll_buffer_timer = {.max = 50};
     
     Player_State state;
     i32 state_timer;

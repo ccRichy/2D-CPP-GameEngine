@@ -54,7 +54,7 @@ win32_sleep_well(double seconds, Win32_Sleep_Data* sleep_data)
         float64 delta         = sec_observed - sleep_data->mean;
         sleep_data->mean     += delta / sleep_data->count;
         sleep_data->m2       += delta * (sec_observed - sleep_data->mean);
-        double stddev        = sqrt(sleep_data->m2 / (sleep_data->count - 1));
+        double stddev        = sqrt_f64(sleep_data->m2 / (sleep_data->count - 1));
         sleep_data->estimate  = sleep_data->mean + stddev;
     }
 
@@ -529,8 +529,7 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 if (in->input_mode == Input_Mode::Play)
                 {
                     if (was_down != is_down)
-                    {
-                    
+                    {                    
                         //game
                         win32_key_check('W',      in->up,    key_data);
                         win32_key_check('S',      in->down,  key_data);
@@ -551,6 +550,7 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                         win32_key_check(VK_F8,        in->debug_bgmode_toggle, key_data);
                         win32_key_check(VK_OEM_PLUS,  in->debug_win_plus,      key_data);
                         win32_key_check(VK_OEM_MINUS, in->debug_win_minus,     key_data);
+                        win32_key_check('W', in->debug_win_setup,     key_data);
 
                         win32_key_check(VK_F5, in->debug_hotkey1,  key_data);
                         win32_key_check(VK_F6, in->debug_hotkey2,  key_data);
@@ -559,7 +559,7 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                         //misc
                         win32_key_check(VK_CONTROL, in->ctrl,    key_data);
                         win32_key_check(VK_SHIFT,   in->shift,   key_data);
-                        win32_key_check(VK_MENU,    in->alt,      key_data);
+                        win32_key_check(VK_MENU,    in->alt,     key_data);
                         win32_key_check(VK_SPACE,   in->space,   key_data);
                         win32_key_check(VK_RETURN,  in->enter,   key_data);
                         win32_key_check(VK_ESCAPE,  in->escape,  key_data);
@@ -673,29 +673,6 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
 
 }
 
-internal Win32_Client_Dimensions win32_get_client_dimensions(HWND window)
-{
-    RECT client_rect;
-    GetClientRect(window, &client_rect);
-    return {client_rect.right - client_rect.left, client_rect.bottom - client_rect.top};
-}
-
-internal void
-win32_get_monitor_resolution(HWND window, int* width, int* height)
-{
-    HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
-    MONITORINFOEX info = {};
-    info.cbSize = sizeof(MONITORINFOEX);
-    BOOL info_result = GetMonitorInfo(monitor, &info);
-    DEVMODE devmode = {};
-    devmode.dmSize = sizeof(DEVMODE);
-    BOOL disp_settings_result = EnumDisplaySettings(info.szDevice, ENUM_CURRENT_SETTINGS, &devmode);
-    *width = devmode.dmPelsWidth;
-    *height = devmode.dmPelsHeight;
-}
-
-
-
 
 internal void
 win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
@@ -704,7 +681,7 @@ win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
     if (buffer->memory)
         VirtualFree(buffer->memory, 0, MEM_RELEASE);
 
-    int bytes_per_pixel = 4;
+    i32 bytes_per_pixel = 4;
     buffer->width = width;
     buffer->height = height;
     buffer->bytes_per_pixel = bytes_per_pixel;
@@ -718,15 +695,13 @@ win32_set_DIB(Win32_Render_Buffer* buffer, int width, int height)
     buffer->info.bmiHeader.biBitCount = 32;
     buffer->info.bmiHeader.biCompression = BI_RGB;
 
-    //Draw Pixels loop
-    //int bytesPerPixel = 4; //to store RGB + pad //0xRRGGBBxx //global now
     buffer->memory = VirtualAlloc(0, buffer->memory_size_bytes, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 }
 
 
 internal void
 win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
-                               int window_width, int window_height)
+                               i32 window_width, i32 window_height)
 {
     StretchDIBits(device_context,
                   0, 0, buffer->width, buffer->height,
@@ -737,18 +712,61 @@ win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
     );
 }
 
+
+
+internal V2i
+win32_get_client_dimensions(HWND window)
+{
+    RECT client_rect;
+    GetClientRect(window, &client_rect);
+    return {client_rect.right - client_rect.left, client_rect.bottom - client_rect.top};
+}
+
+internal V2i
+win32_get_monitor_resolution(HWND window)//, int* width, int* height)
+{
+    HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    MONITORINFOEX info = {};
+    info.cbSize = sizeof(MONITORINFOEX);
+    BOOL info_result = GetMonitorInfo(monitor, &info);
+    DEVMODE devmode = {};
+    devmode.dmSize = sizeof(DEVMODE);
+    BOOL disp_settings_result = EnumDisplaySettings(info.szDevice, ENUM_CURRENT_SETTINGS, &devmode);
+
+    return {(i32)devmode.dmPelsWidth, (i32)devmode.dmPelsHeight};
+    // *width = devmode.dmPelsWidth;
+    // *height = devmode.dmPelsHeight;
+}
+
+internal V2i
+window_get_size(HWND window, f32 scale_override = -1)
+{
+    RECT window_rect;
+    if (scale_override == -1){
+        GetWindowRect(window, &window_rect);
+    }
+    else{
+        window_rect = {0, 0, (i32)(BASE_W * scale_override), (i32)(BASE_H * scale_override)};
+        DWORD curr_style = GetWindowLong(window, GWL_STYLE);
+        AdjustWindowRectEx(&window_rect, curr_style, FALSE, 0);
+    }
+    
+    return {window_rect.right - window_rect.left, window_rect.bottom - window_rect.top};
+}
+
+
+
 internal void
 window_set_trans(HWND window, bool32 enabled)
 {
-    if (enabled)
-    {
+    if (enabled){
         BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, BGMODE_TRANSPARENCY_AMT, LWA_ALPHA);        
     }
-    else
-    {
+    else{
         BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
     }    
 }
+
 internal void
 window_set_topmost(HWND window, bool32 enabled)
 {
@@ -766,36 +784,54 @@ window_set_topmost(HWND window, bool32 enabled)
     );
 }
 
-
 internal void
-window_set_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
+window_center(HWND window)
 {
-    //get target size
-    RECT new_client_rect = {0, 0, (int32)(BASE_W * scale), (int32)(BASE_H * scale)};
-    DWORD curr_style = GetWindowLong(window, GWL_STYLE);
-    AdjustWindowRectEx(&new_client_rect, curr_style, FALSE, 0);
-
-    //get position
-    int32 target_w = new_client_rect.right - new_client_rect.left;
-    int32 target_h = new_client_rect.bottom - new_client_rect.top;
-    int32 disp_w=0, disp_h=0;
-    win32_get_monitor_resolution(window, &disp_w, &disp_h);
-    int32 target_x = (disp_w / 2) - (target_w/2);
-    int32 target_y = (disp_h / 2) - (target_h/2);
+    V2i res = win32_get_monitor_resolution(window);//, &disp_w, &disp_h);
+    V2i winsize = window_get_size(window);
+    int32 target_x = (res.x/2) - (winsize.x/2);
+    int32 target_y = (res.y/2) - (winsize.y/2);
     
     SetWindowPos(
         window, 0,
         target_x, target_y,
-        target_w, target_h,
-        SWP_SHOWWINDOW
+        0, 0,
+        SWP_NOSIZE|SWP_SHOWWINDOW
     );
-    win32_set_DIB(win32_render_buffer, (int32)(BASE_W * scale), (int32)(BASE_H * scale));
-                        
+
+}
+
+internal void
+window_set_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
+{
+    Global_Settings->window_scale = scale;
+    V2i winsize = window_get_size(window, scale);    
+    win32_set_DIB(win32_render_buffer, (i32)(BASE_W * scale), (i32)(BASE_H * scale));
+    SetWindowPos(
+        window, 0,
+        0, 0,
+        winsize.x, winsize.y,
+        SWP_NOMOVE|SWP_SHOWWINDOW
+    );
+    window_center(window);
+    
     game_render_buffer->memory = win32_render_buffer->memory;
     game_render_buffer->width  = win32_render_buffer->width;
     game_render_buffer->height = win32_render_buffer->height;
     game_render_buffer->pitch  = win32_render_buffer->pitch;
 }
+
+internal void
+window_set_pos(HWND window, i32 x, i32 y)
+{
+    SetWindowPos(
+        window, 0,
+        x, y,
+        0, 0,
+        SWP_NOSIZE|SWP_SHOWWINDOW
+    );
+}
+
 
 
 ///EXTRA

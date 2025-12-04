@@ -14,7 +14,7 @@ inline uint8 color_channel_get_transparent(uint8 channel_prev, uint8 channel_new
     return (uint8)(((channel_new) * alpha) + (alphasub * (channel_prev)));
 }
 
-inline Color //TODO: OPTIMIZE THIS or transparency handling in general
+inline Color //TODO: optimize
 color_get_transparent(Color color_prev, Color color_new)
 {
     float32 alpha = (float32)color_new.a / 255;
@@ -27,23 +27,33 @@ color_get_transparent(Color color_prev, Color color_new)
     };
 }
 
+// Color
+// color_sub_rgb(Color input, u8 sub)
+// {
+//     return {
+//         input.r - sub,
+//         input.g - sub,
+//         input.b - sub
+//     };
+// };
+
 Color
-color_mult_value_rgb(Color input, float32 value)
+color_mult_rgb(Color input, float32 mult)
 {
     return {
-        (uint8)((float32)input.r * value),
-        (uint8)((float32)input.g * value),
-        (uint8)((float32)input.b * value)
+        (uint8)((float32)input.r * mult),
+        (uint8)((float32)input.g * mult),
+        (uint8)((float32)input.b * mult)
     };
 };
 
 Color
-color_mult_value_rgba(Color input, float32 value)
+color_mult_rgba(Color input, float32 mult)
 {
     return {
-        (uint8)((float32)input.r * value),
-        (uint8)((float32)input.g * value),
-        (uint8)((float32)input.b * value),
-        (uint8)((float32)input.a * value)
+        (uint8)((float32)input.r * mult),
+        (uint8)((float32)input.g * mult),
+        (uint8)((float32)input.b * mult),
+        (uint8)((float32)input.a * mult)
     };
 };

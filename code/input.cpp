@@ -50,6 +50,7 @@ struct Game_Input_Button
     }
 };
 
+
 struct Game_Input_Map
 {
     Game_Input_Device input_device;
@@ -84,7 +85,7 @@ struct Game_Input_Map
             Game_Input_Button debug_bgmode_toggle;
             Game_Input_Button debug_win_plus;
             Game_Input_Button debug_win_minus;
-            Game_Input_Button debug_window_change;
+            Game_Input_Button debug_win_setup;
             Game_Input_Button console;
 
             Game_Input_Button debug_hotkey1;

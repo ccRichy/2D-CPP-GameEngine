@@ -6,8 +6,7 @@
    ======================================================================== */
 
 //TODO: factor out c library
-#include <math.h>  //TODO: intrinsics
-#include <stdio.h> //using sprintf
+//includes here will compile for only the app
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,13 +93,13 @@ camera_zoom()
     {
         V2f mouse_prev = mouse_get_pos_world();
 
-        i32 zoom_amt = input->shift.hold ? 4 : 2;
+        f32 zoom_amt = input->shift.hold ? 4.f : 2.f;
         if (input->mouse_front.press)
             GSETTING->zoom_scale = 1;
         else if (input->mouse_scroll > 0)
-            GSETTING->zoom_scale *= (f32)(sqrt(sqrt(zoom_amt)));
+            GSETTING->zoom_scale *= (sqrt_f32(sqrt_f32(zoom_amt)));
         else if (input->mouse_scroll < 0)
-            GSETTING->zoom_scale /= (f32)(sqrt(sqrt(zoom_amt)));
+            GSETTING->zoom_scale /= (sqrt_f32(sqrt_f32(zoom_amt)));
         
         V2f mouse_new = mouse_get_pos_world();
         V2f camera_pos_current = GDATA->camera_pos;
@@ -183,7 +182,7 @@ im_hot()
 
 
 //Editor
-globalvar bool32 global_editor_changed_level; //used to keep level changes without commiting them to disk
+globalvar bool32 global_editor_level_changed; //used to keep level changes without commiting them to disk
 globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
 globalvar Entity* global_editor_selected_entity = nullptr;
 
@@ -196,12 +195,8 @@ entity_spawn(Ent_Type type, Vec2f pos)
 
     switch (type){
       case Player: PLAYER->create(pos); break;
-      case Enemy: result  = enemy_create(pos); break;
       case Wall:  result  = wall_create(pos, {Tile(1), Tile(1)}); break;
-      case Spike:  result = spike_create(pos); break;
-      // case Goal:  result  = goal_create(pos); break;
-      // case Orb:  result   = orb_create(pos); break;
-      default: entity_create_default(type, pos);
+      default: entity_init(type, pos);
     }
 
     return result;
@@ -419,10 +414,10 @@ level_load_file(const char* filename) //filename without extension
         i32 value = string_get_i32(word_buffer);
         switch (var){
           case 'e': ent_type   = (Ent_Type)value; break;
-          case 'x': ent_pos.x  = (f32)value; break;
-          case 'y': ent_pos.y  = (f32)value; break;
-          case 'w': ent_size.w = (f32)value; break;
-          case 'h': ent_size.h = (f32)value; break;
+          case 'x': ent_pos.x  = (f32)value;      break;
+          case 'y': ent_pos.y  = (f32)value;      break;
+          case 'w': ent_size.w = (f32)value;      break;
+          case 'h': ent_size.h = (f32)value;      break;
         }            
 
         buff_offset += word_len+1;
@@ -442,6 +437,7 @@ level_load_file(const char* filename) //filename without extension
         string_clear(pointers->data->level_current);
         string_append(pointers->data->level_current, filename);
     }
+
     debug_message("Level Loaded: \"%s\"", filename);
     GMEMORY->DEBUG_platform_file_free_memory(file.memory);
     return true;
@@ -486,25 +482,36 @@ game_load_state(const char* filename) //trying to load old versions is likely to
         GDATA->entity = data->entity;
         debug_message("level state loaded: \"%s\"", dirbuf);
     }
-
     GMEMORY->DEBUG_platform_file_free_memory(file.memory);
 }
 
 
-
+void
+draw_bg(Sprite* spr)
+{   
+    auto prev_draw_mode = GDATA->draw_mode;
+    GDATA->draw_mode = Draw_Mode::Gui;
+    draw_sprite(spr, {});
+    GDATA->draw_mode = prev_draw_mode;
+}
 
 //important stuff
 void
 game_draw_world()
 {
+    GDATA->draw_mode = Draw_Mode::Gui;
+    draw_bg(&GSPRITE->sBG_cave1);
+
     GDATA->draw_mode = Draw_Mode::World;
-    draw_sprite(&GSPRITE->sBG_test, {});
-    
+    // for (int i = 0; i < 10; ++i){
+    //     draw_rect({ (f32)i * 16, 0}, {8, 8}, RED);
+    // }
+
     draw_tilemap(&GDATA->tilemap);
-    
-    wall_draw();
+
+    // wall_draw();
     spike_draw();
-    enemy_draw();
+    // enemy_draw();
     PLAYER->draw();
 }
 
@@ -568,32 +575,49 @@ game_state_editor_update()
     }
     else if (edit_mode == Editor_Mode::Tile)
     {
-        if (!im_hot()){
-            //set tiles with mouse
-            if (input->mouse_left.hold){
-                tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);
-            }
-            if (input->mouse_right.hold){
-                tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 0);
+        //selection test
+        persist V2f sel_pos1 = {};
+        persist b32 is_selecting = false;
+        Color sel_col = WHITE;
+        sel_col.a = 40;
+
+        b32 select_input = input->ctrl.hold;
+        if (input->mouse_left.press && select_input){
+            sel_pos1 = mouse_get_pos_world();
+            is_selecting = true;
+        }
+        if (input->mouse_left.hold && select_input){
+            //TODO: maybe handle draw_rect() negative scale
+            V2f sel_pos2 = mouse_get_pos_world();
+            V2f sel_pos_diff = sel_pos2 - sel_pos1;
+            f32 selx = sel_pos_diff.x > 0 ? sel_pos1.x : sel_pos2.x;
+            f32 sely = sel_pos_diff.y > 0 ? sel_pos1.y : sel_pos2.y;
+            Rect sel_rect_final = {.pos = {selx, sely}, .size = abs_v2f(sel_pos_diff)};
+            draw_rect(sel_rect_final, sel_col);
+        }
+        if (input->mouse_left.release){
+            is_selecting = false;
+        }     
+
+        //set tiles
+        if (!is_selecting){
+            if (!im_hot()){
+                if (input->mouse_left.hold){
+                    tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);
+                }
+                if (input->mouse_right.hold){
+                    tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 0);
+                }
             }
         }
     }
 
-//Camera
-    f32 cam_speed = 2;
-    if (input->ctrl.hold) cam_speed = 1;
-    if (input->shift.hold) cam_speed = 4;
-        
-    V2f move_input =
-        {(float32)(input->right.hold - input->left.hold) / GSETTING->zoom_scale,
-         (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
-    data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
         
 //Draw 0,0 (x,y) lines
     data->draw_mode = Draw_Mode::World;
     f32 static_size = scale_get_zoom_agnostic(0.5);
-    draw_rect({0, 0}, {static_size, 999999.f}, WHITE);
-    draw_rect({0, 0}, {999999.f, static_size}, WHITE);
+    draw_rect({-static_size, -static_size}, {static_size, 999999.f}, WHITE);
+    draw_rect({-static_size, -static_size}, {999999.f, static_size}, WHITE);
 
 //Draw grid //TODO: make straight line functions for this use case
     V2i   grid_length_max = {1000, 1000};
@@ -614,6 +638,17 @@ game_state_editor_update()
             color_faded);
     }
 
+//Camera
+    f32 cam_speed = 2;
+    if (input->ctrl.hold) cam_speed = cam_speed/2;
+    if (input->shift.hold) cam_speed = cam_speed*2;
+        
+    V2f move_input =
+        {(float32)(input->right.hold - input->left.hold) / GSETTING->zoom_scale,
+         (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
+    data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
+
+    
 //Draw GUI
     data->draw_mode = Draw_Mode::Gui;
     Vec2f eb_pos = {40, 10};
@@ -653,8 +688,7 @@ game_state_editor_update()
     }
     else if (data->editor_mode == Editor_Mode::Tile)
     {
-        //TODO: move tile buttons in here
-        
+        //TODO: tile types
     }
 }
 
@@ -691,6 +725,7 @@ game_state_play_update()
     
     //entity update
     PLAYER->update();
+    // entity_update();
     enemy_update();
 
     //camera update
@@ -699,6 +734,9 @@ game_state_play_update()
     data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
     data->camera_pos = PLAYER->pos - data->camera_pos_offset;
 
+    data->camera_pos.x = clamp_f32(data->camera_pos.x, 0, 1000);
+    data->camera_pos.y = clamp_f32(data->camera_pos.y, 0, 1000);
+    
     game_draw_world();
 }
 
@@ -758,13 +796,11 @@ game_initialize(Game_Pointers* _game_pointers)
     i32 button_length = array_length(input->buttons);
     if (set_input_array_to_this_value != button_length) Assert(false); //input union
     Assert( sizeof(Game_Data) <= pointers->memory->permanent_storage_space ); //memory bounds
-    // Assert( (&entity->bottom_entity - &entity->array[0]) == (array_length(entity->array) - 1) ); //entity union
-
     // data->memory_map.init(null[t]);
     
     data->state       = GSTATE_DEFAULT;
-    data->draw_mode   = GDRAW_MODE_DEFAULT;
     data->editor_mode = GEDITOR_MODE_DEFAULT;
+    data->draw_mode   = Draw_Mode::World;
 
     data->debug_msg.pos   = DEBUG_MESSAGE_POS_DEFAULT;
     data->debug_msg.scale = DEBUG_MESSAGE_SCALE_DEFAULT;
@@ -781,7 +817,7 @@ game_initialize(Game_Pointers* _game_pointers)
         BASE_H/2 + pointers->data->camera_yoffset_extra};
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
-    //TODO: ENTITIY POINTER INIT
+    //initialize array of pointers to the 1st entity for each one
     Entity* entity_pointer = pointers->entity->array;
     for (int i = 0; i < (i32)Ent_Type::Num; ++i){
         if (i == 0){ //player
@@ -799,46 +835,10 @@ game_initialize(Game_Pointers* _game_pointers)
         }
     }
 
-#define SPR_LOAD(name, frame_num, fps, origin) sprite->##name = sprite_create(#name, frame_num, fps, origin)
-#define SPR_LOAD_N(varname, filename, frame_num, fps, origin) sprite->##varname = sprite_create(#filename, frame_num, fps, origin)
+#define XMAC(name, ...) sprite->##name = sprite_create(#name, __VA_ARGS__);
+    SPR_LIST
+#undef XMAC
 
-//player
-    #define PLR_SPR_ORIGIN {8.f, 12.f}
-    SPR_LOAD_N(sPlayer_air, sPlayer_air2, 7, 15, PLR_SPR_ORIGIN);
-    // sprite->sPlayer_air         = sprite_create("sPlayer_air2", 7, 15, PLR_SPR_ORIGIN);
-    sprite->sPlayer_air_reach   = sprite_create("sPlayer_air_reach", 2, 0, PLR_SPR_ORIGIN);  
-    sprite->sPlayer_idle        = sprite_create("sPlayer_idle", 2, 0, PLR_SPR_ORIGIN);               
-    SPR_LOAD(sPlayer_ledge_grab, 1, 0, PLR_SPR_ORIGIN);
-    sprite->sPlayer_ledge       = sprite_create("sPlayer_ledge", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_ledge_reach = sprite_create("sPlayer_ledge_reach", 3, 0, PLR_SPR_ORIGIN);
-    sprite->sPlayer_rope_climb  = sprite_create("sPlayer_rope_climb", 2, 10, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_rope_slide  = sprite_create("sPlayer_rope_slide", 2, 10, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_splat_slow  = sprite_create("sPlayer_splat_slow", 5, 7, PLR_SPR_ORIGIN); 
-    sprite->sPlayer_splat_swift = sprite_create("sPlayer_splat_swift", 6, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_turn        = sprite_create("sPlayer_turn", 1, 6, PLR_SPR_ORIGIN);
-    sprite->sPlayer_walk        = sprite_create("sPlayer_walk", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_walk_reach  = sprite_create("sPlayer_walk_reach", 4, 10, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_idle   = sprite_create("sPlayer_wire_idle", 5, 6, PLR_SPR_ORIGIN);
-    sprite->sPlayer_wire_walk   = sprite_create("sPlayer_wire_walk", 4, 6, PLR_SPR_ORIGIN);
-    SPR_LOAD(sPlayer_hurt, 1, 0, PLR_SPR_ORIGIN);
-    SPR_LOAD(sPlayer_bounce, 1, 0, PLR_SPR_ORIGIN);
-    SPR_LOAD(sPlayer_roll, 6, 15, PLR_SPR_ORIGIN);
-    
-    //entity
-    sprite->sWall_anim  = sprite_create("sWall_anim", 4, 6, {});
-    sprite->sBlob_small = sprite_create("sBlob_small", 4, 6, {});
-    sprite->sGoal       = sprite_create("sGoal", 1, 0, {});
-    SPR_LOAD(sGoal, 1, 0, {});
-
-    //backgrounds
-    SPR_LOAD(sBG_test, 1, 0, {});
-    
-    //meta
-    sprite->sDebug   = sprite_create("sTest", 1, 0, {});
-    sprite->sMouse_cursors   = sprite_create("sMouse_cursors2", 4, 0, {2, 2});
-    sprite->sSpike   = sprite_create("sSpike", 1, 0, {});
-
-        
 #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name)
     BMP_LOAD(sTest);
     BMP_LOAD(sTest_wide);
@@ -916,13 +916,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     IF_DEBUG {
         //draw performance
         auto perf = pointers->performance;
-        draw_text_buffer({0, 0}, {0.5f, 0.5f}, {7, 8},
+        draw_text_buffer({77, 0}, {0.77f, 0.77f}, {7, 8},
                          "ms/f: %.2f" "\n"
                          "mc/f: %.2f" "\n"
                          ,perf->ms_frame
                          ,perf->megacycles_frame);
     }
-
+    // GSETTING->zoom_scale = 0.77f;
 
 //Console
     
