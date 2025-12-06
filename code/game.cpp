@@ -575,32 +575,65 @@ game_state_editor_update()
     }
     else if (edit_mode == Editor_Mode::Tile)
     {
-        //selection test
+//selection test
         persist V2f sel_pos1 = {};
-        persist b32 is_selecting = false;
+        persist b32 is_dragging_selection = false;
+        persist Rect sel_rect_final = {};
         Color sel_col = WHITE;
         sel_col.a = 40;
 
         b32 select_input = input->ctrl.hold;
-        if (input->mouse_left.press && select_input){
+        if (input->mouse_left.press && select_input){ //start
             sel_pos1 = mouse_get_pos_world();
-            is_selecting = true;
+            is_dragging_selection = true;
         }
-        if (input->mouse_left.hold && select_input){
+        if (input->mouse_left.hold && select_input){ //drag
             //TODO: maybe handle draw_rect() negative scale
             V2f sel_pos2 = mouse_get_pos_world();
             V2f sel_pos_diff = sel_pos2 - sel_pos1;
             f32 selx = sel_pos_diff.x > 0 ? sel_pos1.x : sel_pos2.x;
             f32 sely = sel_pos_diff.y > 0 ? sel_pos1.y : sel_pos2.y;
-            Rect sel_rect_final = {.pos = {selx, sely}, .size = abs_v2f(sel_pos_diff)};
-            draw_rect(sel_rect_final, sel_col);
+            sel_rect_final = {.pos = {selx, sely}, .size = abs_v2f(sel_pos_diff)};
         }
-        if (input->mouse_left.release){
-            is_selecting = false;
-        }     
+        if (input->mouse_left.release){ //fill grid space
+            f32 sel_rect_xprev = sel_rect_final.x;
+            sel_rect_final.x = floor_f32(sel_rect_final.x / tmap->tile_w) * tmap->tile_w;
+            f32 sel_rect_xprev_diff = sel_rect_xprev - sel_rect_final.x;
+            sel_rect_final.w += sel_rect_xprev_diff;
+            sel_rect_final.w = ceil_f32(sel_rect_final.w / tmap->tile_w) * tmap->tile_w;
+            
+            f32 sel_rect_yprev = sel_rect_final.y;
+            sel_rect_final.y = floor_f32(sel_rect_final.y / tmap->tile_h) * tmap->tile_h;
+            f32 sel_rect_yprev_diff = sel_rect_yprev - sel_rect_final.y;
+            sel_rect_final.h += sel_rect_yprev_diff;
+            sel_rect_final.h = ceil_f32(sel_rect_final.h / tmap->tile_h) * tmap->tile_h;
+            is_dragging_selection = false;
+        }
+        if (input->mouse_right.press && select_input){ //remove
+            sel_rect_final = {};
+        }
 
-        //set tiles
-        if (!is_selecting){
+        //TODO: test tilemap_get_grid_x and y overshooting 1 pixel
+        if (input->edit_delete.press){ //delete tiles in selection
+            int32 grid_pos_top    = tilemap_get_grid_y(tmap, sel_rect_final.y);
+            int32 grid_pos_bottom = tilemap_get_grid_y(tmap, sel_rect_final.y + sel_rect_final.h) - 1;
+            int32 grid_pos_left   = tilemap_get_grid_x(tmap, sel_rect_final.x);
+            int32 grid_pos_right  = tilemap_get_grid_x(tmap, sel_rect_final.x + sel_rect_final.w) - 1;
+            for (int Y = grid_pos_top; Y <= grid_pos_bottom; ++Y){
+                for (int X = grid_pos_left; X <= grid_pos_right; ++X){
+                    int32* tile = &tmap->grid[Y][X];
+                    *tile = 0;
+                }
+            }
+
+        }
+        
+        //draw selection
+        draw_rect(sel_rect_final, sel_col);
+
+        
+//set tiles
+        if (!is_dragging_selection && !select_input){
             if (!im_hot()){
                 if (input->mouse_left.hold){
                     tilemap_set_tile_at_world_pos(tmap, mouse_get_pos_world(), 1);

@@ -140,10 +140,10 @@ collide_rect_tilemap(Vec2f pos, Vec2f size, Tilemap* tmap)
     float32 bbox_left = pos.x;
     float32 bbox_right = bbox_left + size.x;
         
-    int32 grid_pos_top = tilemap_get_grid_y(tmap, bbox_top);
+    int32 grid_pos_top    = tilemap_get_grid_y(tmap, bbox_top);
     int32 grid_pos_bottom = tilemap_get_grid_y(tmap, bbox_bottom);
-    int32 grid_pos_left = tilemap_get_grid_x(tmap, bbox_left);
-    int32 grid_pos_right = tilemap_get_grid_x(tmap, bbox_right);
+    int32 grid_pos_left   = tilemap_get_grid_x(tmap, bbox_left);
+    int32 grid_pos_right  = tilemap_get_grid_x(tmap, bbox_right);
     
     if (grid_pos_top < 0) grid_pos_top = 0;
     if (grid_pos_bottom >= tmap->grid_h) grid_pos_bottom = tmap->grid_h - 1;
