@@ -243,6 +243,9 @@ level_save_file(const char* filename)
         debug_message("Level failed to save: empty string");
         return false;
     }
+
+    //TODO: save entity instance "variable definitions"
+    int cool = "";
     
     //HACK:? temporaryily allocate storage for save file
     //TODO: make functions for opening, appeding, and closing a file
