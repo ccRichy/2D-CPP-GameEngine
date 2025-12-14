@@ -5,6 +5,17 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
+//name, max_amount, sprite default
+#define ENT_LIST                 \
+XMAC(Player, 0, sPlayer_idle)    \
+XMAC(Wall,   8, sNull)           \
+XMAC(Spike,  2, sSpike)          \
+XMAC(Enemy,  6, sNull)           \
+XMAC(Turtle, 4, sTurtle) \
+XMAC(Goal,   1, sGoal)           \
+XMAC(Orb,    4, sItem_orb)       \
+
+
 #define ENT_NAME(type)  ENT_INFO[(i32)type].name
 #define ENT_NUM(type)   pointers->entity->nums[(i32)type]
 #define ENT_POINT(type) pointers->entity->pointers[(i32)type]
@@ -16,14 +27,7 @@
 #define bbox_left(__entity) (__entity->x + __entity->bbox.x)
 #define bbox_right(__entity) (__entity->x + __entity->bbox.x + __entity->bbox.w)
 
-//   name,   max_amount
-#define ENT_LIST    \
-XMAC(Player, 0)     \
-XMAC(Wall,   8)     \
-XMAC(Enemy,  6)     \
-XMAC(Spike,  2)     \
-XMAC(Goal,   1)     \
-XMAC(Orb,    4)     \
+
 
 
 struct Timer
@@ -45,6 +49,10 @@ struct Timer
         has_ended = false;
         tick = 0;
     }
+    f32 remaining(){
+        f32 result = length - tick;
+        return result;
+    }
     
     void update(){
         has_ended = false;
@@ -57,12 +65,7 @@ struct Timer
             has_ended = true;
         }
     }
-    f32 remaining(){
-        f32 result = length - tick;
-        return result;
-    }
 };
-
 
 
 
@@ -74,14 +77,7 @@ enum class Ent_Type
 #define XMAC(__name, ...) __name,
     ENT_LIST
 #undef XMAC
-    // Player,
-    
-    // Wall,
-    // Enemy,
-    // Spike,
-    // Goal,
-    // Orb,
-    
+
     Num,
     All,
 };
@@ -91,16 +87,10 @@ struct Ent_Info {
     int max_count;
 };
 
-constexpr Ent_Info ENT_INFO[] = {    
-#define XMAC(__name, ...) { #__name, __VA_ARGS__ },
+constexpr Ent_Info ENT_INFO[] = {
+#define XMAC(__name, __max_count, __sprite) { #__name, __max_count },
     ENT_LIST
 #undef XMAC
-    // { "player", 0 },
-    // { "wall",   8 },
-    // { "enemy",  6 },
-    // { "spike",  2 },
-    // { "goal",   1 },
-    // { "orb",    4 },
 };
 
 constexpr i32 ENT_MAX_ALL(){
@@ -154,6 +144,7 @@ struct Entity
     Sprite* sprite;
     float32 anim_index;
     float32 anim_speed = 1;
+    bool32 anim_ended_this_frame;
     Vec2f   scale = {1, 1};
 
     //bbox

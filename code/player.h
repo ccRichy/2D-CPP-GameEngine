@@ -67,9 +67,11 @@ struct Player
     void draw();
 
     //funcs
-    bool32 anim_update(); //returns if animation ended that frame
-    void move_vert();
-    void move_hori(bool32 is_airborne);
+    bool32 anim_update(); //returns true if animation ended that frame
+    
+    void speed_vert();
+    void speed_hori(bool32 is_airborne);
+    
     V2f ledge_check_pos(i32* aimdir_return_var = 0, i32 aimdir_override = 0, f32 xmargin_override = 0);
     bool32 ledge_check();
 

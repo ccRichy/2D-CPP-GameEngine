@@ -7,7 +7,7 @@
 
 //TODO: move up
 // #define PLAYER_LEDGE_GRAB_SPACE_MIN 1 //pixels
-#define is_turning(movex, spdx) ((sign(movex) != sign(spdx) && movex != 0))
+#define is_turning(_movex, _spdx) ((sign(_movex) != sign(_spdx) && _movex != 0))
 
 
 void Player::state_enter_default(Sprite* _sprite, float32 _anim_index, float32 _anim_speed)
@@ -61,7 +61,8 @@ Player::update()
     }    
 }
 
-bool32 Player::anim_update()
+bool32
+Player::anim_update()
 {
     b32 result = false;
     f32 index_add = (f32)sprite->fps/FPS_TARGET;
@@ -121,7 +122,7 @@ Player::draw()
 
 
 void
-Player::move_hori(bool32 is_airborne)
+Player::speed_hori(bool32 is_airborne)
 {
     //TODO: test out 'true' lerp with counter and all that ON Physics::accel
     
@@ -143,7 +144,7 @@ Player::move_hori(bool32 is_airborne)
 
     //determine func
     f32 (*lerpfunc)(f32, f32, f32) = approach;
-    if (is_moving) lerpfunc = lerp;
+    if (is_moving) lerpfunc =        lerp;
 
     //apply speed
     spd.x = lerpfunc(spd.x, spd_target, accel_target);
@@ -152,7 +153,7 @@ Player::move_hori(bool32 is_airborne)
     physics = physsave;
 }
 void
-Player::move_vert()
+Player::speed_vert()
 {
     spd.y += physics.grav;
     if (spd.y > terminal_velocity)
@@ -254,8 +255,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                 //anim
                 anim_index = (float32)input->up.hold;
                 //speed
-                move_vert();
-                move_hori(false);
+                speed_vert();
+                speed_hori(false);
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (input->jump)
@@ -276,8 +277,10 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
 
             case Step:{
-                move_vert();
-                move_hori(false);
+                f32 slow_physics_spd_threshold = 0.45f;
+                
+                speed_vert();
+                speed_hori(false);
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 //anim
@@ -299,7 +302,6 @@ Player::state_perform(Player_State _state, State_Function _function)
                     state_switch(Fall);
                     coyote_timer.start();
                     
-                    f32 slow_physics_spd_threshold = 0.45f;
                     if (abs_f32(spd.x) < slow_physics_spd_threshold)
                         if (!input->shift.hold) //TODO: sprint input
                             physics = fall_physics_slow;
@@ -319,13 +321,12 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
 
             case Step:{
-                state_timer++;
-                //anim
                 f32 yspd_threshold = 0.4f;
-                b32 adsasd = state_timer > 4;
+                b32 reach_time = 4;
 
+                state_timer++;
                 if (abs_f32(spd.y) > yspd_threshold){
-                    if (input->up.hold && adsasd){
+                    if (input->up.hold && state_timer >= reach_time){
                         sprite = &GSPRITE->sPlayer_air_reach;
                         anim_index = (move_input.x != 0 && move_input.x != scale.x);
                     }else{
@@ -336,8 +337,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                 }
 
                 //speed
-                move_vert();
-                move_hori(true);
+                speed_vert();
+                speed_hori(true);
                 if (!input->jump.hold) spd.y *= 0.9f;
                 Collide_Data coll = move_collide_tile( &GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
@@ -385,8 +386,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                         spd.x += (spd_add * sign(spd.x));
                     physics = fall_physics;
                 }                
-                move_hori(true);
-                move_vert();
+                speed_hori(true);
+                speed_vert();
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
                 b32 hit_ground = (coll.ydir == 1);
 
@@ -498,13 +499,13 @@ Player::state_perform(Player_State _state, State_Function _function)
             }break;
               
             case Step:{
-                f32 lerp_time = 60;
-                f32 lerp_spd = f32(state_timer++ / 20);
+                f32 lerp_spd = 0.04;
                 spd.x = approach(spd.x, 0, lerp_spd);
+                speed_vert();
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (input->jump.press)
-                    if (spd.x == 0)
+                    if (spd.x == 0 && spd.y == 0)
                         anim_speed = 1;
                 
                 if (anim_ended_this_frame)
@@ -530,7 +531,7 @@ Player::state_perform(Player_State _state, State_Function _function)
 
                 // f32 lerp_spd = f32(state_timer++ / 10);
                 // spd.x = approach(spd.x, 0, 0.01f);
-                move_vert();
+                speed_vert();
                 Collide_Data coll = move_collide_tile(&pointers->data->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 if (anim_ended_this_frame)
@@ -565,7 +566,7 @@ Player::state_perform(Player_State _state, State_Function _function)
     // if (plr->spd.y != 0) //air
     // {
     //     sprite_change(plr, sPlayer_air);
-    //     player_move_hori(plr, true);
+    //     player_speed_hori(plr, true);
     //     if (!input->jump.hold){
     //         if (plr->spd.y < 0)
     //             plr->spd.y /= 4;
@@ -574,7 +575,7 @@ Player::state_perform(Player_State _state, State_Function _function)
     // {
     //     if (input->jump) plr->spd.y = -plr->jump_spd;
     //     sprite_change(plr, sPlayer_walk);
-    //     player_move_hori(plr, false);
+    //     player_speed_hori(plr, false);
     //     if (plr->move_input.x != 0) plr->scale.x = (float32)sign(plr->move_input.x);
     //     plr->anim_speed = abs_f32(plr->spd.x);
     // }
@@ -582,7 +583,7 @@ Player::state_perform(Player_State _state, State_Function _function)
     //     if (input->jump) plr->spd.y = -plr->jump_spd;
     //     sprite_change(plr, sPlayer_idle);
     //     plr->anim_index = (float32)input->up.hold;
-    //     player_move_hori(plr, false);
+    //     player_speed_hori(plr, false);
     // }
 
 

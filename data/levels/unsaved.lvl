@@ -3,10 +3,8 @@ p x160 y90
 !
 
 Tiles
-t1 x9 y3, t1 x26 y11, t1 x26 y12, t1 x15 y13, t1 x16 y13, t1 x17 y13, t1 x18 y13, t1 x19 y13, t1 x20 y13, t1 x21 y13, t1 x22 y13, t1 x23 y13, t1 x24 y13, t1 x25 y13, t1 x26 y13, t1 x15 y14, t1 x16 y14, t1 x17 y14, t1 x18 y14, t1 x19 y14, t1 x20 y14, t1 x21 y14, t1 x22 y14, t1 x23 y14, t1 x24 y14, t1 x25 y14, 
+
 !
 
 Entities
-e1 x132 y50 w8 h8,
-e2 x98 y60 w8 h16,
 !

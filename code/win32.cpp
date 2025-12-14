@@ -2,8 +2,8 @@
 
 
 
-int64 global_cpu_freq;
-static Game_Settings* Global_Settings;
+globalvar Win32_Render_Buffer global_render_buffer;
+
 
 
 //
@@ -651,8 +651,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
                 //NOTE: pixel aligned
                 in->mouse_pos_gui = {
-                    round_f32(mouse_points.x / Global_Settings->window_scale),
-                    round_f32(mouse_points.y / Global_Settings->window_scale)
+                    round_f32(mouse_points.x / global_settings->window_scale),
+                    round_f32(mouse_points.y / global_settings->window_scale)
                 };
                 
                 // //NOTE: float
@@ -770,7 +770,7 @@ window_set_trans(HWND window, bool32 enabled)
 internal void
 window_set_topmost(HWND window, bool32 enabled)
 {
-    RECT window_rect = {0, 0, (int32)(BASE_W * Global_Settings->window_scale), (int32)(BASE_H * Global_Settings->window_scale)};
+    RECT window_rect = {0, 0, (int32)(BASE_W * global_settings->window_scale), (int32)(BASE_H * global_settings->window_scale)};
     DWORD curr_style = GetWindowLong(window, GWL_STYLE);
     AdjustWindowRectEx(&window_rect, curr_style, FALSE, 0);
     RECT same_pos;
@@ -804,7 +804,7 @@ window_center(HWND window)
 internal void
 window_set_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
 {
-    Global_Settings->window_scale = scale;
+    global_settings->window_scale = scale;
     V2i winsize = window_get_size(window, scale);    
     win32_set_DIB(win32_render_buffer, (i32)(BASE_W * scale), (i32)(BASE_H * scale));
     SetWindowPos(

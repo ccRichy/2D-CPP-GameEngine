@@ -15,25 +15,11 @@
 #include "win32_xaudio.cpp"
 
 
+
 /*TODO:
   - Logging to file
   - Fix game dll double loading bug
 */
-
-
-globalvar Win32_Render_Buffer Global_Render_Buffer;
-globalvar bool32 Global_Running = true;
-
-globalvar bool32 Global_BGMode_Enabled = false;
-globalvar bool32 Global_BGMode_TransOutOfFocus = true;
-
-
-globalvar bool32 dll_flip; //HACK: for game_dll auto hotloading
-//BUG: something is preventing the game dll from loading in (majority of the time) without this
-//Upon game dll compilation, we load it into the game by checking its create time vs our stored time.
-//For some reason it still gets loaded twice (even with this hack), however-
-//the 1 frame delay that this bool creates, HELPS prevent it from failing (for whatever reason)
-
 
 
 
@@ -51,9 +37,9 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
                 //TODO: 0 out inputs here
                 ShowCursor(TRUE);
                 //BGMODE
-                if (Global_BGMode_Enabled)
+                if (global_bgmode_enabled)
                 {
-                    if (Global_BGMode_TransOutOfFocus)
+                    if (global_bgmode_trans_when_outoffocus)
                         window_set_trans(window, true);
                 }
                 else
@@ -67,7 +53,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
             {
                 ShowCursor(FALSE);
                 //BGMODE
-                if (Global_BGMode_Enabled)
+                if (global_bgmode_enabled)
                 {
                     window_set_trans(window, false);
                 }
@@ -82,12 +68,12 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
         }break;
 
         case WM_DESTROY:{
-            Global_Running = false;
+            global_running = false;
             OutputDebugStringA("(Win32)(WM_DESTROY)\n");
         }break;
 
         case WM_CLOSE:{
-            Global_Running = false;
+            global_running = false;
             OutputDebugStringA("(Win32)(WM_CLOSE)\n");
         }break;
         
@@ -95,7 +81,7 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
             PAINTSTRUCT paint;
             HDC device_context = BeginPaint(window, &paint);
             //Win32_Client_Dimensions dimensions = win32_get_client_dimensions(window);
-            win32_display_buffer_in_window(&Global_Render_Buffer, device_context, (int32)(BASE_W * Global_Settings->window_scale), (int32)(BASE_H * Global_Settings->window_scale));
+            win32_display_buffer_in_window(&global_render_buffer, device_context, (int32)(BASE_W * global_settings->window_scale), (int32)(BASE_H * global_settings->window_scale));
             EndPaint(window, &paint);
             // OutputDebugStringA("(WM_PAINT)");
         }break;
@@ -114,7 +100,7 @@ int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
     // _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
-
+    
     //performance query
     LARGE_INTEGER __perf_frequency_result;
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
@@ -153,7 +139,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     //window
     int8 window_scale = WINDOW_SCALE_DEFAULT;
     
-    win32_set_DIB(&Global_Render_Buffer, BASE_W * window_scale, BASE_H * window_scale);
+    win32_set_DIB(&global_render_buffer, BASE_W * window_scale, BASE_H * window_scale);
     WNDCLASS window_class = {};
     window_class.style = CS_HREDRAW|CS_VREDRAW;
     window_class.lpfnWndProc = win32_main_window_callback;
@@ -176,8 +162,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
             //WS_OVERLAPPEDWINDOW|WS_VISIBLE,
             CW_USEDEFAULT, //x
             CW_USEDEFAULT, //y
-            client_rect.right - client_rect.left, 
-            client_rect.bottom - client_rect.top, 
+            client_rect.right - client_rect.left,
+            client_rect.bottom - client_rect.top,
             0,
             0,
             instance,
@@ -187,14 +173,15 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
         if (window)
         {
             OutputDebugStringA("(Win32): window created successfully\n");
+
+            window_center(window);
             
             BOOL win_set_attrib_result = SetLayeredWindowAttributes(window, 0, 255, LWA_ALPHA);
-            BOOL use_dark_mode = true;
             HRESULT dwm_set_attrib_result = DwmSetWindowAttribute(
                 window,
                 DWMWA_USE_IMMERSIVE_DARK_MODE,
-                &use_dark_mode,
-                sizeof(use_dark_mode)
+                &global_use_dark_mode,
+                sizeof(global_use_dark_mode)
             );
             
 #if MY_INTERNAL 
@@ -231,12 +218,11 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 Game_Render_Buffer game_render_buffer = {};
                 Game_Performance game_performance = {};
                 Game_Settings settings = {};
-                Global_Settings = &settings; //NOTE: Global_Settings is for win32.cpp
+                global_settings = &settings; //NOTE: Global_Settings is for win32.cpp
                 
                 Game_Sound_Buffer game_sound_buffer = {};
                 game_sound_buffer.channels = SND_CHANNELS;
                 game_sound_buffer.sample_rate = SND_SAMPLE_RATE;
-                // game_sound_buffer.memory = ;
                 
                 Typing_Buffer console_buffer = {};
                 console_buffer.max_length = TYPING_BUFFER_SIZE;
@@ -258,7 +244,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);
                 int64 cycle_loop_start = __rdtsc() - cycle_program_start;
                 
-                while (Global_Running)
+                while (global_running)
                 {
 #if MY_INTERNAL
                 //RELOAD GAME CODE //TODO: debug the weirdness here (see "dll_flip" declaration)
@@ -277,16 +263,16 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     }
 #endif
                     
-                    //TODO: make Game_Render_Buffer variables into pointers so we only set once?
-                    game_render_buffer.memory = Global_Render_Buffer.memory;
-                    game_render_buffer.width  = Global_Render_Buffer.width;
-                    game_render_buffer.height = Global_Render_Buffer.height;
-                    game_render_buffer.pitch  = Global_Render_Buffer.pitch;
+                    //TODO: make Game_Render_Buffer variables into pointers so we only need to set once?
+                    game_render_buffer.memory = global_render_buffer.memory;
+                    game_render_buffer.width  = global_render_buffer.width;
+                    game_render_buffer.height = global_render_buffer.height;
+                    game_render_buffer.pitch  = global_render_buffer.pitch;
 
                 //INPUT
                     game_input_map.mouse_scroll = 0;
                     win32_xinput_poll(&game_code, &game_input_map);
-                    win32_process_pending_messages(&game_code, &game_input_map, &Global_Running, &console_buffer);
+                    win32_process_pending_messages(&game_code, &game_input_map, &global_running, &console_buffer);
                     win32_process_input(&game_input_map, &game_input_map_prev);
                     Game_Input_Map input = game_input_map;
 
@@ -295,47 +281,47 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     if (input.debug_bgmode_toggle){
                         OutputDebugStringA("(Win32)(BGMode): ");
                         if (input.ctrl.hold){
-                            if (Global_BGMode_Enabled){
-                                Global_BGMode_TransOutOfFocus = !Global_BGMode_TransOutOfFocus;
-                                auto toof_string = Global_BGMode_TransOutOfFocus ? "transparency out of focus enabled\n" : "transparency out of focus disabled\n";
+                            if (global_bgmode_enabled){
+                                global_bgmode_trans_when_outoffocus = !global_bgmode_trans_when_outoffocus;
+                                auto toof_string = global_bgmode_trans_when_outoffocus ? "transparency out of focus enabled\n" : "transparency out of focus disabled\n";
                                 OutputDebugStringA(toof_string);
                             }
                         }else{
-                            Global_BGMode_Enabled = !Global_BGMode_Enabled;
-                            window_set_topmost(window, Global_BGMode_Enabled);
-                            window_set_trans(window, Global_BGMode_Enabled);
-                            auto bgstatus_string = Global_BGMode_Enabled ? "Enabled\n" :  "Disabled\n";
+                            global_bgmode_enabled = !global_bgmode_enabled;
+                            window_set_topmost(window, global_bgmode_enabled);
+                            window_set_trans(window, global_bgmode_enabled);
+                            auto bgstatus_string = global_bgmode_enabled ? "Enabled\n" :  "Disabled\n";
                             OutputDebugStringA(bgstatus_string);
                         }
                     }
                     
                     if (input.debug_win_plus)
-                        window_set_scale(++Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                        window_set_scale(++global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
                     
                     if (input.debug_win_minus)
-                        window_set_scale(--Global_Settings->window_scale, window, &Global_Render_Buffer, &game_render_buffer);
+                        window_set_scale(--global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
 
-                    //TODO: hotkey to move window into corner, make smaller, turn on bgmode
+                    //QUICK HOTKEY to MOVE+TRANS the window
                     if (input.ctrl.hold && input.shift.hold && input.alt.hold)
                     if (input.debug_win_setup.press){ //TODO: key
-                        window_set_scale(WINDOW_SCALE_DEFAULT-1, window, &Global_Render_Buffer, &game_render_buffer);
+                        window_set_scale(WINDOW_SCALE_DEFAULT-1, window, &global_render_buffer, &game_render_buffer);
                         V2i monres = win32_get_monitor_resolution(window);
                         V2i winsize = window_get_size(window);
                         window_set_pos(window, monres.x - winsize.x, monres.y - winsize.y);
 
                         //enable bgmode TODO: make into function
-                        Global_BGMode_Enabled = true;
-                        Global_BGMode_TransOutOfFocus = true;
-                        window_set_topmost(window, Global_BGMode_Enabled);
-                        window_set_trans(window, Global_BGMode_Enabled);
-                        auto bgstatus_string = Global_BGMode_Enabled ? "Enabled\n" :  "Disabled\n";
+                        global_bgmode_enabled = true;
+                        global_bgmode_trans_when_outoffocus = true;
+                        window_set_topmost(window, global_bgmode_enabled);
+                        window_set_trans(window, global_bgmode_enabled);
+                        auto bgstatus_string = global_bgmode_enabled ? "Enabled\n" :  "Disabled\n";
                         OutputDebugStringA(bgstatus_string);
                     }
                     
 
                     
                 //GAME LOOP
-                    ZeroMemory(game_render_buffer.memory, Global_Render_Buffer.memory_size_bytes); //blacken buffer
+                    ZeroMemory(game_render_buffer.memory, global_render_buffer.memory_size_bytes); //blacken buffer
                     if (game_code.update_and_draw)
                         game_code.update_and_draw(&game_pointers_value, &game_input_map);
 
@@ -351,7 +337,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 //RENDER
                     HDC device_context = GetDC(window);
                     V2i dimensions = win32_get_client_dimensions(window);
-                    win32_display_buffer_in_window(&Global_Render_Buffer, device_context, dimensions.x, dimensions.y);
+                    win32_display_buffer_in_window(&global_render_buffer, device_context, dimensions.x, dimensions.y);
                     ReleaseDC(window, device_context);
 
                     int64 tick_game_render = win32_get_tick_diff(tick_loop_start);

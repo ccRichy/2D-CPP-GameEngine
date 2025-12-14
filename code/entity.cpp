@@ -5,61 +5,82 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-// inline int32
-// entity_get_num(Ent_Type type)
-// {
-//     int32 result = pointers->entity->nums[(i32)type];
-//     return result;
-// }
-
-Sprite*
-entity_sprite_default(Ent_Type type)
+Sprite* entity_sprite_default(Ent_Type type)
 {
     Sprite* result = nullptr;
-    Game_Sprites* spr = GSPRITE;
+    
+    #define XMAC(__name, __max_count, __sprite) case Ent_Type::__name: result = &GSPRITE->__sprite; break;
     switch (type){
-      case Ent_Type::Player: result = &spr->sPlayer_idle; break;
-      case Ent_Type::Wall:   result = &spr->sWall_anim; break;
-      case Ent_Type::Enemy:  result = &spr->sBlob_small; break;
-      case Ent_Type::Goal:   result = &spr->sGoal; break;
-      case Ent_Type::Orb:    result = &spr->sItem_orb; break;
-      case Ent_Type::Spike:  result = &spr->sSpike; break;
+        ENT_LIST
     }
+    #undef XMAC
+    
+    if (result == &GSPRITE->sNull)
+        result = nullptr;
     return result;
 }
 
 Rectangle
-entity_mask_default(Ent_Type type)
+entity_collision_mask_default(Ent_Type type)
 {
+    using enum Ent_Type;
     Rect result = {};
-    switch (type){
-      case Ent_Type::Spike:  result = { .pos = {2, 2}, .size = {3, 6} }; break;
+    switch (type)
+    {
+      case Spike:  result = { .pos = {2, 2}, .size = {3, 6} }; break;
+      case Enemy:  result = { .pos = {}, .size = {Tile(1), Tile(2)} }; break;
         
-      default: result = { .size = v2i_to_v2f(entity_sprite_default(type)->size) }; break;
-       // case Ent_Type::Goal:   result = &spr->sGoal; break;
-      // case Ent_Type::Orb:    result = &spr->sItem_orb; break;
-        // case Ent_Type::Enemy:  result = &spr->sBlob_small; break;
+      default:{
+          Sprite* spr = entity_sprite_default(type);
+          if (spr)
+              result = { .size = {.x = (f32)(spr->width / spr->frame_num), .y = (f32)spr->height} };
+          else
+              result = {.size = {TILE_SIZE, TILE_SIZE} };
+      }break;
     }
     return result;
 }
+
+void entity_draw_type(Ent_Type type);
+void entity_draw_default(){
+    using enum Ent_Type;
+
+    for (int it = 0; it < (i32)Ent_Type::Num; ++it){
+        Ent_Type type = (Ent_Type)it;
+        
+        switch (type)
+        {
+          case Player: break;
+        
+          default: {
+              entity_draw_type(type);
+          } break;
+        }
+    }    
+}
+
 
 Entity*
 entity_init(Ent_Type type, Vec2f pos)
 {
     Entity* array = ENT_POINT(type);
-    i32 num_of_alive = ENT_NUM(type);//pointers->entity->nums[(int32)type];
-    i32 array_max = ENT_MAX(type); 
-    if (num_of_alive >= array_max) return nullptr;
-    
+    i32 num_of_alive = ENT_NUM(type);
+    i32 ent_max = ENT_MAX(type); 
+    if (num_of_alive >= ent_max) return nullptr;
+
+    //find an open index space
     Entity* result = nullptr;
-    for (int i = 0; i < array_max; ++i){
-        int32 looped_index = (num_of_alive+i) % array_max;
+    for (int i = 0; i < ent_max; ++i){
+        //start from the 1st hypothetical free index.
+        //if an index is found, break;
+        //if not, linearly traverse all possible indexes (mod(%). this gives us much greater odds of finding the most likely spot(s) in the fewest loops in a simple way.
+        int32 looped_index = (num_of_alive+i) % ent_max;
         if (!array[looped_index].is_alive){
-            result = &array[looped_index]; 
-            result->sprite = entity_sprite_default(type); //set default sprite
-            result->bbox = entity_mask_default(type);
-            // if (result->bbox.size.x == 0)
-            //     result->bbox.size = v2i_to_v2f(result->sprite->size);
+            result = &array[looped_index];
+            
+            result->sprite = entity_sprite_default(type);
+            
+            result->bbox = entity_collision_mask_default(type);
             result->type = type;
             result->pos = pos;
             result->is_alive = true;
@@ -93,32 +114,55 @@ entity_clear_all()
         pointers->entity->nums[ent_num_index] = 0;
 }
 
+inline bool32
+entity_anim_update(Entity* ent)
+{
+    b32 result = false;
+    f32 index_add = (f32)ent->sprite->fps/FPS_TARGET;
+    ent->anim_index += index_add * ent->anim_speed;
+
+//method1
+    ent->anim_ended_this_frame = false;
+    if (ent->anim_index + index_add >= ent->sprite->frame_num) ent->anim_ended_this_frame = true;
+    ent->anim_index = mod_f32(ent->anim_index, (f32)ent->sprite->frame_num);
+    
+//method2
+    // if (anim_index >= sprite->frame_num) {
+    //     anim_ended_this_frame = true;
+    //     result = true;
+    //     anim_index = 0;
+    // }
+    
+    return result;
+}
 
 inline void
-entity_draw_sprite(Entity* entity)
+entity_draw_sprite(Entity* ent)
 {
+    entity_anim_update(ent);
     draw_sprite_frame(
-        entity->sprite,
-        entity->pos,
-        entity->anim_index,
-        entity->scale
+        ent->sprite,
+        ent->pos,
+        ent->anim_index,
+        ent->scale
     );
 }
 
 void entity_draw_type(Ent_Type type)
 {
-    for (int i = 0; i < ENT_MAX(type); ++i){
-        Entity* ent = &ENT_POINT(type)[i];
-        if (!ent->is_alive) continue;
-        if (ent->sprite)
+    Entity* ent_start = ENT_POINT(type);
+    i32 max = ENT_MAX(type);
+    for (int it = 0; it < max; ++it)
+    {
+        Entity* ent = &ent_start[it];
+        if (ent->is_alive){
             entity_draw_sprite(ent);
-        else
-            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
-    }    
-}
-
-
-
+            IF_DEBUG {
+                draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
+            }
+        }
+    }
+}    
 
 
 
@@ -138,16 +182,16 @@ wall_create(Vec2f pos, Vec2f size)
     }
     return ent;
 };
-void
-wall_draw()
-{
-    for (int i = 0; i < ENT_MAX(Ent_Type::Wall); ++i)
-    {
-        Entity* ent = &ENT_POINT(Ent_Type::Wall)[i];
-        if (!ent->is_alive) continue;
-        draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
-    }
-}
+// void
+// wall_draw()
+// {
+//     for (int i = 0; i < ENT_MAX(Ent_Type::Wall); ++i)
+//     {
+//         Entity* ent = &ENT_POINT(Ent_Type::Wall)[i];
+//         if (!ent->is_alive) continue;
+//         draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
+//     }
+// }
 
 
 //
@@ -219,5 +263,16 @@ goal_draw()
         IF_DEBUG {
             draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
         }
+    }
+}
+
+
+void
+bouncy_turtle_update()
+{
+    for (int i = 0; i < ENT_MAX(Ent_Type::Turtle); ++i){
+        Entity* ent = &ENT_POINT(Ent_Type::Turtle)[i];
+        if (!ent->is_alive) continue;
+        
     }
 }

@@ -48,11 +48,8 @@ struct Color
 #define MAGENTA    Color{ 255, 0, 255, 255 }  
 #define RAYWHITE   Color{ 245, 245, 245, 255 }
 
-
+//debug colors
 #define BBOXRED   Color{ 55, 41, 230, 150 }
-
-
-
 
 
 

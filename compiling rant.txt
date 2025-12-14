@@ -1,0 +1,12 @@
+#Unity Build?
+
+CHAPTER 1. THE STANDARD WAY
+
+The standard, C/C++ language design intended way to compile your program, is to expose the compiler to its various code directories & therefore source files, so that they may each become their own compilation unit with an associated object file (.o). All files are loaded, parsed, compiled, then linked back together to make the final executable program.
+
+In order to use multiple source-code files in one program, there are 2 steps the developer must undertake:
+1. Accessing Code In Another File - Include(#include) a header file, which we define as strictly definitions, into its respective implementation file, then AGAIN for each time another file that needs access to its definitions...We'll come back to this.
+2. Compilation - The developer must manually expose the compiler to each directory & file for the whole program.
+
+This is often times achieved with a 
+

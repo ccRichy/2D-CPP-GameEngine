@@ -134,7 +134,6 @@ im_button(Vec2f button_pos, Vec2f button_size)//, int32 id)
     auto input = pointers->input;
     auto data = pointers->data;
 
-    //mouse
     Vec2f mouse_pos = mouse_get_pos_gui();
 
     Color color = MAGENTA;
@@ -186,7 +185,8 @@ globalvar bool32 global_editor_level_changed; //used to keep level changes witho
 globalvar Ent_Type global_editor_entity_to_spawn = Ent_Type::Player;
 globalvar Entity* global_editor_selected_entity = nullptr;
 
-
+//NOTE: why isnt this in entity.h? fuck i forgot but it didnt work for some reason
+//TODO: figure that out ^
 Entity*
 entity_spawn(Ent_Type type, Vec2f pos)
 {
@@ -195,7 +195,7 @@ entity_spawn(Ent_Type type, Vec2f pos)
 
     switch (type){
       case Player: PLAYER->create(pos); break;
-      case Wall:  result  = wall_create(pos, {Tile(1), Tile(1)}); break;
+      case Wall:   result = wall_create(pos, {Tile(1), Tile(1)}); break;
       default: entity_init(type, pos);
     }
 
@@ -245,7 +245,6 @@ level_save_file(const char* filename)
     }
 
     //TODO: save entity instance "variable definitions"
-    int cool = "";
     
     //HACK:? temporaryily allocate storage for save file
     //TODO: make functions for opening, appeding, and closing a file
@@ -489,7 +488,7 @@ game_load_state(const char* filename) //trying to load old versions is likely to
 }
 
 
-void
+void //TODO: move this
 draw_bg(Sprite* spr)
 {   
     auto prev_draw_mode = GDATA->draw_mode;
@@ -502,22 +501,58 @@ draw_bg(Sprite* spr)
 void
 game_draw_world()
 {
-    GDATA->draw_mode = Draw_Mode::Gui;
-    draw_bg(&GSPRITE->sBG_cave1);
-
     GDATA->draw_mode = Draw_Mode::World;
-    // for (int i = 0; i < 10; ++i){
-    //     draw_rect({ (f32)i * 16, 0}, {8, 8}, RED);
-    // }
-
+    draw_bg(&GSPRITE->sBG_cave1);
     draw_tilemap(&GDATA->tilemap);
-
-    // wall_draw();
-    spike_draw();
-    // enemy_draw();
+    entity_draw_default();
     PLAYER->draw();
 }
 
+void
+game_state_play_update()
+{
+    auto input = GINPUT;
+    auto data = GDATA;
+    
+    //controls
+    if (input->edit_toggle){
+        level_reload();
+        data->state = Game_State::Edit;
+        debug_message("Game State: Editor");
+    }
+    if (input->escape.press)
+        data->state = Game_State::Pause;
+
+    
+
+//teleport player to mouse
+    IF_DEBUG {
+        if (input->mouse_right.hold){
+            data->draw_mode = Draw_Mode::World;
+            draw_sprite_frame(&GSPRITE->sPlayer_idle, mouse_get_pos_world(), 0);
+        }
+        if (input->mouse_right.release){
+            PLAYER->pos = mouse_get_pos_world();
+        }
+    }
+
+    
+    //entity update
+    PLAYER->update();
+    // entity_update();
+    enemy_update();
+
+    //camera update
+    float32 cam_yoffset_extra = 4;
+    Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
+    data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
+    data->camera_pos = PLAYER->pos - data->camera_pos_offset;
+
+    data->camera_pos.x = clamp_f32(data->camera_pos.x, 0, 1000);
+    data->camera_pos.y = clamp_f32(data->camera_pos.y, 0, 1000);
+    
+    game_draw_world();
+}
 
 void
 game_state_editor_update()
@@ -556,8 +591,31 @@ game_state_editor_update()
         editor_draw_selected();
         
         //DEBUG Entity Editor Functions
-        if (!im_hot()){
-            if (input->mouse_left){
+
+        if (!im_hot()) {
+            if (input->alt.hold){
+                //draw entity at spawn location
+                data->draw_mode = Draw_Mode::World;
+                Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap); //round to tile
+                if (input->shift.hold)
+                    spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel 
+               
+                draw_sprite_frame(entity_sprite_default(global_editor_entity_to_spawn), spawn_pos, 0);
+            
+                if (input->mouse_left.press){
+                    entity_spawn(global_editor_entity_to_spawn, spawn_pos);                    
+                }
+            }
+            else
+            {
+                if (input->mouse_left.press)
+                    global_editor_selected_entity = entity_at_mouse_pos();                
+            }
+        }
+
+        //TODO: delete me
+        if (!im_hot()) {
+            if (input->mouse_left.press){
                 if (input->alt.hold){
                     //spawn
                     Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap); //round to tile
@@ -728,54 +786,6 @@ game_state_editor_update()
     }
 }
 
-
-
-void
-game_state_play_update()
-{
-    auto input = GINPUT;
-    auto data = GDATA;
-    
-    //controls
-    if (input->edit_toggle){
-        level_reload();
-        data->state = Game_State::Edit;
-        debug_message("Game State: Editor");
-    }
-    if (input->escape.press)
-        data->state = Game_State::Pause;
-
-    
-
-//teleport player to mouse
-    IF_DEBUG {
-        if (input->mouse_right.hold){
-            data->draw_mode = Draw_Mode::World;
-            draw_sprite_frame(&GSPRITE->sPlayer_idle, mouse_get_pos_world(), 0);
-        }
-        if (input->mouse_right.release){
-            PLAYER->pos = mouse_get_pos_world();
-        }
-    }
-
-    
-    //entity update
-    PLAYER->update();
-    // entity_update();
-    enemy_update();
-
-    //camera update
-    float32 cam_yoffset_extra = 4;
-    Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
-    data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
-    data->camera_pos = PLAYER->pos - data->camera_pos_offset;
-
-    data->camera_pos.x = clamp_f32(data->camera_pos.x, 0, 1000);
-    data->camera_pos.y = clamp_f32(data->camera_pos.y, 0, 1000);
-    
-    game_draw_world();
-}
-
 void
 game_state_pause_update()
 {
@@ -855,25 +865,25 @@ game_initialize(Game_Pointers* _game_pointers)
 
     //initialize array of pointers to the 1st entity for each one
     Entity* entity_pointer = pointers->entity->array;
-    for (int i = 0; i < (i32)Ent_Type::Num; ++i){
-        if (i == 0){ //player
+    for (int it = 0; it < (i32)Ent_Type::Num; ++it){
+        if (it == 0){ //player
             // entity->pointers[i] = nullptr;
         }else{
-            i32 current_entity_max = ENT_INFO[i].max_count;
-            entity->pointers[i] = entity_pointer;
+            i32 current_entity_max = ENT_INFO[it].max_count;
+            entity->pointers[it] = entity_pointer;
 
             //DEBUG: set type for validation
             for (int jj = 0; jj < current_entity_max; ++jj){
-                entity_pointer[jj].type = (Ent_Type)i;
+                entity_pointer[jj].type = (Ent_Type)it;
             }
 
             entity_pointer += current_entity_max;
         }
     }
 
-#define XMAC(name, ...) sprite->##name = sprite_create(#name, __VA_ARGS__);
+#define _xm(name, ...) sprite->##name = sprite_create(#name, __VA_ARGS__);
     SPR_LIST
-#undef XMAC
+#undef _xm
 
 #define BMP_LOAD(name) data->##name = DEBUG_load_bmp(#name)
     BMP_LOAD(sTest);

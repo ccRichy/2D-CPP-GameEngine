@@ -25,7 +25,7 @@
 #define SND_BUFFER_SIZE_BYTES (((SND_SAMPLE_RATE) * (SND_BITS_PER_SAMPLE/8)))
 
 
-#define LEVEL_FIRST "ledge"
+#define LEVEL_FIRST "cave"
 #define UNSAVED_BACKUP_NAME "unsaved"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
@@ -210,11 +210,10 @@ enum struct Editor_Mode
 
 struct Game_Sprites
 {
-//Characters
-    //player
-#define XMAC(__name, ...) Sprite __name;
+    Sprite sNull; //used to be set in game_initalize to nullptr properly (we cant use nullptr in the sprite XMACRO
+#define _xm(__name, ...) Sprite __name;
     SPR_LIST
-#undef XMAC
+#undef _xm
 };
 
 struct Game_Entities
@@ -227,6 +226,7 @@ struct Game_Entities
 
     int32 nums[(i32)Ent_Type::Num];
     Entity* pointers[(i32)Ent_Type::Num];
+    Sprite* sprite_defaults[(i32)Ent_Type::Num];
 };
 
 

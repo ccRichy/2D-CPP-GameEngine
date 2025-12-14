@@ -4,9 +4,6 @@
    $Revision: $
    $Creator: Connor Ritchotte $
    ======================================================================== */
-// #include "my_color.h"
-
-
 
 inline uint8 color_channel_get_transparent(uint8 channel_prev, uint8 channel_new, float32 alpha)
 {

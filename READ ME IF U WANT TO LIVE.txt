@@ -3,7 +3,7 @@ If we need performance, we can stop rendering the full-sized window-scale buffer
 #todo, elaborate this more but just start with some obvious stuff
 
 
-
+GENERAL
 1. The program compiles 2 cpp files for the platform/application layers respectively.
 Each platform is compiled distinctly, separated by their respective 'main' files. 
 I also use a 0 Header-Guard, Unity-Build method for keep #includes, compile times to a minimum. See below for elaboration.
@@ -18,6 +18,11 @@ This does not rule out the file possibly containing definitions as well.
 The project uses plently that contain both for "find" (Ctrl + F) purposes, and to keep our compilation time down.
 Rule of thumb, if it's going to include a function body, then make it a .cpp file.
 
+
+
+DEBUG
+1. Errors. In the shipped game (Release Build if you will), a crash upon error should be as infrequent as possible. See example below. 
+Ex: If a Sprite's file data is invalid, we use a debug sprite. This is enforced in the macro function "sprite_set()" Not only to make the developer aware of an issue, but also as a failsafe to the Player.
 
 
 

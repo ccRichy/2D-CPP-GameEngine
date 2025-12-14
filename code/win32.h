@@ -5,14 +5,25 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-//TODO:
-//- connect to server.
-//- upload/download file
-
-
-
-// #define _CRT_SECURE_NO_WARNINGS
 #define BGMODE_TRANSPARENCY_AMT 140
+
+
+
+int64 global_cpu_freq;
+
+globalvar BOOL global_use_dark_mode = true;
+
+globalvar Game_Settings* global_settings;
+globalvar Game_Input_Map* global_game_input_map;
+globalvar bool32 global_bgmode_enabled = false;
+globalvar bool32 global_bgmode_trans_when_outoffocus = true;
+globalvar bool32 global_running = true;
+
+globalvar bool32 dll_flip; //HACK: for game_dll auto hotloading
+//BUG: something is preventing the game dll from loading in (majority of the time) without this
+//Upon game dll compilation, we load it into the game by checking its create time vs our stored time.
+//For some reason it still gets loaded twice (even with this hack), however-
+//the 1 frame delay that this bool creates, HELPS prevent it from failing (for whatever reason)
 
 
 

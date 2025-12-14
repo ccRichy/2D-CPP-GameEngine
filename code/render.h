@@ -7,37 +7,38 @@
 
 //name, frame_num, fps, origin
 #define PLR_SPR_ORIGIN {8.f, 12.f}
-#define SPR_LIST \
-XMAC(sPlayer_air         , 7, 15, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_air_reach   , 2, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_idle        , 2, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_ledge_grab  , 1, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_ledge       , 4, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_ledge_reach , 3, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_rope_climb  , 2, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_rope_slide  , 2, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_splat_slow  , 5, 7, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_splat_swift , 6, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_turn        , 1, 6, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_walk        , 4, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_walk_reach  , 4, 10, PLR_SPR_ORIGIN) \
-XMAC(sPlayer_wire_idle   , 5, 6, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_wire_walk   , 4, 6, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_hurt        , 1, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_bounce      , 1, 0, PLR_SPR_ORIGIN)  \
-XMAC(sPlayer_roll        , 6, 15, PLR_SPR_ORIGIN) \
+#define SPR_LIST                                  \
+_xm(sPlayer_air         , 7, 15, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_air_reach   , 2, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_idle        , 2, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_ledge_grab  , 1, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_ledge       , 4, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_ledge_reach , 3, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_rope_climb  , 2, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_rope_slide  , 2, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_splat_slow  , 5, 7,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_splat_swift , 6, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_turn        , 1, 6,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_walk        , 4, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_walk_reach  , 4, 10, PLR_SPR_ORIGIN)  \
+_xm(sPlayer_wire_idle   , 5, 6,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_wire_walk   , 4, 6,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_hurt        , 1, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_bounce      , 1, 0,  PLR_SPR_ORIGIN)  \
+_xm(sPlayer_roll        , 6, 15, PLR_SPR_ORIGIN)  \
                                                   \
-XMAC(sWall_anim          , 4, 6, {})              \
-XMAC(sBlob_small         , 4, 6, {})              \
-XMAC(sGoal)                                       \
-XMAC(sSpike)                                      \
-XMAC(sItem_orb)                                   \
+_xm(sWall_anim          , 4, 6, {})               \
+_xm(sBlob_small         , 4, 6, {})               \
+_xm(sGoal)                                        \
+_xm(sSpike)                                       \
+_xm(sTurtle, 3, 4, {})                            \
+_xm(sItem_orb, 4, 5, {})                          \
                                                   \
-XMAC(sBG_test)                                    \
-XMAC(sBG_cave1)                                   \
+_xm(sBG_test)                                     \
+_xm(sBG_cave1)                                    \
                                                   \
-XMAC(sMouse_cursors      , 4, 0, {2, 2})          \
-XMAC(sDebug)                                      \
+_xm(sMouse_cursors      , 4, 0, {2, 2})           \
+_xm(sDebug)                                       \
 
 
  
