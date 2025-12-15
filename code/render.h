@@ -8,6 +8,12 @@
 //name, frame_num, fps, origin
 #define PLR_SPR_ORIGIN {8.f, 12.f}
 #define SPR_LIST                                  \
+_xm(sNull, 1, 0, {})                              \
+_xm(sMouse_cursors      , 4, 0, {2, 2})           \
+                                                  \
+_xm(sBG_test)                                     \
+_xm(sBG_cave1)                                    \
+                                                  \
 _xm(sPlayer_air         , 7, 15, PLR_SPR_ORIGIN)  \
 _xm(sPlayer_air_reach   , 2, 0,  PLR_SPR_ORIGIN)  \
 _xm(sPlayer_idle        , 2, 0,  PLR_SPR_ORIGIN)  \
@@ -27,18 +33,12 @@ _xm(sPlayer_hurt        , 1, 0,  PLR_SPR_ORIGIN)  \
 _xm(sPlayer_bounce      , 1, 0,  PLR_SPR_ORIGIN)  \
 _xm(sPlayer_roll        , 6, 15, PLR_SPR_ORIGIN)  \
                                                   \
-_xm(sWall_anim          , 4, 6, {})               \
+_xm(sWall_anim          , 2, 0, {})               \
 _xm(sBlob_small         , 4, 6, {})               \
 _xm(sGoal)                                        \
 _xm(sSpike)                                       \
-_xm(sTurtle, 3, 4, {})                            \
+_xm(sTurtle_walk, 3, 4, {})                            \
 _xm(sItem_orb, 4, 5, {})                          \
-                                                  \
-_xm(sBG_test)                                     \
-_xm(sBG_cave1)                                    \
-                                                  \
-_xm(sMouse_cursors      , 4, 0, {2, 2})           \
-_xm(sDebug)                                       \
 
 
  

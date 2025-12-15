@@ -14,6 +14,21 @@ struct Collide_Data
 };
 
 
+bool32 collide_rects(Vec2f pos1, Vec2f size1, Vec2f pos2, Vec2f size2);
+bool32 collide_pixel_rect(Vec2f pixel_pos, Vec2f rect_pos, Vec2f rect_size);
+bool32 collide_pixel_rect(Vec2f pos, Rectangle rect);
+
+Entity* collide_pixel_entity_pointer(Vec2f pixel_pos, Ent_Type type);
+Entity* collide_pixel_get_any_entity(Vec2f pixel_pos);
+
+bool32  on_screen(Vec2f pos, Vec2f padding);
+bool32  collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type);
+bool32  collide_entitys(Entity* ent1, Entity* ent2);
+bool32  collide_entity_type(Entity* ent_caller, Ent_Type type);
+Entity* collide_rect_entity_pointer(Vec2f pos, Vec2f size, Ent_Type type);
+Collide_Data move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset = {});
+
+
 
 //GENERIC
 bool32
@@ -180,7 +195,7 @@ collide_rect_entity_pointer(Vec2f pos, Vec2f size, Ent_Type type)
 }
 
 Collide_Data
-move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset = {})
+move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset)
 {
     Collide_Data coll_data = {};
 

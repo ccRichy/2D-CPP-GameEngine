@@ -30,13 +30,16 @@ void debug_message(const char* fmt, ...)
     int32 lifetime = DEBUG_MESSAGE_LIFETIME_DEFAULT;
     msg.lifetime = lifetime;
 
-    char text_buffer[BUFF_LEN];
+    char text_buffer[DEBUG_MESSAGE_LENGTH_MAX];
     va_list args;
     va_start(args, fmt);
     vsprintf(text_buffer, fmt, args);
     va_end(args);
 
     string_append(msg.text, text_buffer);
+
+    if (DEBUG_MESSAGE_ALSO_LOGS)
+        printf(msg.text);
     
     pointers->data->debug_msg.current_message = msg;
     pointers->data->debug_msg.is_active = true;
@@ -219,7 +222,7 @@ editor_draw_selected()
     
     Color color = GREEN;
     color.a = (u8)alpha;
-    draw_rect(ent_hl->pos, ent_hl->bbox.size, color);
+    draw_rect(ent_hl->pos + ent_hl->bbox.pos, ent_hl->bbox.size, color);
 }
 
 bool32
@@ -286,8 +289,8 @@ level_save_file(const char* filename)
         Entity* entity = &array[entity_index];
         if (entity->is_alive){
             char ent_string[64];
-            sprintf(ent_string, "e%i x%i y%i w%i h%i,\n",
-                    (int32)entity->type,
+            sprintf(ent_string, "e %s x%i y%i w%i h%i,\n",
+                    ENT_NAME(entity->type),
                     (int32)entity->pos.x,
                     (int32)entity->pos.y,
                     (int32)entity->bbox.size.x,
@@ -411,20 +414,25 @@ level_load_file(const char* filename) //filename without extension
     while ( buff_offset < buff_len )
     {
         i32 word_len = string_get_until_space(word_buffer, entity_buff + buff_offset);
-
         auto var = word_buffer[0];
         i32 value = string_get_i32(word_buffer);
         switch (var){
-          case 'e': ent_type   = (Ent_Type)value; break;
-          case 'x': ent_pos.x  = (f32)value;      break;
-          case 'y': ent_pos.y  = (f32)value;      break;
-          case 'w': ent_size.w = (f32)value;      break;
-          case 'h': ent_size.h = (f32)value;      break;
+          case 'e': {
+              char ent_name[32] = {};
+              buff_offset += word_len+1;
+              word_len = string_get_until_space(ent_name, entity_buff + buff_offset);
+              ent_type = entity_get_type_with_string(ent_name);
+          }break;
+          case 'x': ent_pos.x  = (f32)value; break;
+          case 'y': ent_pos.y  = (f32)value; break;
+          case 'w': ent_size.w = (f32)value; break;
+          case 'h': ent_size.h = (f32)value; break;
         }            
 
         buff_offset += word_len+1;
 
-        if (string_contains(word_buffer, ',')){
+        b32 end_of_entity_string = string_contains(word_buffer, ',');
+        if (end_of_entity_string){
             Entity* entity_spawned = entity_spawn(ent_type, ent_pos);
             //HACK:
             if (ent_type == Ent_Type::Wall)
@@ -540,6 +548,7 @@ game_state_play_update()
     //entity update
     PLAYER->update();
     // entity_update();
+    bouncy_turtle_update();
     enemy_update();
 
     //camera update
@@ -595,39 +604,24 @@ game_state_editor_update()
         if (!im_hot()) {
             if (input->alt.hold){
                 //draw entity at spawn location
-                data->draw_mode = Draw_Mode::World;
-                Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap); //round to tile
+                Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap);
                 if (input->shift.hold)
-                    spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel 
-               
+                    spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel
+                
+                data->draw_mode = Draw_Mode::World;
                 draw_sprite_frame(entity_sprite_default(global_editor_entity_to_spawn), spawn_pos, 0);
             
                 if (input->mouse_left.press){
-                    entity_spawn(global_editor_entity_to_spawn, spawn_pos);                    
+                    entity_spawn(global_editor_entity_to_spawn, spawn_pos);
                 }
             }
             else
             {
                 if (input->mouse_left.press)
-                    global_editor_selected_entity = entity_at_mouse_pos();                
+                    global_editor_selected_entity = entity_at_mouse_pos();
             }
         }
 
-        //TODO: delete me
-        if (!im_hot()) {
-            if (input->mouse_left.press){
-                if (input->alt.hold){
-                    //spawn
-                    Vec2f spawn_pos = mouse_get_tile_pos_in_world(tmap); //round to tile
-                    if (input->shift.hold)
-                        spawn_pos = round_v2f(mouse_get_pos_world()); //mouse pixel
-                    entity_spawn(global_editor_entity_to_spawn, spawn_pos);
-                }else{
-                    //select
-                    global_editor_selected_entity = entity_at_mouse_pos();
-                }
-            }
-        }
         //delete entity from room
         if (input->mouse_right.release){
             entity_destroy(global_editor_selected_entity);
@@ -706,7 +700,7 @@ game_state_editor_update()
         }
     }
 
-        
+
 //Draw 0,0 (x,y) lines
     data->draw_mode = Draw_Mode::World;
     f32 static_size = scale_get_zoom_agnostic(0.5);
@@ -719,13 +713,13 @@ game_state_editor_update()
     f32   grid_line_size  = (1.f/pointers->settings->window_scale) * static_size;
     u8    color_val = 50;
     Color color_faded     = {color_val, color_val, color_val, 255};
-    for (int grid_x = 0; grid_x < grid_length_max.x; ++grid_x){
+    for (i32 grid_x = 0; grid_x < grid_length_max.x; ++grid_x){
         draw_rect(
             {(float32)grid_x * grid_spacing, 0},
             {grid_line_size, (f32)grid_length_max.x * grid_spacing},
             color_faded);
     }
-    for (int grid_y = 0; grid_y < grid_length_max.y; ++grid_y){
+    for (i32 grid_y = 0; grid_y < grid_length_max.y; ++grid_y){
         draw_rect(
             {0, (float32)grid_y * grid_spacing},
             {(f32)grid_length_max.x * grid_spacing, grid_line_size},
@@ -734,7 +728,7 @@ game_state_editor_update()
 
 //Camera
     f32 cam_speed = 2;
-    if (input->ctrl.hold) cam_speed = cam_speed/2;
+    if (input->ctrl.hold)  cam_speed = cam_speed/2;
     if (input->shift.hold) cam_speed = cam_speed*2;
         
     V2f move_input =
@@ -742,10 +736,10 @@ game_state_editor_update()
          (float32)(input->down.hold - input->up.hold) / GSETTING->zoom_scale};
     data->camera_pos += move_input * Vec2f{cam_speed, cam_speed};
 
-    
+
 //Draw GUI
     data->draw_mode = Draw_Mode::Gui;
-    Vec2f eb_pos = {40, 10};
+    Vec2f eb_pos =  {40, 10};
     Vec2f eb_size = {16, 6};
     draw_text_buffer(
         {eb_pos.x, eb_pos.y - eb_size.y}, {0.5f, 0.5f}, {5, 8},
@@ -953,9 +947,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     else if (state == Game_State::Play)  game_state_play_update();
     else if (state == Game_State::Pause) game_state_pause_update();
 
-    //TODO: move this into editor update
-    // editor_draw_selected();
-
     //debug
     data->draw_mode = Draw_Mode::Gui;
     debug_message_queue_update();
@@ -963,15 +954,13 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
         //draw performance
         auto perf = pointers->performance;
         draw_text_buffer({77, 0}, {0.77f, 0.77f}, {7, 8},
-                         "ms/f: %.2f" "\n"
-                         "mc/f: %.2f" "\n"
+                         "ms/f: %.2f"  "\n"
+                         "mc/f: %.2f"  "\n"
                          ,perf->ms_frame
                          ,perf->megacycles_frame);
     }
-    // GSETTING->zoom_scale = 0.77f;
 
 //Console
-    
     //TODO:
     //- show typing cursor
     persist char cmd_string[64];
@@ -982,8 +971,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
     if (input->console.press)
         input_set_mode(input, Input_Mode::Type);
     
-    if (input->input_mode == Input_Mode::Type)
-    {
+    if (input->input_mode == Input_Mode::Type){
         //draw console winddow
         V2f console_pos = {50, 50};
         draw_rect(console_pos, {BASE_W, 10}, MAGENTA);

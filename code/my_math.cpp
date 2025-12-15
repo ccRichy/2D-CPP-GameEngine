@@ -26,11 +26,11 @@
 //types
 //NOTE: declare as a struct member to "inherit" the names and keep under one name
 //Q: why not hard-code the names? A: so we can see at a glance the names we made in this struct, and for expressiveness :)
-#define Vec2fUnion(__pos_name, __xname, __yname)\
-    union { struct {Vec2f pos;}; struct {float32 __xname, __yname; }; }
+#define Vec2fUnion(__vec_name, __xname, __yname)\
+    union { struct {Vec2f __vec_name;}; struct {float32 __xname, __yname; }; }
 
-#define Vec2iUnion(__pos_name, __xname, __yname)\
-    union { struct {Vec2f pos;}; struct {float32 __xname, __yname; }; }
+#define Vec2iUnion(__vec_name, __xname, __yname)\
+    union { struct {Vec2f __vec_name;}; struct {float32 __xname, __yname; }; }
 
 struct Vector2i
 {

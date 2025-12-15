@@ -8,12 +8,13 @@
 //name, max_amount, sprite default
 #define ENT_LIST                 \
 XMAC(Player, 0, sPlayer_idle)    \
-XMAC(Wall,   8, sNull)           \
+XMAC(Wall,   8, sWall_anim)      \
 XMAC(Spike,  2, sSpike)          \
 XMAC(Enemy,  6, sNull)           \
-XMAC(Turtle, 4, sTurtle) \
+XMAC(Turtle, 4, sTurtle_walk)         \
 XMAC(Goal,   1, sGoal)           \
 XMAC(Orb,    4, sItem_orb)       \
+
 
 
 #define ENT_NAME(type)  ENT_INFO[(i32)type].name
@@ -22,11 +23,10 @@ XMAC(Orb,    4, sItem_orb)       \
 
 #define sprite_set(__entity, __sprite_name) if (pointers->sprite->##__sprite_name.is_initialized) __entity->sprite = &pointers->sprite->##__sprite_name; else __entity->sprite = &pointers->sprite->sDebug
 
-#define bbox_top(__entity) (__entity->y + __entity->bbox.y)
+#define bbox_top(__entity)    (__entity->y + __entity->bbox.y)
 #define bbox_bottom(__entity) (__entity->y + __entity->bbox.y + __entity->bbox.h)
-#define bbox_left(__entity) (__entity->x + __entity->bbox.x)
-#define bbox_right(__entity) (__entity->x + __entity->bbox.x + __entity->bbox.w)
-
+#define bbox_left(__entity)   (__entity->x + __entity->bbox.x)
+#define bbox_right(__entity)  (__entity->x + __entity->bbox.x + __entity->bbox.w)
 
 
 
@@ -140,20 +140,21 @@ struct Entity
     bool32   is_alive;
 
     //visual
-    Color color;
+    Color   color;
     Sprite* sprite;
     float32 anim_index;
     float32 anim_speed = 1;
-    bool32 anim_ended_this_frame;
-    Vec2f   scale = {1, 1};
+    bool32  anim_ended_this_frame;
+    Vec2f   scale      = {1, 1};
 
     //bbox
     Rectangle bbox; //.pos is treated as an offset
     // Vec2f size;
 
     //movement
+    Vec2fUnion(pos, x, y);
+    // Vec2f pos;
     Vec2f move_input;
-    Vec2f pos;
     Vec2f spd;
 
     //combat

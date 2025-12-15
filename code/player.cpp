@@ -242,8 +242,7 @@ Player::state_perform(Player_State _state, State_Function _function)
     auto input = pointers->input;
     auto tmap = &pointers->data->tilemap;
     
-    switch (_state)
-    {
+    switch (_state){
       case Idle:{
           switch (_function){
             case Enter:{
@@ -279,8 +278,8 @@ Player::state_perform(Player_State _state, State_Function _function)
             case Step:{
                 f32 slow_physics_spd_threshold = 0.45f;
                 
-                speed_vert();
                 speed_hori(false);
+                speed_vert();
                 move_collide_tile(&GDATA->tilemap, &pos, &spd, bbox.size, bbox.pos);
 
                 //anim
@@ -418,6 +417,7 @@ Player::state_perform(Player_State _state, State_Function _function)
             case Enter:{
                 Sprite* spr = (spd.y > 0 ? &GSPRITE->sPlayer_ledge_grab : &GSPRITE->sPlayer_ledge);
                 state_enter_default(spr);
+                spd = {};
             }break;
               
             case Step:{
@@ -442,8 +442,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                     if (can_reach){
                         //NOTE: ledge aim sprite:
                         sprite = &GSPRITE->sPlayer_ledge_reach;
-                        if (reaching_down) anim_index = 2;
-                        else if (reaching_away) anim_index = 1;
+                        if (reaching_down)         anim_index = 2;
+                        else if (reaching_away)    anim_index = 1;
                         else if (move_input.y < 0) anim_index = 0;
                     }
                 }else{
@@ -460,7 +460,8 @@ Player::state_perform(Player_State _state, State_Function _function)
                         spd.y = -1.1f;
                     }
                     
-                    if (spd.x != 0) scale.x = (f32)sign(spd.x);
+                    if (spd.x != 0)
+                        scale.x = (f32)sign(spd.x);
                 }
             }break;
               

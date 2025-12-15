@@ -17,6 +17,10 @@ DEBUG_load_bmp(const char* filename)
 
     //TODO: use Memory Arena to point
     auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(file_path).memory;
+
+    if (!file)
+        printf("poopy");
+    Assert(file);
     
     result.size_bytes = file->size;
     result.width = file->width;
@@ -24,7 +28,6 @@ DEBUG_load_bmp(const char* filename)
     result.pixels = (u32*)((u8*)file + file->offset);
     result.bits_per_pixel = file->bits_per_pixel;
         
-    Assert(result.size_bytes > 0);
     // GMEMORY->DEBUG_platform_file_free_memory(file);
     return result;
 };

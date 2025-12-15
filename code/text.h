@@ -9,7 +9,6 @@
 #define FONT_GLYPH_SIZE 8
 #define FONT_LENGTH 94
 #define FONT_ASCII_CHARACTER_START_OFFSET 32
-#define BUFF_LEN 256
 
 
 
@@ -19,10 +18,13 @@ struct Glyph
 };
 struct Font
 {
-    Vec2i glyph_size;
+    //TODO: use my union macro
+
+    Vec2iUnion(glyph_size, glyph_width, glyph_height);
+    // Vec2i glyph_size;
     // int32 glyph_width;
     // int32 glyph_height;
-    Glyph glyphs[FONT_LENGTH]; 
+    Glyph glyphs[FONT_LENGTH];
 };
 
 
@@ -30,8 +32,6 @@ Font font_create(BMP_Data* image, uint32 glyph_size);
 
 void draw_glyph(char text_character, Vec2f pos, Vec2f scale);
 void draw_text(const char* text, Vec2f pos, Vec2f scale = {1, 1}, Vec2f spacing = {5, 8});
-
-
 void draw_text_buffer(Vec2f pos, Vec2f scale, Vec2f spacing, const char* fmt, ...);
 
 

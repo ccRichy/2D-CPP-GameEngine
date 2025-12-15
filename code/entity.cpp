@@ -5,9 +5,24 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
-Sprite* entity_sprite_default(Ent_Type type)
+Ent_Type
+entity_get_type_with_string(char* ent_name)
 {
-    Sprite* result = nullptr;
+    Ent_Type result = Ent_Type::Null;
+    for (i32 it = 0; it < (i32)Ent_Type::Num; ++it)
+    {
+        result = (Ent_Type)it;
+        if (string_equals(ent_name, ENT_NAME(result)))
+            break;
+    }
+    
+    return result;
+}
+
+Sprite*
+entity_sprite_default(Ent_Type type)
+{
+    Sprite* result = &GSPRITE->sNull;
     
     #define XMAC(__name, __max_count, __sprite) case Ent_Type::__name: result = &GSPRITE->__sprite; break;
     switch (type){
@@ -15,8 +30,6 @@ Sprite* entity_sprite_default(Ent_Type type)
     }
     #undef XMAC
     
-    if (result == &GSPRITE->sNull)
-        result = nullptr;
     return result;
 }
 
@@ -32,10 +45,7 @@ entity_collision_mask_default(Ent_Type type)
         
       default:{
           Sprite* spr = entity_sprite_default(type);
-          if (spr)
-              result = { .size = {.x = (f32)(spr->width / spr->frame_num), .y = (f32)spr->height} };
-          else
-              result = {.size = {TILE_SIZE, TILE_SIZE} };
+          result = { .size = {.x = (f32)(spr->width / spr->frame_num), .y = (f32)spr->height} };
       }break;
     }
     return result;
@@ -273,6 +283,11 @@ bouncy_turtle_update()
     for (int i = 0; i < ENT_MAX(Ent_Type::Turtle); ++i){
         Entity* ent = &ENT_POINT(Ent_Type::Turtle)[i];
         if (!ent->is_alive) continue;
-        
+
+        Player* plr = PLAYER;
+        b32 player_collision = collide_rects(plr->bbox, ent->bbox);
+        b32 player_is_above = bbox_bottom(plr) < bbox_top(ent);
+        if (player_collision)
+            int cool = 2;
     }
 }

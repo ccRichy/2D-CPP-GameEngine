@@ -38,9 +38,10 @@
  
 #define GSTATE_DEFAULT       Game_State::Edit
 #define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
-#define BUFF_LEN 256
 
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
+#define DEBUG_MESSAGE_LENGTH_MAX 128
+#define DEBUG_MESSAGE_ALSO_LOGS true
 #define DEBUG_MESSAGE_MAX 10                    //debug messages at top op screen
 #define DEBUG_MESSAGE_LIFETIME_DEFAULT 160      //
 #define DEBUG_MESSAGE_POS_DEFAULT {BASE_W/2, 0} //
@@ -175,7 +176,7 @@ struct Game_Sound_Buffer
 
 struct Debug_Message
 {
-    char text[BUFF_LEN];
+    char text[DEBUG_MESSAGE_LENGTH_MAX];
     int32 lifetime;
     int32 alpha;
 };
@@ -210,7 +211,6 @@ enum struct Editor_Mode
 
 struct Game_Sprites
 {
-    Sprite sNull; //used to be set in game_initalize to nullptr properly (we cant use nullptr in the sprite XMACRO
 #define _xm(__name, ...) Sprite __name;
     SPR_LIST
 #undef _xm
