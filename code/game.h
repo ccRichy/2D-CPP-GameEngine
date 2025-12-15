@@ -219,7 +219,7 @@ struct Game_Sprites
 
 struct Game_Entities
 {
-    Player player;
+    // Player player;
 
     union {
         Entity array[ENT_MAX_ALL()];
@@ -301,7 +301,7 @@ struct Game_Pointers //just all the fuckin data
     Game_Data*          data;
     Game_Entities*      entity;
     Game_Sprites*       sprite;
-    Player*             player;
+    Entity*             player;
     Typing_Buffer*      console;
 };
 
@@ -310,7 +310,7 @@ struct Game_Pointers //just all the fuckin data
 //WARNING: global variables without default values will be 0'd when hot-reloading
 // struct Game_Pointers;
 //NOTE: initialized in game_init
-globalvar Player* PLAYER;
+globalvar Entity* PLAYER;
 globalvar Game_Data* GDATA; 
 globalvar Game_Memory* GMEMORY;
 globalvar Game_Input_Map* GINPUT;

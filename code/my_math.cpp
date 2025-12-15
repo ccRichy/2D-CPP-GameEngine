@@ -23,9 +23,7 @@
 
 
 
-//types
-//NOTE: declare as a struct member to "inherit" the names and keep under one name
-//Q: why not hard-code the names? A: so we can see at a glance the names we made in this struct, and for expressiveness :)
+//NOTE: creates a union for a vector so it and its member's names are accessible in the same scope - declare as a struct member
 #define Vec2fUnion(__vec_name, __xname, __yname)\
     union { struct {Vec2f __vec_name;}; struct {float32 __xname, __yname; }; }
 

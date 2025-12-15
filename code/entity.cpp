@@ -176,7 +176,13 @@ void entity_draw_type(Ent_Type type)
 
 
 
-
+void
+entity_state_enter_default(Entity* ent, Sprite* spr, f32 anim_index = 0, f32 anim_speed = 1)
+{
+    ent->sprite = spr;
+    ent->anim_index = anim_index;
+    ent->anim_speed = anim_speed;
+}
 
 
 
@@ -285,7 +291,7 @@ bouncy_turtle_update()
         if (!ent->is_alive) continue;
 
         //TODO: not working, fix after player is an entity
-        Player* plr = PLAYER;
+        Entity* plr = PLAYER;
         b32 player_collision = collide_rects(plr->bbox, ent->bbox);
         b32 player_is_above = bbox_bottom(plr) < bbox_top(ent);
         if (player_collision)

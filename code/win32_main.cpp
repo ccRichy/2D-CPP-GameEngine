@@ -237,8 +237,10 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                 game_pointers_value.data =     (Game_Data*)game_memory.permanent_storage;
                 game_pointers_value.entity = &game_pointers_value.data->entity;
                 game_pointers_value.sprite = &game_pointers_value.data->sprites;
-                game_pointers_value.player = &game_pointers_value.data->entity.player;
                 game_pointers_value.console = &console_buffer;
+                
+                //NOTE: set in application layer
+                // game_pointers_value.player = ENT_POINT(Ent_Type::Player);
                 
                 int64 tick_loop_start = win32_get_tick_diff(tick_program_start);
                 float64 ms_loop_start = win32_tick_to_ms(tick_loop_start);

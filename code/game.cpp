@@ -17,8 +17,8 @@
 #include "render.cpp"
 #include "collide.cpp"
 #include "tilemap.cpp"
-#include "player.cpp"
 #include "entity.cpp"
+#include "player.cpp"
 #include "text.cpp"
 
 
@@ -205,7 +205,7 @@ entity_spawn(Ent_Type type, Vec2f pos)
     Entity* result = nullptr;
 
     switch (type){
-      case Player: PLAYER->create(pos); break;
+      case Player: PLAYER->player_create(pos); break;
       case Wall:   result = wall_create(pos, {Tile(1), Tile(1)}); break;
       default: entity_init(type, pos);
     }
@@ -244,7 +244,7 @@ level_clear()
 {
     entity_clear_all();
     tilemap_clear_all(&pointers->data->tilemap);
-    PLAYER->create({BASE_W/2, BASE_H/2});
+    //PLAYER->player_create({BASE_W/2, BASE_H/2});
     string_clear(pointers->data->level_current);
 };
 bool32
@@ -263,7 +263,7 @@ level_save_file(const char* filename)
     char* buffer = new char[buffer_size_bytes](); // allocated on the heap
     
 //player
-    Player* player = PLAYER;
+    Entity* player = PLAYER;
     string_append(buffer, "Player\n");
     char player_string[64];
     sprintf(player_string, "p x%i y%i\n",
@@ -384,7 +384,7 @@ level_load_file(const char* filename) //filename without extension
 
         buff_offset += word_len+1;
     }
-    PLAYER->create(v2i_to_v2f(player_pos));
+    PLAYER->player_create(v2i_to_v2f(player_pos));
     file_mem_offset += buff_len;
     buff_offset = 0;
 
@@ -526,7 +526,7 @@ game_draw_world()
     draw_bg(&GSPRITE->sBG_cave1);
     draw_tilemap(&GDATA->tilemap);
     entity_draw_default();
-    PLAYER->draw();
+    PLAYER->player_draw();
 }
 
 void
@@ -559,7 +559,7 @@ game_state_play_update()
 
     
     //entity update
-    PLAYER->update();
+    PLAYER->player_update();
     // entity_update();
     bouncy_turtle_update();
     enemy_update();
@@ -843,7 +843,7 @@ game_initialize(Game_Pointers* _game_pointers)
     Game_Data*      data     = pointers->data;
     Game_Entities*  entity   = &data->entity;
     Game_Sprites*   sprite   = &data->sprites;
-    Player*         player   = &entity->player;
+    // Entity*         player   = ENT_POINT(Ent_Type::Player);
     Game_Settings*  settings = pointers->settings;
 
     i64 set_input_array_to_this_value = &input->bottom_button - &input->buttons[0] + 1;
@@ -871,20 +871,18 @@ game_initialize(Game_Pointers* _game_pointers)
     //initialize array of pointers to the 1st entity for each one
     Entity* entity_pointer = pointers->entity->array;
     for (int it = 0; it < (i32)Ent_Type::Num; ++it){
-        if (it == 0){ //player
-            // entity->pointers[i] = nullptr;
-        }else{
-            i32 current_entity_max = ENT_INFO[it].max_count;
-            entity->pointers[it] = entity_pointer;
+        i32 current_entity_max = ENT_INFO[it].max_count;
+        entity->pointers[it] = entity_pointer;
 
-            //DEBUG: set type for validation
-            for (int jj = 0; jj < current_entity_max; ++jj){
-                entity_pointer[jj].type = (Ent_Type)it;
-            }
-
-            entity_pointer += current_entity_max;
+        //DEBUG: set type for validation
+        for (int jj = 0; jj < current_entity_max; ++jj){
+            entity_pointer[jj].type = (Ent_Type)it;
         }
+
+        entity_pointer += current_entity_max;
     }
+    PLAYER = ENT_POINT(Ent_Type::Player);
+    pointers->player = PLAYER;
 
 #define _xm(name, ...) sprite->##name = sprite_create(#name, __VA_ARGS__);
     SPR_LIST
@@ -1005,7 +1003,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
                 level_clear();
             }
             else if (string_equals(cmd_string, ">:)")){
-                PLAYER->state_switch(Player_State::Hurt);
+                PLAYER->player_state_switch(Player_State::Hurt);
             }
             
             //reset

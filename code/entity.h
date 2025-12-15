@@ -5,13 +5,29 @@
    $Creator: Connor Ritchotte $
    ======================================================================== */
 
+#define PLAYER_DEFAULT_STATE Player_State::Idle
+
+enum struct Player_State
+{
+    Idle,
+    Walk,
+    Jump,
+    Fall,
+    Ledge,
+    Rope,
+    Hurt,
+    Roll,
+    Splat,
+};
+
+
 //name, max_amount, sprite default
 #define ENT_LIST                 \
-XMAC(Player, 0, sPlayer_idle)    \
+XMAC(Player, 1, sPlayer_idle)    \
 XMAC(Wall,   8, sWall_anim)      \
 XMAC(Spike,  2, sSpike)          \
 XMAC(Enemy,  6, sNull)           \
-XMAC(Turtle, 4, sTurtle_walk)         \
+XMAC(Turtle, 4, sTurtle_walk)    \
 XMAC(Goal,   1, sGoal)           \
 XMAC(Orb,    4, sItem_orb)       \
 
@@ -140,23 +156,58 @@ struct Entity
     bool32   is_alive;
 
     //visual
-    Color   color;
+    Vec2f scale      = {1, 1};
+    f32   anim_speed = 1;
+    f32   anim_index;
+    b32   anim_ended_this_frame;
+    Color color; //TODO: remove or utilize as a color modifier
     Sprite* sprite;
-    float32 anim_index;
-    float32 anim_speed = 1;
-    bool32  anim_ended_this_frame;
-    Vec2f   scale      = {1, 1};
 
     //bbox
-    Rectangle bbox; //.pos is treated as an offset
-    // Vec2f size;
+    Rect bbox; //.pos is treated as an offset
 
     //movement
     Vec2fUnion(pos, x, y);
-    // Vec2f pos;
-    Vec2f move_input;
-    Vec2f spd;
+    V2f move_input;
+    V2f spd;
 
     //combat
-    float32 hp;
+    f32 hp;
+
+    Timer coyote_timer = {.length = 5};
+    Timer roll_buffer_timer = {.length = 50};
+
+    f32 jump_spd = 1.2f;
+    i32 hurt_buffer_time = 70;
+    f32 terminal_velocity = 4;
+    f32 ledge_xmargin = 1.5f;
+    i32 hurt_state_time = 30;
+    
+    i32 state_timer;
+    b32 hurt_buffer_enabled;
+    i32 hurt_buffer_tick;
+    f32 ledge_xtarget;
+    Player_State player_state;
+    
+    Physics ground_physics    = {1,     0.03f,  0.045f, 0.025f, 0.1f};
+    Physics jump_physics      = {1,     0.02f,  0,      0.02f,  0.06f};
+    Physics fall_physics      = {1,     0.015f, 0,      0.03f,  0.08f};
+    Physics fall_physics_slow = {0.25f, 0.055f, 0,      0.44f,  0.075f};
+    Physics debug_physics     = {2,     0.1f,   0.2f,   0.1f,   0.06f};
+    Physics physics;
+    
+    //funcs
+    //player
+    void player_create(Vec2f pos);
+    void player_update();
+    void player_draw();
+    
+    void player_speed_vert();
+    void player_speed_hori(bool32 is_airborne);
+    
+    V2f player_ledge_check_pos(i32* aimdir_return_var = 0, i32 aimdir_override = 0, f32 xmargin_override = 0);
+    bool32 player_ledge_check();
+
+    void player_state_switch(Player_State new_state);
+    void player_state_perform(Player_State _state, State_Function _function);
 };
