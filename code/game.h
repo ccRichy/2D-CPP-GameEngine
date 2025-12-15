@@ -24,12 +24,13 @@
 #define SND_BITS_PER_SAMPLE   16
 #define SND_BUFFER_SIZE_BYTES (((SND_SAMPLE_RATE) * (SND_BITS_PER_SAMPLE/8)))
 
-
 #define LEVEL_FIRST "cave"
 #define UNSAVED_BACKUP_NAME "unsaved"
 #define LEVEL_NAME_MAX_LEN 64
 #define FPS_TARGET 60
 #define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
+
+#define CAM_OFFSET_Y_EXTRA 4
 
 #define BASE_W 320
 #define BASE_H 180
@@ -254,7 +255,6 @@ struct Game_Data
     
     //misc 
     Vec2f camera_pos; //TODO: camera struct
-    float32 camera_yoffset_extra;
     Vec2f camera_pos_offset_default;
     Vec2f camera_pos_offset;
     

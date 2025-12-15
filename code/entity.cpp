@@ -284,6 +284,7 @@ bouncy_turtle_update()
         Entity* ent = &ENT_POINT(Ent_Type::Turtle)[i];
         if (!ent->is_alive) continue;
 
+        //TODO: not working, fix after player is an entity
         Player* plr = PLAYER;
         b32 player_collision = collide_rects(plr->bbox, ent->bbox);
         b32 player_is_above = bbox_bottom(plr) < bbox_top(ent);

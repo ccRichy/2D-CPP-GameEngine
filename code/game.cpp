@@ -88,6 +88,14 @@ mouse_get_tile_pos_in_world(Tilemap* tmap) //TODO: handle tilemap pos offset!!!
 
 
 void
+camera_center_at_pos(Vec2f pos)
+{
+    Game_Data* data = GDATA;
+    Vec2f zoom_v2f = {GSETTING->zoom_scale, GSETTING->zoom_scale};
+    data->camera_pos_offset = data->camera_pos_offset_default / zoom_v2f;
+    data->camera_pos = pos - data->camera_pos_offset;
+}
+void
 camera_zoom()
 {
     auto input = pointers->input;
@@ -441,7 +449,12 @@ level_load_file(const char* filename) //filename without extension
         }
     }
 
-    //change current level string
+    
+//move camera
+    camera_center_at_pos(PLAYER->pos);
+
+    
+//change current level string
     if (!string_equals(pointers->data->level_current, filename))
     {
         string_clear(pointers->data->level_current);
@@ -553,9 +566,10 @@ game_state_play_update()
 
     //camera update
     float32 cam_yoffset_extra = 4;
-    Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
-    data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
-    data->camera_pos = PLAYER->pos - data->camera_pos_offset;
+    camera_center_at_pos(PLAYER->pos);
+    // Vec2f vec2_zoom = {GSETTING->zoom_scale, GSETTING->zoom_scale};
+    // data->camera_pos_offset = data->camera_pos_offset_default / vec2_zoom;
+    // data->camera_pos = PLAYER->pos - data->camera_pos_offset;
 
     data->camera_pos.x = clamp_f32(data->camera_pos.x, 0, 1000);
     data->camera_pos.y = clamp_f32(data->camera_pos.y, 0, 1000);
@@ -851,10 +865,7 @@ game_initialize(Game_Pointers* _game_pointers)
     data->tilemap.grid_h = TILEMAP_H;
     data->tilemap.pos    = {0, 0};
 
-    data->camera_yoffset_extra = 4.f;
-    data->camera_pos_offset_default = {
-        BASE_W/2,
-        BASE_H/2 + pointers->data->camera_yoffset_extra};
+    data->camera_pos_offset_default = {.x = BASE_W/2, .y = BASE_H/2 + CAM_OFFSET_Y_EXTRA};
     data->camera_pos_offset = pointers->data->camera_pos_offset_default;
 
     //initialize array of pointers to the 1st entity for each one
