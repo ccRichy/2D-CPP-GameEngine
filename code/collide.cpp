@@ -23,7 +23,7 @@ Entity* collide_pixel_get_any_entity(Vec2f pixel_pos);
 
 bool32  on_screen(Vec2f pos, Vec2f padding);
 bool32  collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type);
-bool32  collide_entitys(Entity* ent1, Entity* ent2);
+bool32  collide_entitys(Entity* ent1, Entity* ent2, Vec2f pos_offset = {});
 bool32  collide_entity_type(Entity* ent_caller, Ent_Type type);
 Entity* collide_rect_entity_pointer(Vec2f pos, Vec2f size, Ent_Type type);
 Collide_Data move_collide_wall(Vec2f* pos, Vec2f* spd, Vec2f size, Vec2f pos_offset = {});
@@ -149,10 +149,10 @@ collide_rect_entity(Vec2f pos, Vec2f size, Ent_Type type)
 }
 
 bool32
-collide_entitys(Entity* ent1, Entity* ent2)
+collide_entitys(Entity* ent1, Entity* ent2, Vec2f pos_offset)
 {
     b32 result = collide_rects(
-        ent1->pos + ent1->bbox.pos, ent1->bbox.size,
+        ent1->pos + ent1->bbox.pos + pos_offset, ent1->bbox.size,
         ent2->pos + ent2->bbox.pos, ent2->bbox.size
     );
     return result;

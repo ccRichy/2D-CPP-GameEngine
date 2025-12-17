@@ -273,6 +273,7 @@ struct Game_Data
 struct Game_Settings //REQUIRED: do not 0 init this struct
 {
     float32 window_scale = 4.0f; //doesnt exactly qualify as a "setting"
+    float32 render_scale = 1.0f; //doesnt exactly qualify as a "setting"
     float32 zoom_scale = 1.0f;   //should probably exist in the camera object
     bool32  subpixel_rendering_enabled = false;
 };

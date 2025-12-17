@@ -42,6 +42,7 @@ entity_collision_mask_default(Ent_Type type)
     {
       case Spike:  result = { .pos = {2, 2}, .size = {3, 6} }; break;
       case Enemy:  result = { .pos = {}, .size = {Tile(1), Tile(2)} }; break;
+      case Turtle: result = { .pos = {0, 3}, .size = {8, 5} }; break;
         
       default:{
           Sprite* spr = entity_sprite_default(type);
@@ -241,60 +242,26 @@ enemy_update()
         }
     }    
 }
-void
-enemy_draw()
-{
-    for (int i = 0; i < ENT_MAX(Ent_Type::Enemy); ++i){
-        Entity* ent = &ENT_POINT(Ent_Type::Enemy)[i];
-        if (!ent->is_alive) continue;
-        
-        draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, ent->color);
-    }
-}
-
-
-void spike_draw()
-{
-    for (int i = 0; i < ENT_MAX(Ent_Type::Spike); ++i){
-        Entity* ent = &ENT_POINT(Ent_Type::Spike)[i];
-        if (!ent->is_alive) continue;
-        
-        entity_draw_sprite(ent);
-
-        IF_DEBUG {
-            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
-        }
-    }
-}
-
-void
-goal_draw()
-{
-    for (int i = 0; i < ENT_MAX(Ent_Type::Goal); ++i){
-        Entity* ent = &ENT_POINT(Ent_Type::Goal)[i];
-        if (!ent->is_alive) continue;
-        
-        entity_draw_sprite(ent);
-
-        IF_DEBUG {
-            draw_rect(ent->pos + ent->bbox.pos, ent->bbox.size, BBOXRED);
-        }
-    }
-}
-
 
 void
 bouncy_turtle_update()
 {
-    for (int i = 0; i < ENT_MAX(Ent_Type::Turtle); ++i){
+    for (i32 i = 0; i < ENT_MAX(Ent_Type::Turtle); ++i){
         Entity* ent = &ENT_POINT(Ent_Type::Turtle)[i];
         if (!ent->is_alive) continue;
 
         //TODO: not working, fix after player is an entity
         Entity* plr = PLAYER;
-        b32 player_collision = collide_rects(plr->bbox, ent->bbox);
-        b32 player_is_above = bbox_bottom(plr) < bbox_top(ent);
-        if (player_collision)
-            int cool = 2;
+        f32 ent_top_pos = bbox_top(ent)+1;
+        draw_pixel({ent->pos.x - 8, ent_top_pos}, WHITE);
+        b32 player_collision = collide_entitys(plr, ent, {.y = plr->spd.y});
+        b32 player_is_above = bbox_bottom(plr) <= ent_top_pos;
+        if (player_collision && player_is_above){
+            plr->y = ent_top_pos-1;
+            plr->player_state_switch(Player_State::Jump);
+            plr->spd.y = -(plr->jump_spd * 1.28f);
+            if (plr->move_input.x == 0)
+                plr->spd.x *= 0.4;
+        }
     }
 }
