@@ -99,8 +99,6 @@ win32_main_window_callback(HWND window, UINT message, WPARAM wparam, LPARAM lpar
 int CALLBACK
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
-    // _MM_SET_ROUNDING_MODE(_MM_ROUND_NEAREST);
-    
     //performance query
     LARGE_INTEGER __perf_frequency_result;
     BOOL hardware_supports_highres_counter = QueryPerformanceFrequency(&__perf_frequency_result);
@@ -137,9 +135,9 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     Win32_XAudio_Data xaudio2_data = win32_xaudio2_init();
 
     //window
-    int8 window_scale = WINDOW_SCALE_DEFAULT;
-    
-    win32_set_DIB(&global_render_buffer, BASE_W * window_scale, BASE_H * window_scale);
+    i32 window_scale = WINDOW_SCALE_DEFAULT;
+    i32 render_scale = RENDER_SCALE_DEFAULT;
+    win32_set_DIB(&global_render_buffer, BASE_W * render_scale, BASE_H * render_scale);
     WNDCLASS window_class = {};
     window_class.style = CS_HREDRAW|CS_VREDRAW;
     window_class.lpfnWndProc = win32_main_window_callback;
@@ -306,7 +304,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     //QUICK HOTKEY to MOVE+TRANS the window
                     if (input.ctrl.hold && input.shift.hold && input.alt.hold)
                     if (input.debug_win_setup.press){ //TODO: key
-                        window_set_scale(WINDOW_SCALE_DEFAULT-1, window, &global_render_buffer, &game_render_buffer);
+                        global_settings->window_scale = WINDOW_SCALE_DEFAULT-1;
+                        window_set_scale(global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
                         V2i monres = win32_get_monitor_resolution(window);
                         V2i winsize = window_get_size(window);
                         window_set_pos(window, monres.x - winsize.x, monres.y - winsize.y);

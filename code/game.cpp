@@ -724,7 +724,7 @@ game_state_editor_update()
 //Draw grid //TODO: make straight line functions for this use case
     V2i   grid_length_max = {1000, 1000};
     i32   grid_spacing    = TILE_SIZE;
-    f32   grid_line_size  = (1.f/pointers->settings->window_scale) * static_size;
+    f32   grid_line_size  = (1.f/pointers->settings->render_scale) * static_size;
     u8    color_val = 50;
     Color color_faded     = {color_val, color_val, color_val, 255};
     for (i32 grid_x = 0; grid_x < grid_length_max.x; ++grid_x){

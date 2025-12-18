@@ -61,7 +61,7 @@ scale_get_zoom_agnostic(float32 scale_value)
 float32
 scale_get_screen_agnostic(float32 scale_value)
 {
-    float32 result = scale_value / pointers->settings->window_scale;
+    float32 result = scale_value / pointers->settings->render_scale;
     return result;    
 }
 
@@ -74,9 +74,9 @@ game_get_draw_scale(Draw_Mode override_mode = Draw_Mode::Null)
         draw_mode = override_mode;
     
     if (draw_mode == Draw_Mode::World)
-        result = pointers->settings->window_scale * pointers->settings->zoom_scale;
+        result = pointers->settings->render_scale * pointers->settings->zoom_scale;
     else if (draw_mode == Draw_Mode::Gui)
-        result = pointers->settings->window_scale;
+        result = pointers->settings->render_scale;
     
     return result;
 }
@@ -270,28 +270,28 @@ draw_line(Vec2f pos_start, Vec2f pos_end, Color color)
         draw_line_vert(pos_start, pos_end, color);
 }
 
-void
-draw_line_old(Vec2f pos_start, Vec2f pos_end)
-{
-    //less efficent but simpler? NOTE: benchmark performance
-    int32 scale = (int32)pointers->settings->window_scale;
+// void
+// draw_line_old(Vec2f pos_start, Vec2f pos_end)
+// {
+//     //less efficent but simpler? NOTE: benchmark performance
+//     int32 scale = (int32)pointers->settings->window_scale;
 
-    float32 deltaX = pos_end.x - pos_start.x;
-    float32 deltaY = pos_end.y - pos_start.y;
-    float32 max_delta = MAX( abs_f32(deltaX), abs_f32(deltaY) );
-    if (max_delta != 0)
-    {
-        //float32 slope = deltaY / deltaX;
-        auto stepX = deltaX/max_delta;
-        auto stepY = deltaY/max_delta;
+//     float32 deltaX = pos_end.x - pos_start.x;
+//     float32 deltaY = pos_end.y - pos_start.y;
+//     float32 max_delta = MAX( abs_f32(deltaX), abs_f32(deltaY) );
+//     if (max_delta != 0)
+//     {
+//         //float32 slope = deltaY / deltaX;
+//         auto stepX = deltaX/max_delta;
+//         auto stepY = deltaY/max_delta;
 
-        for (int i = 0; i < (int32)max_delta+1; ++i)
-        {
-            Vec2f draw_pos = {round_f32(pos_start.x + (i * stepX)), round_f32(pos_start.y + (i * stepY))};
-            draw_rect(draw_pos, {1, 1}, WHITE);
-        }
-    }
-}
+//         for (int i = 0; i < (int32)max_delta+1; ++i)
+//         {
+//             Vec2f draw_pos = {round_f32(pos_start.x + (i * stepX)), round_f32(pos_start.y + (i * stepY))};
+//             draw_rect(draw_pos, {1, 1}, WHITE);
+//         }
+//     }
+// }
 
 
 
@@ -573,78 +573,78 @@ draw_bmp_part(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, in
 
 
 
-void
-draw_bmp_1sttry(BMP_Data* bmp, Vec2f pos)
-{
-    Game_Render_Buffer* render = pointers->render;
-    int32 scale = (int32)pointers->settings->window_scale;
+// void
+// draw_bmp_1sttry(BMP_Data* bmp, Vec2f pos)
+// {
+//     Game_Render_Buffer* render = pointers->render;
+//     int32 scale = (int32)pointers->settings->window_scale;
     
-    pos.y += bmp->height;
-    int32 x_start = round_i32(pos.x * scale);
-    int32 x_end   = x_start + (bmp->width * scale);
-    int32 x_offscreen_amt = 0;
-    int32 y_start = round_i32(pos.y * scale) + (scale-1);
-    int32 y_end   = y_start - (bmp->height * scale);
+//     pos.y += bmp->height;
+//     int32 x_start = round_i32(pos.x * scale);
+//     int32 x_end   = x_start + (bmp->width * scale);
+//     int32 x_offscreen_amt = 0;
+//     int32 y_start = round_i32(pos.y * scale) + (scale-1);
+//     int32 y_end   = y_start - (bmp->height * scale);
     
-    if (x_start < 0){
-        x_offscreen_amt = -x_start; //NOTE: flipping sign
-        x_start = 0;
-    }
-    if (x_end > render->width) x_end      = render->width;
-    if (y_end < 0) y_end                  = 0;
-    if (y_start > render->height) y_start = render->height;
+//     if (x_start < 0){
+//         x_offscreen_amt = -x_start; //NOTE: flipping sign
+//         x_start = 0;
+//     }
+//     if (x_end > render->width) x_end      = render->width;
+//     if (y_end < 0) y_end                  = 0;
+//     if (y_start > render->height) y_start = render->height;
 
-    float32 offscreen_src_amt = (float32)x_offscreen_amt / (float32)scale;
-    int32 bitmap_pixel_offset = (int32)offscreen_src_amt;
-    float32 subpixel_offset = offscreen_src_amt - bitmap_pixel_offset;
+//     float32 offscreen_src_amt = (float32)x_offscreen_amt / (float32)scale;
+//     int32 bitmap_pixel_offset = (int32)offscreen_src_amt;
+//     float32 subpixel_offset = offscreen_src_amt - bitmap_pixel_offset;
     
-    int32 pixel_offscreen_amt = x_offscreen_amt % scale;
-    int32 pixel_increment = 0;
-    int32 row_increment = 0;
+//     int32 pixel_offscreen_amt = x_offscreen_amt % scale;
+//     int32 pixel_increment = 0;
+//     int32 row_increment = 0;
 
-    uint8* row = (uint8*)render->memory + (y_start * render->pitch);
-    uint32* bitmap_pixel = bmp->pixels;
-    bitmap_pixel += bitmap_pixel_offset;
+//     uint8* row = (uint8*)render->memory + (y_start * render->pitch);
+//     uint32* bitmap_pixel = bmp->pixels;
+//     bitmap_pixel += bitmap_pixel_offset;
 
-    for (int Y = y_end; Y < y_start; ++Y)
-    {
-        uint32* pixel = ((uint32*)row + x_start);
-        for (int X = x_start; X < x_end; ++X)
-        {
-            float32 alpha = (float32)(*bitmap_pixel >> 24 & 0xFF) / 255.f;
-            float32 alphasub = 1 - (alpha);
+//     for (int Y = y_end; Y < y_start; ++Y)
+//     {
+//         uint32* pixel = ((uint32*)row + x_start);
+//         for (int X = x_start; X < x_end; ++X)
+//         {
+//             float32 alpha = (float32)(*bitmap_pixel >> 24 & 0xFF) / 255.f;
+//             float32 alphasub = 1 - (alpha);
 
-            uint32 color_prev = *pixel;
-            uint32 color_new = *bitmap_pixel;
+//             uint32 color_prev = *pixel;
+//             uint32 color_new = *bitmap_pixel;
 
-            uint32 target_color = (
-                color_channel_get_transparent((color_prev >> 16 & 0xFF), (color_new >> 16 & 0xFF), alpha) << 16 |
-                color_channel_get_transparent((color_prev >> 8 & 0xFF), (color_new >> 8 & 0xFF), alpha) << 8 |
-                color_channel_get_transparent((color_prev & 0xFF), (color_new & 0xFF), alpha)
-            );
+//             uint32 target_color = (
+//                 color_channel_get_transparent((color_prev >> 16 & 0xFF), (color_new >> 16 & 0xFF), alpha) << 16 |
+//                 color_channel_get_transparent((color_prev >> 8 & 0xFF), (color_new >> 8 & 0xFF), alpha) << 8 |
+//                 color_channel_get_transparent((color_prev & 0xFF), (color_new & 0xFF), alpha)
+//             );
 
-            *pixel++ = target_color;
+//             *pixel++ = target_color;
 
-            if (X == x_start)
-            {
-                pixel_increment = pixel_offscreen_amt + 1;
-            }
-            else if (++pixel_increment >= scale)
-            {
-                pixel_increment = 0;
-                bitmap_pixel++;
-            }
-        }
+//             if (X == x_start)
+//             {
+//                 pixel_increment = pixel_offscreen_amt + 1;
+//             }
+//             else if (++pixel_increment >= scale)
+//             {
+//                 pixel_increment = 0;
+//                 bitmap_pixel++;
+//             }
+//         }
 
-        if (++row_increment >= scale)
-        {
-            bitmap_pixel += bmp->width;
-            row_increment = 0;
-        }
-        bitmap_pixel -= (bmp->width - (int32)((float32)x_offscreen_amt / scale));
-        row -= render->pitch;
-    }
-}
+//         if (++row_increment >= scale)
+//         {
+//             bitmap_pixel += bmp->width;
+//             row_increment = 0;
+//         }
+//         bitmap_pixel -= (bmp->width - (int32)((float32)x_offscreen_amt / scale));
+//         row -= render->pitch;
+//     }
+// }
 
 
 

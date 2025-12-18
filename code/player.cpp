@@ -202,8 +202,8 @@ Entity::player_ledge_check()
         f32 tcorner_x = aimdir > 0 ? tilerect.x : tilerect.x + tmap->tile_w;
         V2f tile_corner = { tcorner_x, tilerect.y };
         
-        f32 xdist = dist(tile_corner.x, tilecheck_pos.x);
-        f32 ydist = dist(tile_corner.y, tilecheck_pos.y);
+        f32 xdist = dist(tile_corner.x, tilecheck_pos.x); //distance to ledge
+        f32 ydist = dist(tile_corner.y, tilecheck_pos.y); //
         b32 x_aligned = (xdist <= xmargin_final + (aimdir < 0));
         b32 y_aligned = (ydist <= abs_f32(spd.y));
         b32 corners_aligned = x_aligned && y_aligned;

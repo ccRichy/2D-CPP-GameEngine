@@ -651,8 +651,8 @@ win32_process_pending_messages(Win32_Game_Code* game_code, Game_Input_Map* game_
                 POINTS mouse_points = POINTS MAKEPOINTS(message.lParam);
                 //NOTE: pixel aligned
                 in->mouse_pos_gui = {
-                    round_f32(mouse_points.x / global_settings->window_scale),
-                    round_f32(mouse_points.y / global_settings->window_scale)
+                    round_f32(mouse_points.x / global_settings->render_scale),
+                    round_f32(mouse_points.y / global_settings->render_scale)
                 };
                 
                 // //NOTE: float
@@ -704,8 +704,8 @@ win32_display_buffer_in_window(Win32_Render_Buffer* buffer, HDC device_context,
                                i32 window_width, i32 window_height)
 {
     StretchDIBits(device_context,
-                  0, 0, buffer->width, buffer->height,
-                  0, 0, buffer->width, buffer->height,
+                  0, 0, window_width, window_height, //dest
+                  0, 0, buffer->width, buffer->height, //src
                   buffer->memory,
                   &buffer->info,
                   DIB_RGB_COLORS, SRCCOPY
@@ -805,8 +805,9 @@ internal void
 window_set_scale(float32 scale, HWND window, Win32_Render_Buffer* win32_render_buffer, Game_Render_Buffer* game_render_buffer)
 {
     global_settings->window_scale = scale;
-    V2i winsize = window_get_size(window, scale);    
-    win32_set_DIB(win32_render_buffer, (i32)(BASE_W * scale), (i32)(BASE_H * scale));
+    V2i winsize = window_get_size(window, scale);
+    //TODO: handle changing the render scale differently
+    // win32_set_DIB(win32_render_buffer, (i32)(BASE_W * scale), (i32)(BASE_H * scale));
     SetWindowPos(
         window, 0,
         0, 0,

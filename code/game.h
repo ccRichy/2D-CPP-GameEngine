@@ -36,6 +36,7 @@
 #define BASE_H 180
 #define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
 #define WINDOW_SCALE_DEFAULT 4
+#define RENDER_SCALE_DEFAULT 1
  
 #define GSTATE_DEFAULT       Game_State::Edit
 #define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
@@ -272,8 +273,8 @@ struct Game_Data
 
 struct Game_Settings //REQUIRED: do not 0 init this struct
 {
-    float32 window_scale = 4.0f; //doesnt exactly qualify as a "setting"
-    float32 render_scale = 1.0f; //doesnt exactly qualify as a "setting"
+    float32 window_scale = WINDOW_SCALE_DEFAULT; //doesnt exactly qualify as a "setting"
+    float32 render_scale = RENDER_SCALE_DEFAULT; //doesnt exactly qualify as a "setting"
     float32 zoom_scale = 1.0f;   //should probably exist in the camera object
     bool32  subpixel_rendering_enabled = false;
 };
