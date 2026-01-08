@@ -68,15 +68,17 @@ scale_get_screen_agnostic(float32 scale_value)
 inline float32
 game_get_draw_scale(Draw_Mode override_mode = Draw_Mode::Null)
 {
-    float32 result = -1.0f;
+    f32 result = -1.0f;
     auto draw_mode = pointers->data->draw_mode;
     if (override_mode != Draw_Mode::Null)
         draw_mode = override_mode;
-    
+
+    // f32 scale_to_use = RENDER_SCALE_OBEYS_WINDOW_SCALE ? GSETTING->render_scale : GSETTING->window_scale;
+    f32 scale_to_use = GSETTING->render_scale;
     if (draw_mode == Draw_Mode::World)
-        result = pointers->settings->render_scale * pointers->settings->zoom_scale;
+        result = scale_to_use * GSETTING->zoom_scale;
     else if (draw_mode == Draw_Mode::Gui)
-        result = pointers->settings->render_scale;
+        result = scale_to_use;
     
     return result;
 }
@@ -511,12 +513,16 @@ draw_bmp_part(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, in
         pos.x -= bmp->width - bmp_draw_width;
 
     int32 x_left   = round_i32(pos.x * draw_scale);
-    int32 x_right  = round_i32(x_left + (bmp->width * xscale_final));
+    int32 x_right  = round_i32(x_left + abs_f32(bmp->width * xscale_final));
     int32 y_top    = round_i32(pos.y * draw_scale);
-    int32 y_bottom = round_i32(y_top - (bmp->height * yscale_final));
+    int32 y_bottom = round_i32(y_top - abs_f32(bmp->height * yscale_final));
 
+    int32 x_offscreen_amt = 0;
     int32 y_offscreen_amt = 0;
-    if (x_left < 0)              x_left = 0;
+    if (x_left < 0){
+        x_offscreen_amt = abs_i32(x_left);
+        x_left = 0;
+    }
     if (x_right > render->width) x_right = render->width;
     //TODO: variable names are wrong here and certain things are even pointless
     if (y_bottom < 0)            y_bottom = 0;
@@ -530,20 +536,19 @@ draw_bmp_part(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, in
     int32 bmp_y = bmp_drawy;
     for (int32 Y = y_bottom; Y < y_top; ++Y)
     {
-        if (Y >= render->height) continue;
-
         uint32* buffer_pixel = (uint32*)((uint8*)render->memory + (Y * render->pitch));
         bmp_x = bmp_drawx;
         
         for (int32 X = x_left; X < x_right; ++X)
         {            
             if (sign(scale_overall.x) == 1)
-                 bmp_x = bmp_drawx + (int32)((X - (pos.x * draw_scale)) / xscale_final);
-            else bmp_x = bmp->width-1 + bmp_drawx - (int32)(((X) - (pos.x * draw_scale)) / xscale_final);
+                bmp_x = bmp_drawx + (i32)((X - x_left + x_offscreen_amt) / xscale_final);
+            else
+                bmp_x = bmp->width-1 + bmp_drawx - (i32)((X - x_left + x_offscreen_amt) / xscale_final);
                 
             if (sign(scale_overall.y) == 1)
                  bmp_y = bmp_drawy + (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
-            else bmp_y = bmp_drawy + bmp->height - (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
+            // else bmp_y = bmp_drawy + bmp->height - (int32)((y_top - 1 - Y + y_offscreen_amt) / yscale_final);
 
             if (bmp_x >= bmp_drawx + bmp_draw_width)
                 continue;
@@ -553,7 +558,7 @@ draw_bmp_part(BMP_Data* bmp, Vec2f pos, Vec2f scale_overall, int32 bmp_drawx, in
             uint32 color_new = bmp_pixels[bmp_y * bmp->width + bmp_x];
             float32 alpha = (float32)((color_new >> 24) & 0xFF) / 255.f;
 
-            if (alpha > 0.0f)
+            if (alpha)
             {
                 uint32 color_prev = buffer_pixel[X];
                 uint32 target_color = (

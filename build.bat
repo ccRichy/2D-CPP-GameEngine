@@ -10,8 +10,12 @@ pushd %~dp0build
 del *.pdb > NUL 2> NUL
 
 
+REM - lock
+echo waiting for pdb > lock.tmp
 REM - compile game
-cl @../build-flags.rsp ../code/game.cpp /Fmgame.map /LD /link /PDB:%pdb_name% /OUT:game.dll /INCREMENTAL:NO /EXPORT:game_update_and_draw /EXPORT:game_input_change_device
+cl @../build-flags.rsp ../code/game.cpp /Fmgame.map /LDd /link /PDB:%pdb_name% /OUT:game.dll /INCREMENTAL:NO /EXPORT:game_update_and_draw /EXPORT:game_input_change_device
+
+del lock.tmp
 
 REM - compile platform
 REM - prevent compiling platform if its running (~20% compile spd boost)(useful for hot reload)

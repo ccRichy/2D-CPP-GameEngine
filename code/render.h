@@ -37,7 +37,7 @@ _xm(sWall_anim          , 2, 0, {})               \
 _xm(sBlob_small         , 4, 6, {})               \
 _xm(sGoal)                                        \
 _xm(sSpike)                                       \
-_xm(sTurtle_walk, 3, 4, {})                            \
+_xm(sTurtle_walk, 3, 4, {})                       \
 _xm(sItem_orb, 4, 5, {})                          \
 
 

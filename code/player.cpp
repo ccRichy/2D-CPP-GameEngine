@@ -206,7 +206,7 @@ Entity::player_ledge_check()
         f32 ydist = dist(tile_corner.y, tilecheck_pos.y); //
         b32 x_aligned = (xdist <= xmargin_final + (aimdir < 0));
         b32 y_aligned = (ydist <= abs_f32(spd.y));
-        b32 corners_aligned = x_aligned && y_aligned;
+        b32 corners_aligned = (x_aligned && y_aligned);
         b32 tile_above_is_open = !collide_rect_tilemap(tile_corner + V2f{(f32)aimdir, -1}, {1, 1}, tmap);
         
         if (corners_aligned && tile_above_is_open){
@@ -501,8 +501,10 @@ Entity::player_state_perform(Player_State _state, State_Function _function)
                     if (spd.x == 0 && spd.y == 0)
                         anim_speed = 1;
                 
-                if (anim_ended_this_frame)
-                    player_state_switch(Idle);
+                if (anim_ended_this_frame){
+                    auto st = (move_input.x == 0 ? Idle : Walk);
+                    player_state_switch(st);
+                }
             }break;
           }
       }break;

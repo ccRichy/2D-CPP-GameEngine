@@ -105,8 +105,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     global_cpu_freq = __perf_frequency_result.QuadPart;
     int64 tick_program_start = win32_get_tick();
     int64 cycle_program_start = __rdtsc();
-    UINT DesiredSchedulerMS = 1;
-    bool32 sleep_is_granular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);    
+    bool32 sleep_is_granular = (timeBeginPeriod(1) == TIMERR_NOERROR);    
     //granular my ass
     //SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);    
     
@@ -137,6 +136,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     //window
     i32 window_scale = WINDOW_SCALE_DEFAULT;
     i32 render_scale = RENDER_SCALE_DEFAULT;
+    if (RENDER_SCALE_OBEYS_WINDOW_SCALE) render_scale = WINDOW_SCALE_DEFAULT;
+    
     win32_set_DIB(&global_render_buffer, BASE_W * render_scale, BASE_H * render_scale);
     WNDCLASS window_class = {};
     window_class.style = CS_HREDRAW|CS_VREDRAW;
@@ -294,12 +295,21 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                             OutputDebugStringA(bgstatus_string);
                         }
                     }
+
+                    //window size
+                    i32 win_change = input.debug_win_plus.press - input.debug_win_minus.press;
+                    if (win_change != 0){
+                        global_settings->window_scale += win_change;
+                        if (RENDER_SCALE_OBEYS_WINDOW_SCALE)
+                            global_settings->render_scale = global_settings->window_scale;
+                        window_set_scale(global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
+                    }
                     
-                    if (input.debug_win_plus)
-                        window_set_scale(++global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
+                    // if (input.debug_win_plus)
+                    //     window_set_scale(++global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
                     
-                    if (input.debug_win_minus)
-                        window_set_scale(--global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
+                    // if (input.debug_win_minus)
+                    //     window_set_scale(--global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);                    
 
                     //QUICK HOTKEY to MOVE+TRANS the window
                     if (input.ctrl.hold && input.shift.hold && input.alt.hold)
@@ -317,8 +327,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                         window_set_trans(window, global_bgmode_enabled);
                         auto bgstatus_string = global_bgmode_enabled ? "Enabled\n" :  "Disabled\n";
                         OutputDebugStringA(bgstatus_string);
-                    }
-                    
+                    }                    
 
                     
                 //GAME LOOP
@@ -329,10 +338,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     int64 tick_game_update = win32_get_tick_diff(tick_loop_start);
                     int64 cycle_game_update = __rdtsc() - cycle_loop_start;
                     game_performance.ms_update = win32_tick_to_ms(tick_game_update);
-                    game_performance.megacycles_update = (float64)cycle_game_update / (1000 * 1000);
-                    // //log //TODO: enable with preprocessor define?
-                    // char buffer[256];
-                    // sprintf_s(buffer, "ms/f: %.02f | mc/work: %0.2f\n", ms_this_frame, megacycle_work);
+                    game_performance.megacycles_update = (f64)cycle_game_update / (1000 * 1000);
 
 
                 //RENDER

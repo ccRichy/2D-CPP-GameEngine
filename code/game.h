@@ -13,6 +13,21 @@
 
 
 
+#define LEVEL_FIRST "cave"
+
+#define WINDOW_SCALE_DEFAULT 4
+#define RENDER_SCALE_DEFAULT 1
+#define RENDER_SCALE_OBEYS_WINDOW_SCALE true
+#define CAM_OFFSET_Y_EXTRA 4
+
+#define BASE_W 160//320
+#define BASE_H 90//180
+#define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
+
+#define UNSAVED_BACKUP_NAME "unsaved"
+#define LEVEL_NAME_MAX_LEN 64
+#define FPS_TARGET 60
+#define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
 
 #define GAME_MEMORY_MB_PERMANENT  8
 #define GAME_MEMORY_MB_TRANSIENT  128
@@ -24,19 +39,8 @@
 #define SND_BITS_PER_SAMPLE   16
 #define SND_BUFFER_SIZE_BYTES (((SND_SAMPLE_RATE) * (SND_BITS_PER_SAMPLE/8)))
 
-#define LEVEL_FIRST "cave"
-#define UNSAVED_BACKUP_NAME "unsaved"
-#define LEVEL_NAME_MAX_LEN 64
-#define FPS_TARGET 60
-#define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
 
-#define CAM_OFFSET_Y_EXTRA 4
 
-#define BASE_W 320
-#define BASE_H 180
-#define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
-#define WINDOW_SCALE_DEFAULT 4
-#define RENDER_SCALE_DEFAULT 1
  
 #define GSTATE_DEFAULT       Game_State::Edit
 #define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
@@ -121,7 +125,7 @@ typedef DEBUG_PLATORM_FILE_READ_ENTIRE(DEBUG_Platform_File_Read_Entire);
 #define DEBUG_PLATORM_FILE_WRITE_ENTIRE(name) bool32 name(const char* filename, uint32 memory_size, void* memory)
 typedef DEBUG_PLATORM_FILE_WRITE_ENTIRE(DEBUG_Platform_File_Write_Entire);
 
-//new ones
+
 #define DEBUG_PLATORM_FILE_OPEN(name) bool32 name(const char* filename)
 typedef DEBUG_PLATORM_FILE_OPEN(DEBUG_Platform_File_Open);
 #define DEBUG_PLATORM_FILE_CLOSE(name) bool32 name(const char* filename)
@@ -273,9 +277,10 @@ struct Game_Data
 
 struct Game_Settings //REQUIRED: do not 0 init this struct
 {
-    float32 window_scale = WINDOW_SCALE_DEFAULT; //doesnt exactly qualify as a "setting"
-    float32 render_scale = RENDER_SCALE_DEFAULT; //doesnt exactly qualify as a "setting"
-    float32 zoom_scale = 1.0f;   //should probably exist in the camera object
+    float32 window_scale = WINDOW_SCALE_DEFAULT;
+    float32 render_scale = RENDER_SCALE_OBEYS_WINDOW_SCALE ? WINDOW_SCALE_DEFAULT : RENDER_SCALE_DEFAULT;
+    float32 zoom_scale = 1.0f;
+    float32 game_fps_multiplier = 1.0f; //TODO: implement keybind
     bool32  subpixel_rendering_enabled = false;
 };
 struct Game_Performance //TODO: averages
@@ -308,9 +313,6 @@ struct Game_Pointers //just all the fuckin data
 };
 
 
-
-//WARNING: global variables without default values will be 0'd when hot-reloading
-// struct Game_Pointers;
 //NOTE: initialized in game_init
 globalvar Entity* PLAYER;
 globalvar Game_Data* GDATA; 
