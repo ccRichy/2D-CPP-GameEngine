@@ -136,7 +136,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
     //window
     i32 window_scale = WINDOW_SCALE_DEFAULT;
     i32 render_scale = RENDER_SCALE_DEFAULT;
-    if (RENDER_SCALE_OBEYS_WINDOW_SCALE) render_scale = WINDOW_SCALE_DEFAULT;
+    if (RENDER_SCALE_OBEYS_WINDOW_SCALE) render_scale = WINDOW_SCALE_DEFAULT - RENDER_SCALE_OBEYS_WINDOW_SCALE_SUBTRACT;
     
     win32_set_DIB(&global_render_buffer, BASE_W * render_scale, BASE_H * render_scale);
     WNDCLASS window_class = {};
@@ -304,7 +304,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                     if (win_change != 0){
                         global_settings->window_scale += win_change;
                         if (RENDER_SCALE_OBEYS_WINDOW_SCALE)
-                            global_settings->render_scale = global_settings->window_scale;
+                            global_settings->render_scale = global_settings->window_scale - RENDER_SCALE_OBEYS_WINDOW_SCALE_SUBTRACT;
                         window_set_scale(global_settings->window_scale, window, &global_render_buffer, &game_render_buffer);
                     }
                     

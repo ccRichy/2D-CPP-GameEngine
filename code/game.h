@@ -15,19 +15,26 @@
 
 #define LEVEL_FIRST "cave"
 
-#define WINDOW_SCALE_DEFAULT 4
-#define RENDER_SCALE_DEFAULT 2
-#define RENDER_SCALE_OBEYS_WINDOW_SCALE true
-#define CAM_OFFSET_Y_EXTRA 4
-
 #define BASE_W 160//320
 #define BASE_H 90//180
-#define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
 
-#define UNSAVED_BACKUP_NAME "unsaved"
-#define LEVEL_NAME_MAX_LEN 64
+#define WINDOW_SCALE_DEFAULT 6
+#define RENDER_SCALE_DEFAULT 2
+#define RENDER_SCALE_OBEYS_WINDOW_SCALE true //ignores RENDER_SCALE_DEFAULT
+#define RENDER_SCALE_OBEYS_WINDOW_SCALE_SUBTRACT 0 //sub this number from render scale //NOTE: this exists for debug performance reasons
+
+#define CAM_OFFSET_Y_EXTRA 4
+
+#define GSTATE_DEFAULT       Game_State::Edit
+#define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
+#define DEBUG_MODE_ENABLED_DEFAULT true
+
+
 #define FPS_TARGET 60
+#define LEVEL_NAME_MAX_LEN 64
 #define SEC_PER_FRAME_TARGET  (1.0f/FPS_TARGET)
+#define UNSAVED_BACKUP_NAME "unsaved"
+#define BASE_CENTER_V2F {BASE_W/2, BASE_H/2}
 
 #define GAME_MEMORY_MB_PERMANENT  8
 #define GAME_MEMORY_MB_TRANSIENT  128
@@ -38,13 +45,7 @@
 #define SND_MAX_CONCURRENT    64
 #define SND_BITS_PER_SAMPLE   16
 #define SND_BUFFER_SIZE_BYTES (((SND_SAMPLE_RATE) * (SND_BITS_PER_SAMPLE/8)))
-
-
-
  
-#define GSTATE_DEFAULT       Game_State::Edit
-#define GEDITOR_MODE_DEFAULT Editor_Mode::Tile
-
 #define IF_DEBUG if (pointers->data->debug_mode_enabled)
 #define DEBUG_MESSAGE_LENGTH_MAX 128
 #define DEBUG_MESSAGE_ALSO_LOGS true
@@ -278,7 +279,7 @@ struct Game_Data
 struct Game_Settings //REQUIRED: do not 0 init this struct
 {
     float32 window_scale = WINDOW_SCALE_DEFAULT;
-    float32 render_scale = RENDER_SCALE_OBEYS_WINDOW_SCALE ? WINDOW_SCALE_DEFAULT : RENDER_SCALE_DEFAULT;
+    float32 render_scale = RENDER_SCALE_OBEYS_WINDOW_SCALE ? WINDOW_SCALE_DEFAULT - RENDER_SCALE_OBEYS_WINDOW_SCALE_SUBTRACT : RENDER_SCALE_DEFAULT;
     float32 zoom_scale = 1.0f;
     float32 game_fps_multiplier = 1.0f; //TODO: implement keybind
     bool32  subpixel_rendering_enabled = true;

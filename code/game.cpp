@@ -860,6 +860,7 @@ game_initialize(Game_Pointers* _game_pointers)
     data->state       = GSTATE_DEFAULT;
     data->editor_mode = GEDITOR_MODE_DEFAULT;
     data->draw_mode   = Draw_Mode::World;
+    data->debug_mode_enabled = DEBUG_MODE_ENABLED_DEFAULT;
 
     data->debug_msg.pos   = DEBUG_MESSAGE_POS_DEFAULT;
     data->debug_msg.scale = DEBUG_MESSAGE_SCALE_DEFAULT;
@@ -1022,4 +1023,7 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
     //draw mouse
     draw_sprite_frame(&GSPRITE->sMouse_cursors, input->mouse_pos_gui, 0);
+
+    GDATA->draw_mode = Draw_Mode::World;
+    draw_bmp_part_test(&GSPRITE->sTmap_test.bmp, {8, 8}, {-4,4}, {1, 0}, {15, 16});
 }

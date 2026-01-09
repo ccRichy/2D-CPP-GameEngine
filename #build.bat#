@@ -9,11 +9,9 @@ IF NOT EXIST %~dp0build mkdir %~dp0build
 pushd %~dp0build
 del *.pdb > NUL 2> NUL
 
+set debug_flags= /D MY_DEBUG=1 /D MY_INTERNAL=1 /MTd /Od /Z7 /Gm- /Gl-
+set release_flags= /D MY_DEBUG=0 /D MY_INTERNAL=0 /MT /O2
 set common_flags= /std:c++20 /D MY_WIN32=1 /nologo /FC /Oi /GR- /Y- /fp:fast /WX /W4 /wd4201 /wd4189 /wd4505 /wd4100 /wd4996
-
-set debug_flags= /D MY_DEBUG=1 /D MY_INTERNAL=1 /MTd /Od /Z7 /Gm- /GR-
-set release_flags= /D MY_DEBUG=1 /D MY_INTERNAL=1 /MT /O2
-
 set debug_link=/DEBUG:FULL  /OPT:REF
 set release_link=/INCREMENTAL:NO /OPT:REF
 
@@ -21,13 +19,13 @@ set release_link=/INCREMENTAL:NO /OPT:REF
 REM - lock
 echo waiting for pdb > lock.tmp
 REM - compile game
-cl %debug_flags% %common_flags% ../code/game.cpp /Fmgame.map /LDd /link /PDB:%pdb_name% /OUT:game.dll /EXPORT:game_update_and_draw /EXPORT:game_input_change_device %debug_link%
+cl  ../code/game.cpp /Fmgame.map /LDd /link /PDB:%pdb_name% /OUT:game.dll /EXPORT:game_update_and_draw /EXPORT:game_input_change_device %debug_link%
 
 del lock.tmp
 
 REM - compile platform
 REM - prevent compiling platform if its running (~20% compile spd boost)(useful for hot reload)
 tasklist /fi "ImageName eq %exe_name%" /fo csv 2>NUL | find /I %exe_name%>NUL
-if "%ERRORLEVEL%"=="1" cl %debug_flags% %common_flags% ../code/win32_main.cpp /Fe:%exe_name% @../build-libs.rsp /Fmwin32_main.map /link %debug_link%
+if "%ERRORLEVEL%"=="1" cl @../build-flags.rsp ../code/win32_main.cpp /Fe:%exe_name% @../build-libs.rsp /Fmwin32_main.map /link %common_linker_flags%
 
 popd

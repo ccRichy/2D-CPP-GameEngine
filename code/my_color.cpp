@@ -24,6 +24,14 @@ color_get_transparent(Color color_prev, Color color_new)
     };
 }
 
+inline u32 color_blend_alpha(u32 colora, u32 colorb, u32 alpha)
+{
+    u32 rb1 = ((0x100 - alpha) * (colora & 0xFF00FF)) >> 8;
+    u32 rb2 = (alpha * (colorb & 0xFF00FF)) >> 8;
+    u32 g1  = ((0x100 - alpha) * (colora & 0x00FF00)) >> 8;
+    u32 g2  = (alpha * (colorb & 0x00FF00)) >> 8;
+    return ((rb1 | rb2) & 0xFF00FF) + ((g1 | g2) & 0x00FF00);
+}
 // Color
 // color_sub_rgb(Color input, u8 sub)
 // {
