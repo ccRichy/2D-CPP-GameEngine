@@ -394,8 +394,6 @@ level_load_file(const char* filename) //filename without extension
     // char tiles_buff[SAVE_BUFFER_MAX] = {};
     buff_len = string_get_until_delimiter(tiles_buff, file_mem + file_mem_offset, '!');
 
-    //HACK:
-    i32 tile_val_test = 1;
     while ( buff_offset < buff_len )
     {
         i32 word_len = string_get_until_space(word_buffer, tiles_buff + buff_offset);
@@ -411,10 +409,7 @@ level_load_file(const char* filename) //filename without extension
         buff_offset += word_len+1;
         
         if (string_contains(word_buffer, ',')){ //end of single tile read
-            // tmap->grid[tile_pos.y][tile_pos.x] = tile_value;
-            //HACK:
-            tmap->grid[tile_pos.y][tile_pos.x] = tile_val_test;
-            tile_val_test = tile_val_test == 1 ? 2 : 1;
+            tmap->grid[tile_pos.y][tile_pos.x] = tile_value;
         }
     }
     file_mem_offset += buff_len;
@@ -1022,4 +1017,6 @@ extern "C" GAME_UPDATE_AND_DRAW(game_update_and_draw)
 
     //draw mouse
     draw_sprite_frame(&GSPRITE->sMouse_cursors, input->mouse_pos_gui, 0);
+
+    draw_sprite(&GSPRITE->sTmap_test, {10, 10});
 }

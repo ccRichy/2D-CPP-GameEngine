@@ -16,7 +16,7 @@
 #define LEVEL_FIRST "cave"
 
 #define WINDOW_SCALE_DEFAULT 4
-#define RENDER_SCALE_DEFAULT 1
+#define RENDER_SCALE_DEFAULT 2
 #define RENDER_SCALE_OBEYS_WINDOW_SCALE true
 #define CAM_OFFSET_Y_EXTRA 4
 
@@ -281,7 +281,7 @@ struct Game_Settings //REQUIRED: do not 0 init this struct
     float32 render_scale = RENDER_SCALE_OBEYS_WINDOW_SCALE ? WINDOW_SCALE_DEFAULT : RENDER_SCALE_DEFAULT;
     float32 zoom_scale = 1.0f;
     float32 game_fps_multiplier = 1.0f; //TODO: implement keybind
-    bool32  subpixel_rendering_enabled = false;
+    bool32  subpixel_rendering_enabled = true;
 };
 struct Game_Performance //TODO: averages
 {

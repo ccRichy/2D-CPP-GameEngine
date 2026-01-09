@@ -14,6 +14,8 @@ _xm(sMouse_cursors      , 4, 0, {2, 2})           \
 _xm(sBG_test)                                     \
 _xm(sBG_cave1)                                    \
                                                   \
+_xm(sTmap_test)                                   \
+                                                  \
 _xm(sPlayer_air         , 7, 15, PLR_SPR_ORIGIN)  \
 _xm(sPlayer_air_reach   , 2, 0,  PLR_SPR_ORIGIN)  \
 _xm(sPlayer_idle        , 2, 0,  PLR_SPR_ORIGIN)  \
@@ -71,13 +73,15 @@ struct BMP_Data
 struct Sprite
 {
     BMP_Data bmp;
-	Vec2f origin;
-    union {
-        struct { Vec2i size; };
-        struct { int32 width, height; };
-    };
-    int32 frame_width;
-    int32 frame_height;    
+    Vec2f origin;
+    Vec2iUnion(size, width, height);
+    Vec2iUnion(frame_size, frame_width, frame_height);
+    /* union { */
+    /*     struct { Vec2i size; }; */
+    /*     struct { int32 width, height; }; */
+    /* }; */
+    /* int32 frame_width; */
+    /* int32 frame_height;     */
     float32 fps;
     uint32 frame_num;
     bool32 is_animation;
@@ -85,7 +89,7 @@ struct Sprite
 };
 
 
-Sprite sprite_create(const char* bmp_filename, uint32 frame_num = 1, float32 fps = 0, Vec2f origin = {});
+Sprite sprite_create(const char* bmp_filename, uint32 frame_num = 1, float32 fps = 0, Vec2f origin = {}, Vec2i frame_size_override = {});
 
 void draw_pixel(Vec2f pos, Color color);
 void draw_rect(Vec2f pos, Vec2f size, Color color);

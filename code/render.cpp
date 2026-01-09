@@ -19,7 +19,7 @@ DEBUG_load_bmp(const char* filename)
     auto file = (BMP_File_Header*)pointers->memory->DEBUG_platform_file_read_entire(file_path).memory;
 
     if (!file)
-        printf("poopy");
+        printf("Game: bmp failed to load");
     Assert(file);
     
     result.size_bytes = file->size;
@@ -34,7 +34,7 @@ DEBUG_load_bmp(const char* filename)
 
 
 Sprite
-sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f origin)
+sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f origin, Vec2i frame_size_override)
 {
     Sprite result         = {};
     result.is_initialized = true;
@@ -47,6 +47,8 @@ sprite_create(const char* bmp_filename, uint32 frame_num, float32 fps, Vec2f ori
     result.height         = result.bmp.height;
     result.frame_width    = (int32)(result.bmp.width / result.frame_num);
     result.frame_height   = result.bmp.height;
+    if (frame_size_override.x) result.frame_width = frame_size_override.x;
+    if (frame_size_override.y) result.frame_height = frame_size_override.y;
     return result;
 }
 

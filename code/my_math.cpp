@@ -28,7 +28,7 @@
     union { struct {Vec2f __vec_name;}; struct {float32 __xname, __yname; }; }
 
 #define Vec2iUnion(__vec_name, __xname, __yname)\
-    union { struct {Vec2f __vec_name;}; struct {float32 __xname, __yname; }; }
+    union { struct {Vec2f __vec_name;}; struct {int32 __xname, __yname; }; }
 
 struct Vector2i
 {

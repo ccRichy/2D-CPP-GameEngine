@@ -94,28 +94,48 @@ tilemap_get_tile_rect(Tilemap* tmap, Vec2f world_pos)
 void
 draw_tilemap(Tilemap* tmap)
 {
+  //culling
     f32 zoom             = GSETTING->zoom_scale;
     V2f cam_size         = {BASE_W / zoom, BASE_H / zoom};
     V2f cam_top_left     = pointers->data->camera_pos;
     V2f cam_bottom_right = cam_top_left + cam_size;
-    V2i top_left         = tilemap_get_grid_pos(tmap, cam_top_left);
-    V2i bottom_right     = tilemap_get_grid_pos(tmap, cam_bottom_right);
+    V2i tile_top_left         = tilemap_get_grid_pos(tmap, cam_top_left);
+    V2i tile_bottom_right     = tilemap_get_grid_pos(tmap, cam_bottom_right);
     
-    bottom_right += {1, 1};
-    if (top_left.x < 0) top_left.x = 0;
-    if (top_left.y < 0) top_left.y = 0;
-    if (bottom_right.x > tmap->grid_w) bottom_right.x = tmap->grid_w;
-    if (bottom_right.y > tmap->grid_h) bottom_right.y = tmap->grid_h;
-    
+    tile_bottom_right += {1, 1};
+    if (tile_top_left.x < 0) tile_top_left.x = 0;
+    if (tile_top_left.y < 0) tile_top_left.y = 0;
+    if (tile_bottom_right.x > tmap->grid_w) tile_bottom_right.x = tmap->grid_w;
+    if (tile_bottom_right.y > tmap->grid_h) tile_bottom_right.y = tmap->grid_h;
+
+  //rendering
     V2f tile_size = v2i_to_v2f({tmap->tile_w, tmap->tile_h});
-    for (int Y = top_left.y; Y < bottom_right.y; ++Y){
-        for (int X = top_left.x; X < bottom_right.x; ++X){
-            if (tmap->grid[Y][X]){
+    for (int Y = tile_top_left.y; Y < tile_bottom_right.y; ++Y){
+        for (int X = tile_top_left.x; X < tile_bottom_right.x; ++X){
+            Tile tile = tmap->grid[Y][X];
+            if (tile){
+                Sprite* tsprite = &GSPRITE->sTmap_test;
+                V2f drawpos = {
+                    .x = (f32)X * (tmap->tile_w),
+                    .y = (f32)Y * (tmap->tile_h)
+                };
+                V2i imgpos = {
+                    .x = 0,
+                    // .x = (i32)tile * tmap->tile_w,
+                    .y = 2
+                };
+                if (imgpos.x >= tsprite->width){
+                    // imgpos.x = 0;
+                    imgpos.y += tmap->tile_h;
+                }
+                
                 draw_rect(
-                    {(f32)X * (tmap->tile_w), (f32)Y * (tmap->tile_h)},
+                    drawpos,
                     tile_size,
                     DARKBROWN
-                );                
+                );
+
+                draw_sprite_part(tsprite, {drawpos.x, drawpos.y}, {1,1}, imgpos, {8, 8});
             }
         }
     }

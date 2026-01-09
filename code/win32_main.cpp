@@ -284,6 +284,8 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                         if (input.ctrl.hold){
                             if (global_bgmode_enabled){
                                 global_bgmode_trans_when_outoffocus = !global_bgmode_trans_when_outoffocus;
+                                window_set_trans(window, global_bgmode_trans_when_outoffocus);
+                                
                                 auto toof_string = global_bgmode_trans_when_outoffocus ? "transparency out of focus enabled\n" : "transparency out of focus disabled\n";
                                 OutputDebugStringA(toof_string);
                             }
@@ -291,6 +293,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
                             global_bgmode_enabled = !global_bgmode_enabled;
                             window_set_topmost(window, global_bgmode_enabled);
                             window_set_trans(window, global_bgmode_enabled);
+                            
                             auto bgstatus_string = global_bgmode_enabled ? "Enabled\n" :  "Disabled\n";
                             OutputDebugStringA(bgstatus_string);
                         }
